@@ -2,16 +2,17 @@ class_name MatchState
 extends RefCounted
 ## Match bookkeeping, independent of scene lifetime and presentation.
 
+# Share canonical customisation colours, with three distinct extras for ten seats.
 const COLOURS: Array[Color] = [
-	Color("f4d782"),
-	Color("72d9ae"),
-	Color("f498b0"),
-	Color("94b9f4"),
-	Color("c093ed"),
-	Color("ec9468"),
+	CharacterAppearance.PALETTE[0],
+	CharacterAppearance.PALETTE[1],
+	CharacterAppearance.PALETTE[2],
+	CharacterAppearance.PALETTE[3],
+	CharacterAppearance.PALETTE[4],
+	CharacterAppearance.PALETTE[5],
+	CharacterAppearance.PALETTE[6],
 	Color("63c9d9"),
 	Color("b2d16e"),
-	Color("df83cb"),
 	Color("9ba7bd")
 ]
 
@@ -38,11 +39,12 @@ func configure(config: MatchConfig) -> void:
 	var ai_colours: Array[Color] = COLOURS.duplicate()
 	ai_colours.remove_at(0)
 	ai_colours.append(COLOURS[0])
+	# Reserve the human colour before assigning the remaining seats without reuse.
 	ai_colours.erase(human_colour)
 	var default_skin := SkinCatalog.default_definition()
 	for index in clampi(config.player_count, MatchConfig.MIN_PLAYERS, MatchConfig.MAX_PLAYERS):
 		var skin := appearance.resolved_skin() if index == 0 else default_skin
-		var colour := human_colour if index == 0 else ai_colours[(index - 1) % ai_colours.size()]
+		var colour := human_colour if index == 0 else ai_colours[index - 1]
 		(
 			participants
 			. append(

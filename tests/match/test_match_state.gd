@@ -50,3 +50,36 @@ func run(tree: SceneTree, check: Callable) -> void:
 	separate.configure(config)
 	state.record_result(state.begin_round(), 1)
 	check.call(separate.participants[1]["wins"] == 0, "Separate matches never share scores")
+
+	_test_unique_colours(check)
+
+
+func _test_unique_colours(check: Callable) -> void:
+	var config := MatchConfig.new()
+	for colour_id in CharacterAppearance.COLOUR_IDS:
+		config.appearance.colour_id = colour_id
+		var chosen := config.player_colour
+		check.call(chosen in MatchState.COLOURS, "Match palette contains selected %s" % colour_id)
+		for count in range(MatchConfig.MIN_PLAYERS, MatchConfig.MAX_PLAYERS + 1):
+			config.player_count = count
+			var state := MatchState.new()
+			state.configure(config)
+			var assigned: Array[Color] = []
+			for participant in state.participants:
+				assigned.append(participant.colour)
+			var unique := {}
+			for colour in assigned:
+				unique[colour] = true
+			check.call(
+				unique.size() == count and assigned[0] == chosen,
+				"%d players have unique colours preserving selected %s" % [count, colour_id]
+			)
+			state.record_result(state.begin_round(), -1)
+			state.begin_round()
+			check.call(
+				(
+					state.participants.map(func(participant: Dictionary): return participant.colour)
+					== assigned
+				),
+				"Colours remain stable between rounds (%d players, %s)" % [count, colour_id]
+			)
