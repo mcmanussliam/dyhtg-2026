@@ -232,6 +232,38 @@ func push(impulse: Vector2, offset: Vector2) -> void:
 		_motion.push(impulse, offset)
 
 
+func launch(velocity: Vector3, spin: Vector3) -> void:
+	if is_movable():
+		_motion.launch(velocity, spin)
+
+
+## Heavy vehicles flatten furniture that is otherwise fixed to the floor: it is released
+## from its footprint as a ballistic native body, like a launched loose prop.
+func smash(stage: ArenaStage, velocity: Vector3, spin: Vector3) -> void:
+	if is_movable():
+		launch(velocity, spin)
+		return
+	if _floor_detached or not is_instance_valid(_presentation):
+		return
+	_floor_detached = true
+	collision_layer = 0
+	collision_mask = 0
+	var flying := FallingStagePiece.new()
+	flying.name = "SmashedFurniture"
+	flying.mass = 20
+	flying.collision_layer = 0
+	flying.collision_mask = 0
+	stage.round_stopped.connect(flying.freeze_for_results)
+	_presentation.get_parent().add_child(flying)
+	flying.global_transform = _presentation.global_transform.orthonormalized()
+	for child in _presentation.get_children():
+		child.reparent(flying, true)
+	_presentation.queue_free()
+	_presentation = flying
+	flying.linear_velocity = velocity
+	flying.angular_velocity = spin
+
+
 func set_simulation_active(enabled: bool) -> void:
 	if is_movable():
 		_motion.set_active(enabled)

@@ -11,6 +11,7 @@ var _definitions: Array[StageDefinition] = []
 
 func _ready() -> void:
 	_definitions = MatchConfig.available_stages()
+	scrollable = true
 	super._ready()
 	var labels := PackedStringArray(["Back"])
 	for definition in _definitions:

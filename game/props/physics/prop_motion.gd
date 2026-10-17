@@ -78,6 +78,19 @@ func release_to_3d() -> void:
 		_start_fall()
 
 
+func launch(velocity: Vector3, spin: Vector3) -> void:
+	if _falling or _body.freeze or not is_instance_valid(_model):
+		return
+	_start_fall()
+	var native := _model as RigidBody3D
+	# Match player knockouts: ballistic launches clear trains, walls and desks.
+	# Ordinary floor fractures still keep their native arena collision.
+	native.collision_layer = 0
+	native.collision_mask = 0
+	native.linear_velocity = velocity
+	native.angular_velocity = spin
+
+
 func _start_fall() -> void:
 	_falling = true
 	var velocity := _body.linear_velocity

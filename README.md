@@ -9,7 +9,7 @@ floor. Open `project.godot` in **Godot 4.7.2 Standard** and press F5.
 Home offers Play, Customise, Settings and Quit. Matches have **2–10 total players**
 (default 2): one human and the remaining seats controlled by AI. Multiplayer is
 not implemented. Choose a **first-to-1–5 wins** target; the default is first to five.
-Setup’s Select maps page lets you toggle the testing map pool with Left/Right; all maps
+Setup’s Select maps page scrolls with Left and toggles maps with Right; all maps
 start selected. Start match is unavailable while the pool is empty. Each round
 independently picks a selected map, so repeats are possible:
 
@@ -20,6 +20,13 @@ independently picks a selected map, so repeats are possible:
 - **HR Training:** three horizontal office rail crossings with flashing red warnings. Trains
   sweep the top, middle and bottom. Independent arrivals accelerate and overlap;
   each train warns before entering, with opposing traffic held until its track clears.
+- **Faulty Floors:** occupied office panels highlight before dropping into the void.
+  Keep moving; holes remain for the rest of the round.
+
+- **Under Construction:** an office with desks, site fences and a movable tool trolley.
+  Two horizontal and two vertical lanes run through smashed openings in all four walls.
+  A flat orange path highlights each digger's lane before it drives through, flattening
+  furniture and launching any player in its way.
 
 Both crack maps begin crumbling after roughly 15 seconds: the island shrinks and
 the hole widens. Full-depth sections fall away. Furniture tips under native 3D

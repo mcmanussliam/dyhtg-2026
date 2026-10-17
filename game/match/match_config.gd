@@ -10,7 +10,9 @@ const STAGE_PATHS := [
 	DEFAULT_STAGE_PATH,
 	"res://game/stage/a_crack_in_the_floor/a_crack_in_the_floor.tres",
 	"res://game/stage/bull_office/bull_office.tres",
-	"res://game/stage/hr_training/hr_training.tres"
+	"res://game/stage/hr_training/hr_training.tres",
+	"res://game/stage/faulty_floors/faulty_floors.tres",
+	"res://game/stage/under_construction/under_construction.tres"
 ]
 
 # The available registry stays complete while this array holds the chosen map pool.

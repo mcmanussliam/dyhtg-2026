@@ -121,6 +121,7 @@ func _sweep_props(previous: Vector2) -> void:
 		if (
 			not prop is OfficeProp
 			or not prop.is_movable()
+			or prop.collision_layer == 0
 			or _hit_props.has(prop.get_instance_id())
 		):
 			continue
@@ -128,7 +129,10 @@ func _sweep_props(previous: Vector2) -> void:
 			prop.global_position - previous, prop.global_position - position, 35
 		):
 			_hit_props[prop.get_instance_id()] = true
-			prop.push(direction * 2200, Vector2.ZERO)
+			var planar := direction * 2450 / RenderStyle.PIXELS_PER_UNIT
+			prop.launch(
+				Vector3(planar.x, 16, planar.y), Vector3(direction.y, 0.4, -direction.x) * 10
+			)
 
 
 func _intersects_envelope(from: Vector2, to: Vector2, radius: float) -> bool:

@@ -1,0 +1,25 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://game/props/office_prop.gd" id="1"]
+[ext_resource type="PackedScene" path="res://game/props/tool_trolley/tool_trolley_visual.tscn" id="2"]
+
+[sub_resource type="RectangleShape2D" id="Footprint"]
+size = Vector2(51.6, 34.4)
+
+[sub_resource type="PhysicsMaterial" id="Wheels"]
+friction = 0.18
+bounce = 0.2
+
+[node name="ToolTrolley" type="RigidBody2D"]
+mass = 3.5
+gravity_scale = 0.0
+linear_damp = 1.8
+angular_damp = 3.5
+collision_layer = 1
+collision_mask = 3
+physics_material_override = SubResource("Wheels")
+script = ExtResource("1")
+visual_scene = ExtResource("2")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("Footprint")

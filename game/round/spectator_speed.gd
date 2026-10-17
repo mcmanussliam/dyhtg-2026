@@ -5,7 +5,7 @@ extends CanvasLayer
 const MULTIPLIER := 3
 
 var can_fast_forward: Callable
-var _hint: Label
+var _hint: PanelContainer
 var _armed := false
 var _accelerated := false
 var _focused := true
@@ -16,18 +16,33 @@ var _normal_max_steps := 8
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_hint = Label.new()
-	_hint.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_hint.offset_left = 32
-	_hint.offset_right = -32
-	_hint.offset_top = 32
-	_hint.offset_bottom = 64
-	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	_hint.add_theme_font_size_override("font_size", 22)
-	_hint.add_theme_color_override("font_color", Color.WHITE)
-	_hint.add_theme_color_override("font_shadow_color", Color.BLACK)
-	_hint.add_theme_constant_override("shadow_offset_y", 2)
+	_hint = PanelContainer.new()
+	_hint.position = Vector2(48, 40)
 	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var background := StyleBoxFlat.new()
+	background.bg_color = Color.BLACK
+	background.content_margin_left = 16
+	background.content_margin_right = 16
+	background.content_margin_top = 8
+	background.content_margin_bottom = 8
+	_hint.add_theme_stylebox_override("panel", background)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hint.add_child(row)
+	var icon := Control.new()
+	icon.custom_minimum_size = Vector2(36, 26)
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.draw.connect(_draw_icon.bind(icon))
+	row.add_child(icon)
+	var label := Label.new()
+	label.text = "%d×" % MULTIPLIER
+	label.add_theme_font_size_override("font_size", 26)
+	label.add_theme_color_override("font_color", Color.WHITE)
+	label.add_theme_color_override("font_shadow_color", Color.BLACK)
+	label.add_theme_constant_override("shadow_offset_y", 2)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(label)
 	_hint.hide()
 	add_child(_hint)
 
@@ -50,8 +65,20 @@ func refresh() -> void:
 		# A steering key already held at elimination must be released first.
 		_armed = true
 	_set_accelerated(available and _armed and held)
-	_hint.visible = available
-	_hint.text = "Fast-forward 3×" if _accelerated else "Hold → to fast-forward"
+	_hint.visible = _accelerated
+
+
+func _draw_icon(icon: Control) -> void:
+	# Two right-pointing triangles: the standard fast-forward symbol.
+	var size := icon.size
+	var half := size.x * 0.5
+	for x in [0.0, half]:
+		icon.draw_colored_polygon(
+			PackedVector2Array(
+				[Vector2(x, 0), Vector2(x + half, size.y * 0.5), Vector2(x, size.y)]
+			),
+			Color.WHITE
+		)
 
 
 func _set_accelerated(enabled: bool) -> void:

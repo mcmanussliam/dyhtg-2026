@@ -208,6 +208,7 @@ func run(tree: SceneTree, check: Callable) -> void:
 	await tree.process_frame
 	await _check_concurrency(tree, check)
 	await _check_round(tree, check)
+	await _check_furniture_launch(tree, check)
 
 
 func _check_concurrency(tree: SceneTree, check: Callable) -> void:
@@ -338,3 +339,56 @@ func _check_round(tree: SceneTree, check: Callable) -> void:
 	)
 	round_scene.free()
 	await tree.process_frame
+
+
+func _check_furniture_launch(tree: SceneTree, check: Callable) -> void:
+	for forward in [true, false]:
+		var stage := DEFINITION.scene.instantiate() as OfficeStage
+		tree.root.add_child(stage)
+		var world := Node3D.new()
+		tree.root.add_child(world)
+		stage.create_presentation(world, 1.0 / RenderStyle.PIXELS_PER_UNIT)
+		stage.start_round()
+		var prop := stage.get_node("Furniture/UpperFrontChair4") as OfficeProp
+		prop.global_position = stage.to_global(stage.center)
+		for frame in 2:
+			await tree.physics_frame
+		var train: TrainingTrain = stage.trains[0]
+		train.warn(1, forward)
+		train.begin_crossing()
+		train.tick(0.9)
+		var native := prop.get("_motion").get("_model") as RigidBody3D
+		check.call(native != null, "Train transfers loose furniture into native 3D physics")
+		if native == null:
+			stage.free()
+			world.free()
+			continue
+		check.call(
+			native.linear_velocity.x * train.direction.x > 50 and native.linear_velocity.y >= 15,
+			"Train launches furniture upward and in its travel direction"
+		)
+		check.call(native.angular_velocity.length() > 5, "Launched furniture tumbles")
+		check.call(
+			prop.collision_layer == 0 and prop.get("freeze") == true,
+			"Launched furniture leaves no frozen planar collider"
+		)
+		var origin := native.position
+		for frame in 30:
+			await tree.physics_frame
+		check.call(
+			(
+				(native.position.x - origin.x) * train.direction.x > 10
+				and native.position.y > origin.y + 2.5
+			),
+			"Native furniture launch clears the train and office walls"
+		)
+		train.tick(0.01)
+		check.call(
+			prop.get("_motion").get("_model") == native,
+			"The same train cannot create repeated furniture launches"
+		)
+		stage.stop_round()
+		check.call(native.freeze, "Results freeze launched furniture with the round")
+		stage.free()
+		world.free()
+		await tree.process_frame

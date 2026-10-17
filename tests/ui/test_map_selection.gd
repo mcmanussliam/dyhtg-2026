@@ -39,6 +39,23 @@ func run(tree: SceneTree, check: Callable) -> void:
 			),
 			"Enabled maps display white text and a tick"
 		)
+	for step in names.size() - 1:
+		await _tap(tree, KEY_LEFT)
+	await tree.process_frame
+	check.call(
+		menu.get_global_rect().encloses(menu._rows[menu.chosen].get_global_rect()),
+		"Keyboard navigation scrolls the final map fully into view"
+	)
+	check.call(menu._scroll.scroll_vertical > 0, "Overflowing map list scrolls inside its bounds")
+	await _tap(tree, KEY_RIGHT)
+	check.call(not menu._rows[-1].text.contains("✓"), "Last visible map can be toggled off")
+	await _tap(tree, KEY_RIGHT)
+	await _tap(tree, KEY_LEFT)
+	await tree.process_frame
+	check.call(
+		menu.chosen == 0 and menu._scroll.scroll_vertical == 0,
+		"Wrapping to Back returns the list to the top"
+	)
 	await _tap(tree, KEY_LEFT)
 	await _tap(tree, KEY_RIGHT)
 	check.call(
@@ -89,7 +106,8 @@ func run(tree: SceneTree, check: Callable) -> void:
 		app.config.stages.size() == 1 and app.config.stages[0].id == &"hr_training",
 		"A single testing map can be enabled independently"
 	)
-	await _tap(tree, KEY_LEFT)
+	while menu.chosen != 0:
+		await _tap(tree, KEY_LEFT)
 	await _tap(tree, KEY_RIGHT)
 	await tree.process_frame
 	for step in 3:

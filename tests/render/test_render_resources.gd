@@ -174,8 +174,7 @@ func _check_warmup(tree: SceneTree, check: Callable) -> void:
 		"Render warmup never advances bull physics or the reinforcement clock"
 	)
 	check.call(
-		not bull.get("_lane").visible and not bull.get("_marker").visible,
-		"Warmup restores hidden charge indicators before gameplay"
+		not bull.get("_lane").visible, "Warmup restores hidden charge indicators before gameplay"
 	)
 	var unchanged := not arena.stage.round_running
 	for chair in arena.chairs:
@@ -185,10 +184,7 @@ func _check_warmup(tree: SceneTree, check: Callable) -> void:
 	check.call(unchanged, "Warmup never changes player inputs, thrust or opening spray state")
 	# Exercise the presentation paths directly in headless checks too.
 	arena.stage.set_render_warmup(true)
-	check.call(
-		bull.get("_lane").visible and bull.get("_marker").visible,
-		"Bull warmup includes the real charge-warning draw paths"
-	)
+	check.call(bull.get("_lane").visible, "Bull warmup includes the real charge-warning draw paths")
 	arena.stage.set_render_warmup(false)
 	check.call(
 		not bull.get("_lane").visible and bull.phase == OfficeBull.Phase.RECOVERY,

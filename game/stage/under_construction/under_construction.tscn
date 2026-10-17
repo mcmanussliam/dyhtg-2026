@@ -1,0 +1,178 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://game/stage/under_construction/under_construction.gd" id="1"]
+[ext_resource type="PackedScene" path="res://game/props/desk/office_desk.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://game/props/task_chair/office_task_chair.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://game/props/bookshelf/office_bookshelf.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://game/props/cabinet/office_cabinet.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://game/props/copier/office_copier.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://game/props/sofa/office_sofa.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://game/props/coffee_table/office_coffee_table.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://game/props/plant/office_plant.tscn" id="9"]
+
+[ext_resource type="PackedScene" path="res://game/props/construction_fence/construction_fence.tscn" id="10"]
+[ext_resource type="PackedScene" path="res://game/props/tool_trolley/tool_trolley.tscn" id="11"]
+
+[ext_resource type="PackedScene" path="res://game/props/desk_divider/office_desk_divider.tscn" id="12"]
+
+[node name="UnderConstruction" type="Node2D"]
+script = ExtResource("1")
+view_width = 1540.0
+view_focus = Vector2(640, 330)
+content_scale = 1.4
+
+[node name="Furniture" type="Node2D" parent="."]
+
+[node name="DeskA" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(294, -125)
+rotation = 0
+
+[node name="ChairA" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(294, -35)
+rotation = 3.14159
+
+[node name="Shelf" parent="Furniture" instance=ExtResource("4")]
+position = Vector2(933.16, -143.545)
+rotation = 0
+
+[node name="Cabinet" parent="Furniture" instance=ExtResource("5")]
+position = Vector2(1107.74, -154.08)
+rotation = 0
+
+[node name="Printer" parent="Furniture" instance=ExtResource("6")]
+position = Vector2(1173.96, -160.1)
+rotation = 0
+
+[node name="SofaA" parent="Furniture" instance=ExtResource("7")]
+position = Vector2(1140, 870)
+rotation = 1.5708
+
+[node name="SofaB" parent="Furniture" instance=ExtResource("7")]
+position = Vector2(950, 870)
+rotation = -1.5708
+
+[node name="Table" parent="Furniture" instance=ExtResource("8")]
+position = Vector2(1045, 870)
+rotation = 1.5708
+
+[node name="PlantA" parent="Furniture" instance=ExtResource("9")]
+position = Vector2(150, -45)
+rotation = 0
+
+[node name="PlantB" parent="Furniture" instance=ExtResource("9")]
+position = Vector2(1210, 970)
+rotation = 0
+
+[node name="SideDeskA" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(68, 868)
+rotation = -1.5708
+
+[node name="SideChairA" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(160, 868)
+rotation = 1.5708
+
+[node name="ShelfB" parent="Furniture" instance=ExtResource("4")]
+position = Vector2(1029.48, -143.545)
+rotation = 0
+
+[node name="ArchiveCabinetA" parent="Furniture" instance=ExtResource("5")]
+position = Vector2(255, 1025.92)
+rotation = 3.14159
+
+[node name="ArchiveCabinetB" parent="Furniture" instance=ExtResource("5")]
+position = Vector2(315.2, 1025.92)
+rotation = 3.14159
+
+[node name="CornerPlant" parent="Furniture" instance=ExtResource("9")]
+position = Vector2(160, 800)
+rotation = 0
+
+[node name="PrintCabinet" parent="Furniture" instance=ExtResource("5")]
+position = Vector2(1240.18, -154.08)
+rotation = 0
+
+[node name="RearSiteFence" parent="Furniture" instance=ExtResource("10")]
+position = Vector2(448, -170)
+
+[node name="SideSiteFence" parent="Furniture" instance=ExtResource("10")]
+position = Vector2(30, 626)
+rotation = 1.5707963
+
+[node name="ToolTrolley" parent="Furniture" instance=ExtResource("11")]
+position = Vector2(1100, 650)
+
+[node name="CentralBackDesk1" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(420.000, 385.88)
+rotation = 3.1415927
+
+[node name="CentralFrontDesk1" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(420.000, 458.12)
+rotation = 0
+
+[node name="CentralDivider1" parent="Furniture" instance=ExtResource("12")]
+position = Vector2(420.000, 422)
+scale = Vector2(0.9230769, 1)
+
+[node name="CentralFrontChair1" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(420.000, 544.12)
+rotation = 3.1415927
+
+[node name="CentralBackDesk2" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(564.480, 385.88)
+rotation = 3.1415927
+
+[node name="CentralFrontDesk2" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(564.480, 458.12)
+rotation = 0
+
+[node name="CentralDivider2" parent="Furniture" instance=ExtResource("12")]
+position = Vector2(564.480, 422)
+scale = Vector2(0.9230769, 1)
+
+[node name="CentralBackChair2" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(564.480, 299.88)
+rotation = 0
+
+[node name="CentralBackDesk3" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(708.960, 385.88)
+rotation = 3.1415927
+
+[node name="CentralFrontDesk3" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(708.960, 458.12)
+rotation = 0
+
+[node name="CentralDivider3" parent="Furniture" instance=ExtResource("12")]
+position = Vector2(708.960, 422)
+scale = Vector2(0.9230769, 1)
+
+[node name="CentralFrontChair3" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(708.960, 544.12)
+rotation = 3.1415927
+
+[node name="CentralBackDesk4" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(853.440, 385.88)
+rotation = 3.1415927
+
+[node name="CentralFrontDesk4" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(853.440, 458.12)
+rotation = 0
+
+[node name="CentralDivider4" parent="Furniture" instance=ExtResource("12")]
+position = Vector2(853.440, 422)
+scale = Vector2(0.9230769, 1)
+
+[node name="CentralBackChair4" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(853.440, 299.88)
+rotation = 0
+
+[node name="CentralEndFence" parent="Furniture" instance=ExtResource("10")]
+position = Vector2(946.74, 422)
+rotation = 1.5707963
+
+[node name="RightSiteFenceA" parent="Furniture" instance=ExtResource("10")]
+position = Vector2(1250, 626)
+rotation = 1.5707963
+
+[node name="RightSiteFenceB" parent="Furniture" instance=ExtResource("10")]
+position = Vector2(1250, 788.54)
+rotation = 1.5707963

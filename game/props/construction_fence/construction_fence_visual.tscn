@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://game/props/construction_fence/construction_fence_model.gd" id="1"]
+
+[sub_resource type="BoxShape3D" id="FenceShape"]
+size = Vector3(2.7, 1.35, 0.7)
+
+[node name="ConstructionFence" type="StaticBody3D"]
+script = ExtResource("1")
+
+[node name="Footprint" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.675, 0)
+shape = SubResource("FenceShape")

@@ -7,6 +7,7 @@ signal activated(index: int)
 var chosen := 0
 var option_font_size := 26
 var option_row_height := 48
+var scrollable := false
 var _items := PackedStringArray()
 var _rows: Array[Label] = []
 var _values := PackedStringArray()
@@ -14,6 +15,7 @@ var _value_rows: Array[Label] = []
 var _markers: Array[Label] = []
 var _disabled_items: Dictionary = {}
 var _list: VBoxContainer
+var _scroll: ScrollContainer
 
 
 func _ready() -> void:
@@ -38,16 +40,30 @@ func set_item_enabled(index: int, enabled: bool) -> void:
 
 
 func _build() -> void:
-	if is_instance_valid(_list):
+	if is_instance_valid(_scroll):
+		remove_child(_scroll)
+		_scroll.queue_free()
+	elif is_instance_valid(_list):
 		remove_child(_list)
 		_list.queue_free()
+	_scroll = null
 	_rows.clear()
 	_value_rows.clear()
 	_markers.clear()
 	_list = VBoxContainer.new()
-	_list.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_list.add_theme_constant_override("separation", 10 if not _values.is_empty() else 12)
-	add_child(_list)
+	if scrollable:
+		_scroll = ScrollContainer.new()
+		_scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+		_scroll.focus_mode = Control.FOCUS_NONE
+		add_child(_scroll)
+		_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_scroll.add_child(_list)
+	else:
+		_list.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		add_child(_list)
 	var column_width := 128.0
 	for item in _items:
 		column_width = maxf(
@@ -110,6 +126,14 @@ func _refresh() -> void:
 			_value_rows[index].add_theme_color_override(
 				"font_color", Color(1, 1, 1, 0.46 if index == chosen else 0.36)
 			)
+	if is_instance_valid(_scroll):
+		_reveal_chosen.call_deferred()
+
+
+func _reveal_chosen() -> void:
+	# Container sorting and page anchors must settle before calculating visibility.
+	if is_instance_valid(_scroll) and chosen < _rows.size():
+		_scroll.ensure_control_visible(_rows[chosen])
 
 
 func _unhandled_input(event: InputEvent) -> void:

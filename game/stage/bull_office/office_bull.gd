@@ -24,7 +24,6 @@ var _hit_seats: Dictionary = {}
 var _random := RandomNumberGenerator.new()
 var _model: BullModel
 var _lane: MeshInstance3D
-var _marker: MeshInstance3D
 var _units := 1.0 / RenderStyle.PIXELS_PER_UNIT
 var _time := 0.0
 var _entry_destination := Vector2.ZERO
@@ -166,7 +165,6 @@ func stop() -> void:
 	velocity = Vector2.ZERO
 	if is_instance_valid(_lane):
 		_lane.hide()
-		_marker.hide()
 
 
 func create_presentation(parent: Node3D, units: float) -> void:
@@ -182,11 +180,6 @@ func create_presentation(parent: Node3D, units: float) -> void:
 	lane_mesh.size = Vector3(0.32, 0.008, 1)
 	_lane = ModelGeometry.instance(parent, lane_mesh, Vector3.ZERO, warning)
 	_lane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var ring := TorusMesh.new()
-	ring.inner_radius = 0.42
-	ring.outer_radius = 0.50
-	_marker = ModelGeometry.instance(parent, ring, Vector3.ZERO, warning)
-	_marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_sync_presentation(0)
 
 
@@ -199,7 +192,6 @@ func set_render_warmup(enabled: bool) -> void:
 	# The warning material and stun decorations otherwise first draw during combat.
 	_update_warning()
 	_lane.show()
-	_marker.show()
 	_model.animate(0, _time, false, true, false)
 
 
@@ -217,7 +209,6 @@ func _sync_presentation(delta: float) -> void:
 	)
 	var showing := phase == Phase.WINDUP and _stage.round_running
 	_lane.visible = showing
-	_marker.visible = showing
 	if showing:
 		_update_warning()
 
@@ -229,8 +220,6 @@ func _update_warning() -> void:
 	_lane.position = Vector3(middle.x, 0.015, middle.y)
 	_lane.rotation.y = PI / 2 - line.angle()
 	_lane.scale.z = maxf(line.length() * _units, 0.01)
-	_marker.position = Vector3(end.x * _units, 0.03, end.y * _units)
-	_marker.scale = Vector3.ONE * (1.0 + sin(_time * 14) * 0.10)
 
 
 func threatens(point: Vector2, margin: float = 0.0) -> bool:

@@ -157,13 +157,19 @@ func _create_carpet(
 	carpet.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
-func _create_wall_details(parent: Node3D, units: float) -> void:
-	for item in [
+## Rear-wall dressing as [name, local x, height, kind]. Maps with openings in that wall
+## override this to keep windows, the door and the clock clear of them.
+func wall_detail_slots() -> Array:
+	return [
 		["WorkWindowA", 260.0, 1.95, &"window"],
 		["WorkWindowB", 500.0, 1.95, &"window"],
 		["OfficeDoor", 750.0, 0.0, &"door"],
 		["OfficeClock", 835.0, 2.18, &"clock"]
-	]:
+	]
+
+
+func _create_wall_details(parent: Node3D, units: float) -> void:
+	for item in wall_detail_slots():
 		var detail := Node3D.new()
 		detail.name = item[0]
 		var point := to_global(Vector2(item[1], center.y - half_size.y)) * units

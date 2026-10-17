@@ -29,7 +29,9 @@ func run(tree: SceneTree, check: Callable) -> void:
 	round_scene.request_elimination(0, &"fall")
 	round_scene._commit_eliminations()
 	speed.refresh()
-	check.call(speed.get("_hint").visible, "Spectating displays the hold-to-fast-forward prompt")
+	check.call(
+		not speed.get("_hint").visible, "Fast-forward indicator is hidden until accelerating"
+	)
 	check.call(
 		Engine.time_scale == normal_scale,
 		"Held steering at elimination does not trigger acceleration"
@@ -41,6 +43,7 @@ func run(tree: SceneTree, check: Callable) -> void:
 	check.call(
 		Engine.time_scale == normal_scale * 3, "Holding Right accelerates remaining AI combat"
 	)
+	check.call(speed.get("_hint").visible, "Fast-forward indicator shows while accelerating")
 	check.call(
 		Engine.physics_ticks_per_second == normal_rate * 3,
 		"Fast-forward increases physics frequency to retain simulation step size"
