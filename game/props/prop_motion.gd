@@ -52,6 +52,10 @@ func _physics_process(_delta: float) -> void:
 	if _falling:
 		if is_instance_valid(_model) and _model.global_position.y < -35.0:
 			_model.queue_free()
+			set_physics_process(false)
+		return
+	# Sleeping props have unchanged poses and support; native impulses wake them.
+	if _body.sleeping or _body.freeze:
 		return
 	if is_instance_valid(_model):
 		_model.global_transform = Transform3D(

@@ -50,10 +50,14 @@ func _build() -> void:
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_content.add_child(background)
-	var column := VBoxContainer.new()
-	column.position = Vector2(360, (800.0 - _participants.size() * 144.0 + 12.0) / 2.0)
-	column.size.x = 560
-	column.add_theme_constant_override("separation", 12)
+	var column := GridContainer.new()
+	column.columns = 2 if _participants.size() > 5 else 1
+	var rows := ceili(float(_participants.size()) / column.columns)
+	column.position = Vector2(
+		94 if column.columns == 2 else 360, (800.0 - rows * 144.0 + 12.0) / 2.0
+	)
+	column.add_theme_constant_override("h_separation", 32)
+	column.add_theme_constant_override("v_separation", 12)
 	_content.add_child(column)
 	for participant in _participants:
 		var row := HBoxContainer.new()

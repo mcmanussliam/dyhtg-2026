@@ -7,7 +7,7 @@ func run(tree: SceneTree, check: Callable) -> void:
 	var normal_rate := Engine.physics_ticks_per_second
 	var normal_steps := Engine.max_physics_steps_per_frame
 	var config := MatchConfig.new()
-	config.ai_count = 3
+	config.player_count = 4
 	var state := MatchState.new()
 	state.configure(config)
 	var round_scene := preload("res://game/round/round.tscn").instantiate() as RoundController

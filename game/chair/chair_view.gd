@@ -23,6 +23,7 @@ var _model: ChairModel
 var _viewport: Viewport
 var _sprite: Sprite2D
 var _spray: SprayView
+var _render_warmup := false
 
 
 func configure_world(viewport: Viewport, world: Node3D, stage: ArenaStage = null) -> void:
@@ -140,8 +141,18 @@ func _on_bumped(impulse: Vector2) -> void:
 
 
 func _update_plume(chair: Chair) -> void:
+	if _render_warmup:
+		return
 	var origin := _rig.global_position if _shared else Vector3.ZERO
 	_spray.update_plume(chair, _model.extinguisher.nozzle.global_position, _time, origin)
+
+
+func set_render_warmup(enabled: bool) -> void:
+	_render_warmup = enabled
+	if enabled:
+		_spray.warm_up_rendering(_model.extinguisher.nozzle.global_position)
+	else:
+		_update_plume(get_parent() as Chair)
 
 
 func freeze_visuals() -> void:

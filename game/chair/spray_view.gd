@@ -6,39 +6,42 @@ const BALL_COUNT := 240
 const PIXELS_PER_UNIT := RenderStyle.PIXELS_PER_UNIT
 const VIEW_DIRECTION := Vector3(0, 0.72, 0.694)
 
+static var _sphere: SphereMesh
+static var _surface: ShaderMaterial
+
 var _balls: MultiMesh
 var _positions := PackedVector3Array()
 var _sizes := PackedFloat32Array()
 var _opacity := PackedFloat32Array()
 var _scatter := PackedVector2Array()
 var _seeds := PackedFloat32Array()
-var _order: Array[int] = []
-var _depths := PackedFloat32Array()
+var _sort_keys := PackedInt64Array()
 var _buffer := PackedFloat32Array()
 
 
 func _ready() -> void:
-	var sphere := SphereMesh.new()
-	sphere.radius = 1.0
-	sphere.height = 2.0
-	sphere.radial_segments = 24
-	sphere.rings = 12
+	if _sphere == null:
+		_sphere = SphereMesh.new()
+		_sphere.radius = 1.0
+		_sphere.height = 2.0
+		_sphere.radial_segments = 24
+		_sphere.rings = 12
+		_surface = ShaderMaterial.new()
+		_surface.shader = preload("res://game/chair/art/spray.gdshader")
 	_balls = MultiMesh.new()
 	_balls.transform_format = MultiMesh.TRANSFORM_3D
 	_balls.use_colors = true
-	_balls.mesh = sphere
+	_balls.mesh = _sphere
 	_balls.instance_count = BALL_COUNT
 	var renderer := MultiMeshInstance3D.new()
 	renderer.multimesh = _balls
-	var surface := ShaderMaterial.new()
-	surface.shader = preload("res://game/chair/art/spray.gdshader")
-	renderer.material_override = surface
+	renderer.material_override = _surface
 	renderer.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(renderer)
 	_positions.resize(BALL_COUNT)
 	_sizes.resize(BALL_COUNT)
 	_opacity.resize(BALL_COUNT)
-	_depths.resize(BALL_COUNT)
+	_sort_keys.resize(BALL_COUNT)
 	_buffer.resize(BALL_COUNT * 16)
 	for slot in BALL_COUNT:
 		for channel in [12, 13, 14]:
@@ -49,7 +52,15 @@ func _ready() -> void:
 		var angle := float(index) * 2.399963
 		var radius := sqrt(seed)
 		_scatter.append(Vector2(cos(angle), sin(angle)) * radius)
-		_order.append(index)
+
+
+func warm_up_rendering(nozzle: Vector3) -> void:
+	# A real, in-view instance compiles the MultiMesh transparency path. Gameplay
+	# state stays untouched, and the regular update restores the complete buffer.
+	visible = true
+	_balls.visible_instance_count = 1
+	_balls.set_instance_transform(0, Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * 0.05), nozzle))
+	_balls.set_instance_color(0, Color.WHITE)
 
 
 func update_plume(
@@ -58,12 +69,14 @@ func update_plume(
 	var forward_2d := Vector2.from_angle(chair.aim_angle)
 	var floor_distance := (Vector2(nozzle.x - origin.x, nozzle.z - origin.z)).dot(forward_2d)
 	var length := maxf(chair.spray_reach / PIXELS_PER_UNIT - floor_distance, 0.0)
-	visible = chair.spraying and length > 0.02
+	visible = chair.spraying and chair.jet_strength > 0 and length > 0.02
 	if not visible:
 		return
 	var forward := Vector3(forward_2d.x, 0, forward_2d.y)
 	var side := Vector3(-forward.z, 0, forward.x)
 	var cone := tan(deg_to_rad(chair.tuning.half_angle_degrees))
+	var spread_scale := 0.74 + sin(clock * 1.7 + chair.seat * 2.1) * 0.04
+	var visible_count := 0
 	for index in BALL_COUNT:
 		var seed := fposmod(_seeds[index] + chair.seat * 0.381966, 1.0)
 		var phase := (
@@ -78,7 +91,7 @@ func update_plume(
 			lerpf(0.050, 0.215, t) * lerpf(0.72, 1.18, seed) * chair.size_scale, length * 0.24
 		)
 		var travel := lerpf(radius, maxf(radius, length - radius), t)
-		var spread := cone * travel * (0.74 + sin(clock * 1.7 + chair.seat * 2.1) * 0.04)
+		var spread := cone * travel * spread_scale
 		var scatter := (
 			_scatter[index].rotated(chair.seat * 1.719 + sin(t * 5.0 + seed * TAU) * 0.25)
 			* lerpf(0.65, 0.95, seed)
@@ -92,19 +105,26 @@ func update_plume(
 				+ Vector3.UP * scatter.y * spread * 0.65
 			)
 		_positions[index] = nozzle + forward * travel + offset
-		_depths[index] = _positions[index].dot(VIEW_DIRECTION)
-		_sizes[index] = radius
+		_sizes[index] = radius * lerpf(0.35, 1.0, chair.jet_strength)
 		var fade_end := lerpf(0.76, 1.0, life_seed)
 		var fade_start := fade_end - lerpf(0.20, 0.40, seed)
 		var fade := 1.0 - smoothstep(fade_start, fade_end, t)
 		fade *= 1.0 - smoothstep(0.45, 1.0, scatter.length())
 		if fringe:
 			fade = (1.0 - smoothstep(fade_start, fade_end, t)) * lerpf(0.35, 0.60, seed)
-		_opacity[index] = fade * smoothstep(0.0, 0.008, t)
-	# Transparency needs back-to-front instance order in the fixed camera view.
-	_order.sort_custom(_farther_first)
-	for slot in BALL_COUNT:
-		var index := _order[slot]
+		_opacity[index] = fade * smoothstep(0.0, 0.008, t) * chair.jet_strength
+		# Native integer sorting avoids thousands of script comparator calls per jet.
+		# 0.00001-unit depth precision is below any visible ordering difference.
+		if _opacity[index] > 0.0:
+			var depth := int(floorf(_positions[index].dot(VIEW_DIRECTION) * 100000.0))
+			_sort_keys[index] = (depth << 8) | index
+			visible_count += 1
+		else:
+			_sort_keys[index] = 0x7FFFFFFFFFFFFFFF
+	_sort_keys.sort()
+	_balls.visible_instance_count = visible_count
+	for slot in visible_count:
+		var index := int(_sort_keys[slot] & 255)
 		var base := slot * 16
 		# Three transform rows followed by RGBA, uploaded in one RenderingServer call.
 		_buffer[base] = _sizes[index]
@@ -115,7 +135,3 @@ func update_plume(
 		_buffer[base + 11] = _positions[index].z
 		_buffer[base + 15] = _opacity[index]
 	_balls.buffer = _buffer
-
-
-func _farther_first(a: int, b: int) -> bool:
-	return _depths[a] < _depths[b]

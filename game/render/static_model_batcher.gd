@@ -3,6 +3,8 @@ extends RefCounted
 ## Instance repeated opaque parts within one static prop, retaining its culling bounds.
 ## Never use on animated rigs: their child transforms must remain independent.
 
+static var _assemblies: Dictionary = {}
+
 
 static func batch(model: Node3D) -> void:
 	var groups: Dictionary = {}
@@ -35,3 +37,36 @@ static func batch(model: Node3D) -> void:
 		model.add_child(renderer)
 		for part: MeshInstance3D in parts:
 			part.free()
+
+
+static func merge_direct(model: Node3D, cache_key: Array) -> void:
+	# Merge only direct rigid parts. Animated child pivots and colliders stay independent.
+	if not _assemblies.has(cache_key):
+		if _assemblies.size() >= 64:
+			_assemblies.clear()
+		_assemblies[cache_key] = bake_direct(model)
+	else:
+		for child in model.get_children():
+			if child is MeshInstance3D:
+				child.free()
+	ModelGeometry.instance(model, _assemblies[cache_key], Vector3.ZERO, null)
+
+
+static func bake_direct(model: Node3D) -> ArrayMesh:
+	var groups: Dictionary = {}
+	for child in model.get_children():
+		if child is MeshInstance3D:
+			var material: Material = child.get_active_material(0)
+			if not groups.has(material):
+				groups[material] = []
+			groups[material].append(child)
+	var mesh := ArrayMesh.new()
+	for material: Material in groups:
+		var tool := SurfaceTool.new()
+		tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+		tool.set_material(material)
+		for part: MeshInstance3D in groups[material]:
+			tool.append_from(part.mesh, 0, part.transform)
+			part.free()
+		tool.commit(mesh)
+	return mesh

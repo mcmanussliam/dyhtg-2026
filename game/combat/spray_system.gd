@@ -4,7 +4,7 @@ extends RefCounted
 
 
 func apply(source: Chair, chairs: Array[Chair], delta: float) -> void:
-	if not source.active or not source.spraying or delta <= 0.0:
+	if not source.active or not source.spraying or source.jet_strength <= 0 or delta <= 0.0:
 		return
 	var forward := Vector2.from_angle(source.aim_angle)
 	var origin := source.global_position
@@ -17,7 +17,7 @@ func apply(source: Chair, chairs: Array[Chair], delta: float) -> void:
 		reach = origin.distance_to(hit.position)
 		if hit.collider is OfficeProp:
 			hit.collider.push(
-				forward * source.tuning.push_force * 0.25 * delta,
+				forward * source.tuning.push_force * source.jet_strength * 0.25 * delta,
 				hit.position - hit.collider.global_position
 			)
 	source.spray_reach = reach
@@ -34,4 +34,6 @@ func apply(source: Chair, chairs: Array[Chair], delta: float) -> void:
 		if not source.get_world_2d().direct_space_state.intersect_ray(obstruction).is_empty():
 			continue
 		var falloff := lerpf(1.0, 0.55, distance / source.tuning.spray_range)
-		other.apply_central_impulse(forward * source.tuning.push_force * falloff * delta)
+		other.apply_central_impulse(
+			forward * source.tuning.push_force * source.jet_strength * falloff * delta
+		)

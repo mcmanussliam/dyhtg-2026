@@ -70,10 +70,10 @@ func run(tree: SceneTree, check: Callable) -> void:
 		"Setup displays only its four options"
 	)
 	check.call(app.current_menu._items.size() == 4, "Right opens match setup")
-	check.call(app.current_menu._items[0] == "Opponents 1", "Setup calls AI seats Opponents")
-	for index in 3:
+	check.call(app.current_menu._items[0] == "Players 2", "Setup counts all players")
+	for index in 9:
 		await _tap(tree, &"menu_activate")
-	check.call(app.config.ai_count == 1, "AI setup value wraps from three to one")
+	check.call(app.config.player_count == 2, "Player setup value wraps from ten to two")
 	await _tap(tree, &"menu_next")
 	await _tap(tree, &"menu_activate")
 	check.call(app.config.wins_needed == 1, "First-to target wraps from five to one")

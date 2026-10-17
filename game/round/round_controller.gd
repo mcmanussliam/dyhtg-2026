@@ -13,6 +13,7 @@ var stage: ArenaStage
 var presentation: RoundView
 var phase: Phase = Phase.INTRO
 var intro_duration: float = 2.5
+var startup_duration: float = 2.0
 var resolve_duration: float = 1.6
 var round_id: int = 0
 var _roster: Array[Dictionary] = []
@@ -29,6 +30,7 @@ var _title: Label
 var _indicators: RoundRoster
 var _spectator: SpectatorSpeed
 var _intro_background: ColorRect
+var _warming_rendering := false
 
 
 func configure(
@@ -51,12 +53,13 @@ func _ready() -> void:
 	bodies.name = "Chairs"
 	bodies.y_sort_enabled = true
 	add_child(bodies)
+	var poses := SpawnLayout.poses(stage, _roster.size())
 	for participant in _roster:
 		var chair := CHAIR_SCENE.instantiate() as Chair
 		chair.skin = participant.get("skin", SkinCatalog.default_definition())
 		chair.hat_id = participant.get("hat_id", &"none")
 		chair.resize_for_stage(stage.content_scale)
-		var pose := stage.spawn_pose(participant.id, _roster.size())
+		var pose := poses[participant.id]
 		chair.configure(participant.id, participant.colour, Vector2.from_angle(pose.get_rotation()))
 		chair.prepare_round()
 		chair.fall_confirmed.connect(_on_fall_confirmed)
@@ -101,6 +104,33 @@ func _ready() -> void:
 	_spectator = SpectatorSpeed.new()
 	_spectator.can_fast_forward = _can_fast_forward
 	add_child(_spectator)
+	_warming_rendering = DisplayServer.get_name() != "headless"
+	_warm_up_rendering.call_deferred()
+
+
+func _warm_up_rendering() -> void:
+	# Hidden objects do not compile their GPU paths. Draw them once beneath the
+	# opaque title, then suspend arena rendering until gameplay actually starts.
+	if phase != Phase.INTRO or DisplayServer.get_name() == "headless":
+		_warming_rendering = false
+		return
+	_warming_rendering = true
+	presentation.world.show()
+	stage.set_render_warmup(true)
+	for chair in chairs:
+		chair.get_node("Visuals").set_render_warmup(true)
+	# Let the scene tree flush visibility/transforms and render the real viewport.
+	# A forced draw here can run before those updates reach the renderer.
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not is_inside_tree():
+		return
+	stage.set_render_warmup(false)
+	for chair in chairs:
+		chair.get_node("Visuals").set_render_warmup(false)
+	if phase == Phase.INTRO:
+		presentation.world.hide()
+	_warming_rendering = false
 
 
 func _physics_process(delta: float) -> void:
@@ -108,7 +138,7 @@ func _physics_process(delta: float) -> void:
 	if phase == Phase.INTRO:
 		_title.modulate.a = 1.0 - smoothstep(intro_duration * 0.75, intro_duration, _elapsed)
 		_hint.modulate.a = _title.modulate.a
-		if _elapsed >= intro_duration:
+		if _elapsed >= intro_duration and not _warming_rendering:
 			begin_live()
 	elif phase == Phase.LIVE:
 		if not _steering_held():
@@ -150,10 +180,11 @@ func begin_live() -> void:
 	phase = Phase.LIVE
 	_elapsed = 0.0
 	_intro_background.hide()
-	_indicators.show()
 	presentation.world.show()
+	_indicators.show()
 	stage.start_round()
 	for chair in chairs:
+		chair.start_extinguisher_ramp(startup_duration)
 		chair.begin_round()
 
 

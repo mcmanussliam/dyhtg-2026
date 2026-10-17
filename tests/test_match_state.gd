@@ -5,7 +5,7 @@ extends RefCounted
 func run(tree: SceneTree, check: Callable) -> void:
 	await tree.process_frame
 	var config := MatchConfig.new()
-	config.ai_count = 3
+	config.player_count = 4
 	config.wins_needed = 2
 	var state := MatchState.new()
 	state.configure(config)
@@ -26,7 +26,7 @@ func run(tree: SceneTree, check: Callable) -> void:
 	check.call(state.participants[0]["wins"] == 1, "Draw awards no points")
 	check.call(not state.record_result(second, 0), "Draw cannot later become a win")
 	config.wins_needed = 5
-	config.ai_count = 1
+	config.player_count = 2
 	check.call(state.wins_needed == 2, "Running match is isolated from setup edits")
 	check.call(state.participants.size() == 4, "Setup edits cannot remove live participants")
 	var third := state.begin_round()
@@ -38,10 +38,12 @@ func run(tree: SceneTree, check: Callable) -> void:
 	check.call(state.winner_id == -1 and state.round_number == 0, "Rematch resets match flow")
 	check.call(state.participants[0]["wins"] == 0, "Rematch resets participant scores")
 	check.call(state.participants.size() == 2, "New setup is applied on rematch")
-	config.ai_count = 100
+	config.player_count = -5
+	check.call(config.validated_copy().player_count == 2, "Player count minimum is two")
+	config.player_count = 100
 	config.wins_needed = 0
 	state.configure(config)
-	check.call(state.participants.size() == 4, "Invalid AI count is clamped to supported seats")
+	check.call(state.participants.size() == 10, "Player count is clamped to ten supported seats")
 	check.call(state.wins_needed == 1, "Win target cannot be zero")
 	check.call(config.wins_needed == 0, "Validation does not mutate shared setup resource")
 	var separate := MatchState.new()

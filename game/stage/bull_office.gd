@@ -23,7 +23,7 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	_next_arrival = arrival_interval
-	_add_bull()
+	_add_bull(true)
 
 
 func bind_participants(chairs: Array[Chair]) -> void:
@@ -36,6 +36,14 @@ func spawn_pose(index: int, count: int) -> Transform2D:
 	# Keep players out of the entrance lane, with clear furniture-free starts.
 	var angle := PI * 1.25 + TAU * index / maxi(count, 1)
 	return Transform2D(angle - PI / 2, to_global(center + Vector2.from_angle(angle) * 405))
+
+
+func is_spawn_safe(world_point: Vector2, clearance: float) -> bool:
+	var point := to_local(world_point) - center
+	return (
+		super.is_spawn_safe(world_point, clearance)
+		and (absf(point.x) > 80 + clearance or point.y > clearance + 80)
+	)
 
 
 func tick_hazards(delta: float) -> void:
@@ -62,18 +70,24 @@ func _entrance_clear() -> bool:
 	return true
 
 
-func _add_bull() -> void:
+func _add_bull(first: bool = false) -> void:
 	var actor := OfficeBull.new()
 	actor.name = "Bull%d" % (bulls.size() + 1)
 	add_child(actor)
 	actor.configure(self)
 	actor.chairs = _chairs
 	var doorway := Vector2(center.x, center.y - half_size.y)
-	actor.begin_entry(to_global(doorway - Vector2(0, 120)), to_global(doorway + Vector2(0, 160)))
+	if first:
+		actor.global_position = to_global(center)
+		actor.rotation = PI / 2
+	else:
+		actor.begin_entry(
+			to_global(doorway - Vector2(0, 120)), to_global(doorway + Vector2(0, 160))
+		)
 	bulls.append(actor)
 	if is_instance_valid(_world):
 		actor.create_presentation(_world, _units)
-	if is_instance_valid(_door):
+	if not first and is_instance_valid(_door):
 		_door.open_for(1.7)
 
 
@@ -81,6 +95,11 @@ func stop_round() -> void:
 	super.stop_round()
 	for actor in bulls:
 		actor.stop()
+
+
+func set_render_warmup(enabled: bool) -> void:
+	for actor in bulls:
+		actor.set_render_warmup(enabled)
 
 
 func create_presentation(parent: Node3D, units_per_pixel: float) -> void:
@@ -103,7 +122,6 @@ func _create_wall_details(parent: Node3D, units: float) -> void:
 	_door.position = Vector3(point.x, 0, point.y + 0.29)
 	parent.add_child(_door)
 	_door.build()
-	_door.open_for(1.7)
 
 
 func is_safe(world_point: Vector2, margin: float = 0.0) -> bool:

@@ -2,12 +2,13 @@ extends RefCounted
 ## Deterministic round lifecycle checks using real stage and chair scenes.
 
 const ROUND = preload("res://game/round/round.tscn")
+const CHAIR = preload("res://game/chair/chair.tscn")
 const STAGE = preload("res://game/stage/a_floor_in_the_crack.tres")
 
 
 func run(tree: SceneTree, check: Callable) -> void:
 	var config := MatchConfig.new()
-	config.ai_count = 2
+	config.player_count = 3
 	var state := MatchState.new()
 	state.configure(config)
 	var round_scene := ROUND.instantiate() as RoundController
@@ -92,6 +93,8 @@ func run(tree: SceneTree, check: Callable) -> void:
 	await _test_match_lifetime(tree, check)
 	await _test_cancelled_transitions(tree, check)
 	await _test_paused_intro(tree, check)
+	await _test_startup_ramp(tree, check)
+	await _test_ramped_push(tree, check)
 
 
 func _test_match_lifetime(tree: SceneTree, check: Callable) -> void:
@@ -176,6 +179,7 @@ func _test_paused_intro(tree: SceneTree, check: Callable) -> void:
 	tree.root.add_child(controller)
 	controller.start(MatchConfig.new())
 	controller.round.intro_duration = 0.01
+	controller.round.startup_duration = 0.01
 	tree.paused = true
 	await tree.create_timer(0.05, true).timeout
 	check.call(controller.round.phase == RoundController.Phase.INTRO, "Pause stops intro countdown")
@@ -184,9 +188,48 @@ func _test_paused_intro(tree: SceneTree, check: Callable) -> void:
 	tree.paused = false
 	await tree.physics_frame
 	await tree.physics_frame
+	await tree.physics_frame
 	check.call(controller.round.phase == RoundController.Phase.LIVE, "Resume continues intro clock")
 	controller.queue_free()
 	await tree.process_frame
+
+
+func _test_startup_ramp(tree: SceneTree, check: Callable) -> void:
+	var config := MatchConfig.new()
+	var state := MatchState.new()
+	state.configure(config)
+	for definition in config.stages:
+		var round_scene := ROUND.instantiate() as RoundController
+		round_scene.configure(state.participants, definition, 1, 5)
+		tree.root.add_child(round_scene)
+		round_scene.set_physics_process(false)
+		round_scene._physics_process(round_scene.intro_duration)
+		var immediate := (
+			round_scene.phase == RoundController.Phase.LIVE and round_scene.stage.round_running
+		)
+		for chair in round_scene.chairs:
+			immediate = (
+				immediate and not chair.freeze and chair.spraying and chair.jet_strength == 0
+			)
+		check.call(
+			immediate,
+			"Every map starts steering immediately with an unpressurized jet: %s" % definition.id
+		)
+		var chair := round_scene.chairs[0]
+		chair.command.turn = 1
+		for frame in 30:
+			chair.step(1.0 / 60)
+			await tree.physics_frame
+		check.call(
+			chair.angular_velocity > 0.5 and chair.jet_strength > 0 and chair.jet_strength < 0.25,
+			"Steering remains responsive while thrust builds: %s" % definition.id
+		)
+		check.call(
+			chair.linear_velocity.length() > 1,
+			"Startup produces gradual movement rather than a pause: %s" % definition.id
+		)
+		round_scene.queue_free()
+		await tree.process_frame
 
 
 func _finish_round(round_scene: RoundController) -> void:
@@ -195,3 +238,40 @@ func _finish_round(round_scene: RoundController) -> void:
 	round_scene.request_elimination(1, &"fall")
 	round_scene._physics_process(0.016)
 	round_scene._physics_process(round_scene.resolve_duration)
+
+
+func _test_ramped_push(tree: SceneTree, check: Callable) -> void:
+	var source := CHAIR.instantiate() as Chair
+	var target := CHAIR.instantiate() as Chair
+	source.get_node("Visuals").free()
+	target.get_node("Visuals").free()
+	tree.root.add_child(source)
+	tree.root.add_child(target)
+	source.position = Vector2(4000, 4000)
+	source.rotation = 0
+	source.freeze = true
+	source.start_extinguisher_ramp(2.0)
+	var spray := SpraySystem.new()
+	var speeds: Array[float] = []
+	for elapsed in [0.0, 1.0, 1.0]:
+		target.position = source.position + Vector2(100, 0)
+		target.linear_velocity = Vector2.ZERO
+		await tree.physics_frame
+		source.step(elapsed)
+		spray.apply(source, [source, target], 1.0 / 60)
+		await tree.physics_frame
+		speeds.append(target.linear_velocity.x)
+	check.call(is_zero_approx(speeds[0]), "Unpressurized startup spray cannot shove opponents")
+	check.call(
+		speeds[1] > 0 and speeds[2] > speeds[1] * 1.9,
+		"Opponent knockback builds with extinguisher pressure"
+	)
+	check.call(source.jet_strength == 1, "Startup reaches and retains full power after two seconds")
+	source.prepare_round()
+	check.call(
+		source.jet_strength == 0 and not source.spraying,
+		"Reset clears startup pressure and switches spray off"
+	)
+	source.queue_free()
+	target.queue_free()
+	await tree.process_frame

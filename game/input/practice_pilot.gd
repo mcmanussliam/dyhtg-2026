@@ -28,6 +28,7 @@ var _stall_time: float = 0.0
 var _ignored: Dictionary = {}
 var _risk_margin: float = 95.0
 var _pit_escape_goal := Vector2.INF
+var _unstuck := PilotUnstuck.new()
 
 
 func _init(random_seed: int = -1) -> void:
@@ -119,8 +120,16 @@ func sample_on_stage(
 		elif _pit_escape_goal == Vector2.INF:
 			_pit_escape_goal = stage.open_floor_target(chair.global_position)
 			_escape_left = 1.7
+	var unstuck_goal := _unstuck.update(chair, chairs, stage, delta)
+	if _unstuck.started:
+		_blast_left = 0
+		_escape_left = 0
+		_turn_arc = 0
+		_choose_target(chair, chairs)
 	var desired_jet: Vector2
-	if (
+	if unstuck_goal != Vector2.INF:
+		desired_jet = -_approach_acceleration(chair, unstuck_goal, 340)
+	elif (
 		_escape_left > 0.0
 		and not _recovering
 		and stage.is_path_safe(
@@ -179,7 +188,10 @@ func sample_on_stage(
 			)
 			desired_jet = -(goal - chair.global_position - chair.linear_velocity * 0.25)
 	var before_obstacle := desired_jet
-	desired_jet = _avoid_obstacles(chair, stage, desired_jet)
+	# The watchdog already checked the escape corridor. Re-running reactive detours
+	# here can steer a pinned chair straight back into the obstruction.
+	if unstuck_goal == Vector2.INF:
+		desired_jet = _avoid_obstacles(chair, stage, desired_jet)
 	if (
 		stage.ai_edge_margin > 0
 		and not stage.is_path_safe(
@@ -200,7 +212,7 @@ func sample_on_stage(
 	command.turn = clampf(
 		(desired_spin - chair.angular_velocity) * 0.40 + desired_spin * 0.10, -1.0, 1.0
 	)
-	if _escape_left > 0.0 and absf(chair.angular_velocity) > 1.5:
+	if unstuck_goal == Vector2.INF and _escape_left > 0.0 and absf(chair.angular_velocity) > 1.5:
 		command.turn = -signf(chair.angular_velocity)
 	if stage is PitOfficeStage:
 		command.turn = PitSteeringGuard.filter(
@@ -209,7 +221,8 @@ func sample_on_stage(
 			command.turn,
 			desired_jet,
 			turn_limit,
-			pressure + clampf((_round_age - 30.0) / 30.0, 0, 1)
+			pressure + clampf((_round_age - 30.0) / 30.0, 0, 1),
+			unstuck_goal
 		)
 	return command
 

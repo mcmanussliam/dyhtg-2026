@@ -21,7 +21,7 @@ static func configure_viewport(
 	viewport.transparent_bg = transparent
 	viewport.own_world_3d = true
 	viewport.msaa_3d = msaa_mode
-	viewport.mesh_lod_threshold = 0.0
+	viewport.mesh_lod_threshold = 1.0
 
 
 static func setup_world(

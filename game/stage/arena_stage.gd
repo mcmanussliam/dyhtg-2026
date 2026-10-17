@@ -30,6 +30,10 @@ func is_safe(world_point: Vector2, _margin: float = 0.0) -> bool:
 	return elimination_reason(world_point) == &""
 
 
+func is_spawn_safe(world_point: Vector2, clearance: float) -> bool:
+	return is_safe(world_point, clearance)
+
+
 func safe_target(world_point: Vector2, _margin: float = 90.0) -> Vector2:
 	return world_point
 
@@ -68,6 +72,11 @@ func stop_round() -> void:
 
 
 func tick_hazards(_delta: float) -> void:
+	pass
+
+
+func set_render_warmup(_enabled: bool) -> void:
+	# Optional presentation-only paths that first appear after live play begins.
 	pass
 
 

@@ -25,6 +25,8 @@ const SUITES = [
 	preload("res://tests/test_round_render.gd"),
 	preload("res://tests/test_pilot_physics.gd"),
 	preload("res://tests/test_app_flow.gd"),
+	preload("res://tests/test_large_roster.gd"),
+	preload("res://tests/test_deadlock_physics.gd"),
 ]
 
 var _checks: int = 0

@@ -31,7 +31,7 @@ func run(tree: SceneTree, check: Callable) -> void:
 	var original := bull.position
 	stage.tick_hazards(10)
 	check.call(
-		bull.position == original and bull.phase == OfficeBull.Phase.ENTERING,
+		bull.position == original and bull.phase == OfficeBull.Phase.RECOVERY,
 		"Intro never advances bull attacks"
 	)
 	var chair := load("res://game/chair/chair.tscn").instantiate() as Chair
@@ -127,7 +127,23 @@ func run(tree: SceneTree, check: Callable) -> void:
 	round_scene.configure(state.participants, definition, 1, 5)
 	tree.root.add_child(round_scene)
 	round_scene.set_physics_process(false)
-	round_scene.begin_live()
+	round_scene._physics_process(round_scene.intro_duration)
+	check.call(
+		round_scene.phase == RoundController.Phase.LIVE,
+		"Bull round starts immediately after its title"
+	)
+	check.call(
+		round_scene.stage.bull.position.is_equal_approx(round_scene.stage.center),
+		"First bull remains at the center during the reveal"
+	)
+	check.call(
+		not round_scene.chairs[0].freeze and round_scene.chairs[0].jet_strength == 0,
+		"Players can steer immediately while extinguishers spool up"
+	)
+	check.call(
+		is_zero_approx(round_scene.stage.get("_elapsed")), "Hazard clock begins with live gameplay"
+	)
+
 	var victim := round_scene.chairs[0]
 	victim.set_knockout_launch(Vector3(55, 15, 0), Vector3(0, 3.5, -9))
 	round_scene.request_elimination(0, &"bull")
@@ -191,27 +207,21 @@ func _check_arrivals(tree: SceneTree, check: Callable) -> void:
 		"Bull map uses its own centered saloon entrance"
 	)
 	check.call(
-		stage.bulls.size() == 1 and stage.bull.position.y < stage.center.y - stage.half_size.y,
-		"First bull waits outside the top doorway"
+		stage.bulls.size() == 1 and stage.bull.position.is_equal_approx(stage.center),
+		"First bull is already at the office center"
 	)
 	stage.tick_hazards(10)
 	check.call(
 		stage.bulls.size() == 1 and is_zero_approx(stage.get("_elapsed")),
 		"Intro does not advance arrival timer"
 	)
-	stage.start_round()
-	var entry_start: Vector2 = stage.bull.position
-	for frame in 90:
-		stage.tick_hazards(1.0 / 60)
-		await tree.physics_frame
-	check.call(
-		(
-			stage.bull.position.y > entry_start.y + 200
-			and stage.bull.phase != OfficeBull.Phase.ENTERING
-		),
-		"Bull walks through the entrance before becoming dangerous"
+	var entry_start := stage.to_global(
+		Vector2(stage.center.x, stage.center.y - stage.half_size.y - 120)
 	)
-	check.call(stage.bull.collision_layer == 1, "Bull restores solid collision after entering")
+	check.call(
+		stage.bull.phase == OfficeBull.Phase.RECOVERY, "Centered first bull skips walking entry"
+	)
+	stage.start_round()
 	stage.bull.phase = OfficeBull.Phase.WINDUP
 	stage.bull.set("_direction", Vector2.DOWN)
 	stage.bull.target = stage.bull.global_position + Vector2(0, 100)
@@ -234,7 +244,7 @@ func _check_arrivals(tree: SceneTree, check: Callable) -> void:
 	stage.bull.position = Vector2(stage.center.x, stage.center.y - stage.half_size.y + 160)
 	stage.bull.phase = OfficeBull.Phase.STUNNED
 	stage.bull.set("_remaining", 10.0)
-	stage.tick_hazards(1.6)
+	stage.tick_hazards(3.1)
 	check.call(stage.bulls.size() == 1, "Occupied entrance defers the next bull")
 	stage.bull.position = stage.center
 	stage.tick_hazards(0.01)
@@ -282,7 +292,11 @@ func _check_arrivals(tree: SceneTree, check: Callable) -> void:
 	var fresh := scene.instantiate() as OfficeStage
 	tree.root.add_child(fresh)
 	check.call(
-		fresh.bulls.size() == 1 and is_zero_approx(fresh.get("_elapsed")),
+		(
+			fresh.bulls.size() == 1
+			and is_zero_approx(fresh.get("_elapsed"))
+			and fresh.bull.position.is_equal_approx(fresh.center)
+		),
 		"A new round resets to its first arrival"
 	)
 	fresh.queue_free()

@@ -5,7 +5,7 @@ menu and one match. Home and setup use an isolated 3D office diorama; gameplay
 uses native 2D rigid bodies with a shared orthographic 3D presentation.
 No autoload or global event bus is required.
 
-`MatchConfig` is a validated copy of the chosen AI count and win target.
+`MatchConfig` is a validated copy of the total player count (2–10, default 2) and win target.
 `MatchState` stores stable participant IDs and round wins independently of scene
 lifetimes. It accepts one result per round and ends a match at the chosen target.
 A draw records the round without awarding a win.
@@ -17,6 +17,11 @@ input event before replacing UI; held arrow keys must be released before the
 next screen accepts input.
 
 `RoundController` has four phases: introduction, live, resolving and finished.
+Live play begins immediately after the title. Every chair smoothly builds
+extinguisher pressure over two seconds, scaling propulsion, spray pushes and
+foam together while steering remains fully responsive. This curve follows the
+physics clock, so pause and spectator speed stay consistent. The first bull starts
+at the office center; subsequent bulls walk through the saloon doors.
 The physics clock controls the introduction, which shows text on an opaque black background. All chairs unfreeze and start their
 continuous jets in the same update. Stage rules and hazard requests enter one
 elimination batch each physics tick, so simultaneous falls produce a draw
@@ -45,7 +50,9 @@ floor colliders never affect the live 2D movement simulation.
 
 `ArenaStage` supplies support queries, elimination rules, safe navigation targets,
 spawn poses and a hazard lifecycle. `StageDefinition` supplies authored identity
-and scene references. The circle is the only production map in this milestone.
+and scene references. Current maps are the chipped island, the office pit and the bull office.
+`SpawnLayout` retains authored poses where they fit and resolves dense rosters
+against furniture, floor margins, other chairs and map-specific entrance clearance.
 See [adding-stages.md](adding-stages.md) for the extension contract.
 
 The results UI uses a plain black background and receives copied participant data. Each win is represented by a
@@ -105,7 +112,14 @@ keeps pause cleanup independent of the paused round.
 AI attacks hold their aim long enough to turn and deliver a shove. Safety margins
 and pursuit insets shrink gradually during a stalled round; total round urgency
 survives eliminations so the final pair does not return to prolonged safe play.
-Pilots still produce only steering commands. Long physics regressions cover six
+Pilots still produce only steering commands. `PilotUnstuck` watches actual
+position progress independently of the current target and reported speed. After
+roughly three seconds without meaningful displacement it chooses a safe, clear
+escape corridor and commits long enough to leave the obstruction. Wider retries,
+asymmetric seat timing and less crowded destinations break mirrored responses;
+brief pushing contests continue normally. The pit steering rollout predicts
+braking toward that escape goal, avoiding false vetoes that previously pinned
+chairs beside furniture. New hazards or an unsafe route cancel the escape. Long physics regressions cover six
 seeded two-, three- and four-chair fights for 90 simulated seconds each, checking
 completion, opening survival and bounded turning.
 

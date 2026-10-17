@@ -190,6 +190,19 @@ func create_presentation(parent: Node3D, units: float) -> void:
 	_sync_presentation(0)
 
 
+func set_render_warmup(enabled: bool) -> void:
+	if not is_instance_valid(_model):
+		return
+	if not enabled:
+		_sync_presentation(0)
+		return
+	# The warning material and stun decorations otherwise first draw during combat.
+	_update_warning()
+	_lane.show()
+	_marker.show()
+	_model.animate(0, _time, false, true, false)
+
+
 func _sync_presentation(delta: float) -> void:
 	if not is_instance_valid(_model):
 		return
@@ -206,14 +219,18 @@ func _sync_presentation(delta: float) -> void:
 	_lane.visible = showing
 	_marker.visible = showing
 	if showing:
-		var end := _stage.boundary_in_direction(global_position, _direction)
-		var line := end - global_position
-		var middle := (end + global_position) * 0.5 * _units
-		_lane.position = Vector3(middle.x, 0.015, middle.y)
-		_lane.rotation.y = PI / 2 - line.angle()
-		_lane.scale.z = maxf(line.length() * _units, 0.01)
-		_marker.position = Vector3(end.x * _units, 0.03, end.y * _units)
-		_marker.scale = Vector3.ONE * (1.0 + sin(_time * 14) * 0.10)
+		_update_warning()
+
+
+func _update_warning() -> void:
+	var end := _stage.boundary_in_direction(global_position, _direction)
+	var line := end - global_position
+	var middle := (end + global_position) * 0.5 * _units
+	_lane.position = Vector3(middle.x, 0.015, middle.y)
+	_lane.rotation.y = PI / 2 - line.angle()
+	_lane.scale.z = maxf(line.length() * _units, 0.01)
+	_marker.position = Vector3(end.x * _units, 0.03, end.y * _units)
+	_marker.scale = Vector3.ONE * (1.0 + sin(_time * 14) * 0.10)
 
 
 func threatens(point: Vector2, margin: float = 0.0) -> bool:

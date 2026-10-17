@@ -15,8 +15,10 @@ func run(tree: SceneTree, check: Callable) -> void:
 	round_scene.set_physics_process(false)
 	await tree.process_frame
 	await tree.process_frame
+	while round_scene.get("_warming_rendering"):
+		await tree.process_frame
 	var view := round_scene.presentation
-	check.call(not view.world.visible, "Black introduction omits hidden arena rendering")
+	check.call(not view.world.visible, "Black introduction stops arena rendering after warmup")
 	var platform := view.world.get_node("CirclePlatform") as StaticBody3D
 	var camera := view.world.get_node("ArenaCamera") as Camera3D
 	var floor_surface := platform.get_node("FloorSurface") as MeshInstance3D

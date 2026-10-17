@@ -14,6 +14,7 @@ var skin: CharacterSkin
 var colour := Color("f4d782")
 var active: bool = true
 var spraying: bool = true
+var jet_strength: float = 1.0
 var drive_enabled: bool = true
 var falling: bool = false
 var fall_velocity := Vector2.ZERO
@@ -29,6 +30,8 @@ var aim_angle: float:
 		return global_rotation
 
 var _fall_reported := false
+var _ramp_duration := 0.0
+var _ramp_elapsed := 0.0
 
 
 func resize_for_stage(factor: float) -> void:
@@ -60,10 +63,12 @@ func step(delta: float) -> void:
 	spraying = active and drive_enabled
 	if not spraying:
 		return
+	_ramp_elapsed = minf(_ramp_elapsed + maxf(delta, 0), _ramp_duration)
+	jet_strength = jet_strength_after(0.0)
 	# Turning scrubs momentum through drag; straight travel retains its drift.
 	var turn_ratio := clampf(absf(angular_velocity) / maxf(tuning.maximum_spin, 0.01), 0.0, 1.0)
 	linear_damp = tuning.coast_drag + tuning.turning_drag * turn_ratio
-	apply_central_impulse(-Vector2.from_angle(aim_angle) * tuning.thrust * delta)
+	apply_central_impulse(-Vector2.from_angle(aim_angle) * tuning.thrust * jet_strength * delta)
 	var steering := clampf(command.turn, -1.0, 1.0)
 	apply_torque_impulse(steering * tuning.steering_torque * delta)
 
@@ -99,6 +104,9 @@ func prepare_round() -> void:
 	active = true
 	falling = false
 	_fall_reported = false
+	_ramp_duration = 0.0
+	_ramp_elapsed = 0.0
+	jet_strength = 0.0
 	knockout_velocity = Vector3.ZERO
 	knockout_spin = Vector3.ZERO
 	drive_enabled = false
@@ -109,6 +117,17 @@ func prepare_round() -> void:
 	command.turn = 0.0
 
 
+func start_extinguisher_ramp(seconds: float) -> void:
+	_ramp_duration = maxf(seconds, 0.0)
+	_ramp_elapsed = 0.0
+	jet_strength = jet_strength_after(0.0)
+
+
+func jet_strength_after(seconds: float) -> float:
+	# One curve drives propulsion, spray pushes and presentation. Steering stays fully responsive.
+	return smoothstep(0, _ramp_duration, _ramp_elapsed + seconds) if _ramp_duration > 0 else 1.0
+
+
 func begin_round() -> void:
 	if not active:
 		return
@@ -116,6 +135,7 @@ func begin_round() -> void:
 	sleeping = false
 	drive_enabled = true
 	spraying = true
+	jet_strength = jet_strength_after(0.0)
 
 
 func stop_drive() -> void:

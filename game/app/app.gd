@@ -169,7 +169,7 @@ func _customisation_action(index: int) -> void:
 func _setup_labels() -> void:
 	var labels := PackedStringArray(
 		[
-			"Opponents %d" % config.ai_count,
+			"Players %d" % config.player_count,
 			"First to %d wins" % config.wins_needed,
 			"Start match",
 			"Back",
@@ -193,7 +193,11 @@ func _home_action(index: int) -> void:
 func _setup_action(index: int) -> void:
 	match index:
 		0:
-			config.ai_count = config.ai_count % 3 + 1
+			config.player_count = (
+				MatchConfig.MIN_PLAYERS
+				if config.player_count >= MatchConfig.MAX_PLAYERS
+				else config.player_count + 1
+			)
 			_setup_labels()
 		1:
 			config.wins_needed = config.wins_needed % 5 + 1

@@ -45,6 +45,16 @@ func is_safe(world_point: Vector2, margin: float = 0.0) -> bool:
 	return absf(point.x) <= half_size.x - margin and absf(point.y) <= half_size.y - margin
 
 
+func is_spawn_safe(world_point: Vector2, clearance: float) -> bool:
+	# Wall bounces are safe in play, but a spawn footprint must fit inside the room.
+	var point := to_local(world_point) - center
+	return (
+		is_safe(world_point, clearance)
+		and absf(point.x) <= half_size.x - clearance
+		and absf(point.y) <= half_size.y - clearance
+	)
+
+
 func safe_target(world_point: Vector2, margin: float = 90.0) -> Vector2:
 	var inset := clampf(margin, 0, minf(half_size.x, half_size.y) * 0.8)
 	return to_global(

@@ -75,6 +75,12 @@ func build(tint: Color) -> void:
 		seat_rig, Vector3(0.18, -0.06, 0), Vector3(0.48, -0.07, 0.10), 0.022, metal
 	)
 
+	# Each caster and the suspended seat retain their own animated pivot.
+	StaticModelBatcher.merge_direct(self, [&"chair_base"])
+	for caster in casters:
+		StaticModelBatcher.merge_direct(caster, [&"chair_caster"])
+	StaticModelBatcher.merge_direct(seat_rig, [&"chair_seat", tint])
+
 
 func animate(
 	delta: float, speed: float, local_motion: Vector2, compression: float, tilt: Vector2

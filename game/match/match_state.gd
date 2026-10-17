@@ -2,7 +2,18 @@ class_name MatchState
 extends RefCounted
 ## Match bookkeeping, independent of scene lifetime and presentation.
 
-const COLOURS: Array[Color] = [Color("f4d782"), Color("72d9ae"), Color("f498b0"), Color("94b9f4")]
+const COLOURS: Array[Color] = [
+	Color("f4d782"),
+	Color("72d9ae"),
+	Color("f498b0"),
+	Color("94b9f4"),
+	Color("c093ed"),
+	Color("ec9468"),
+	Color("63c9d9"),
+	Color("b2d16e"),
+	Color("df83cb"),
+	Color("9ba7bd")
+]
 
 var participants: Array[Dictionary] = []
 var wins_needed: int = 5
@@ -24,10 +35,12 @@ func configure(config: MatchConfig) -> void:
 	winner_id = -1
 	_recorded_round = 0
 	participants.clear()
-	var ai_colours: Array[Color] = [COLOURS[1], COLOURS[2], COLOURS[3], COLOURS[0]]
+	var ai_colours: Array[Color] = COLOURS.duplicate()
+	ai_colours.remove_at(0)
+	ai_colours.append(COLOURS[0])
 	ai_colours.erase(human_colour)
 	var default_skin := SkinCatalog.default_definition()
-	for index in clampi(config.ai_count, 1, 3) + 1:
+	for index in clampi(config.player_count, MatchConfig.MIN_PLAYERS, MatchConfig.MAX_PLAYERS):
 		var skin := appearance.resolved_skin() if index == 0 else default_skin
 		var colour := human_colour if index == 0 else ai_colours[(index - 1) % ai_colours.size()]
 		(

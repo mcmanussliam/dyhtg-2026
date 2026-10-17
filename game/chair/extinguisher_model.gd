@@ -2,11 +2,16 @@ class_name ExtinguisherModel
 extends Node3D
 ## Rounded pressure vessel, yellow band, sculpted red levers and a curved rubber hose.
 
+static var _assembled_mesh: ArrayMesh
+
 var nozzle: Marker3D
 
 
 func build() -> void:
 	name = "Extinguisher"
+	if _assembled_mesh != null:
+		_add_assembly()
+		return
 	var enamel := ShaderMaterial.new()
 	enamel.shader = preload("res://game/chair/art/extinguisher.gdshader")
 	var red := ModelGeometry.material(Color("c53f38"), 0.08, 0.45)
@@ -46,6 +51,13 @@ func build() -> void:
 	)
 	ModelGeometry.ring(self, Vector3(0, 0.405, 0.355), 0.060, 0.077, horn)
 	ModelGeometry.cylinder(self, Vector3(0, 0.405, 0.343), Vector3(0, 0.405, 0.348), 0.060, rubber)
+	# The assembly is rigid within the animated seat; preserve its five materials.
+	_assembled_mesh = StaticModelBatcher.bake_direct(self)
+	_add_assembly()
+
+
+func _add_assembly() -> void:
+	ModelGeometry.instance(self, _assembled_mesh, Vector3.ZERO, null)
 	nozzle = Marker3D.new()
 	nozzle.name = "Nozzle"
 	nozzle.position = Vector3(0, 0.405, 0.36)

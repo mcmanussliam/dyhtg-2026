@@ -3,6 +3,8 @@ extends Resource
 ## Reusable setup values. Runtime scores belong to MatchState, never this Resource.
 
 const DEFAULT_STAGE_PATH := "res://game/stage/a_floor_in_the_crack.tres"
+const MIN_PLAYERS := 2
+const MAX_PLAYERS := 10
 
 # Load at instance creation rather than preloading a scene into the class dependency graph.
 @export var stages: Array[StageDefinition] = [
@@ -11,7 +13,7 @@ const DEFAULT_STAGE_PATH := "res://game/stage/a_floor_in_the_crack.tres"
 	load("res://game/stage/bull_office.tres")
 ]
 
-@export_range(1, 3, 1) var ai_count: int = 1
+@export_range(2, 10, 1) var player_count: int = MIN_PLAYERS
 @export_range(1, 5, 1) var wins_needed: int = 5
 @export var appearance: CharacterAppearance = CharacterAppearance.new()
 
@@ -22,7 +24,7 @@ var player_colour: Color:
 
 func validated_copy() -> MatchConfig:
 	var copy := MatchConfig.new()
-	copy.ai_count = clampi(ai_count, 1, 3)
+	copy.player_count = clampi(player_count, MIN_PLAYERS, MAX_PLAYERS)
 	copy.wins_needed = clampi(wins_needed, 1, 5)
 	copy.appearance = (
 		appearance.validated_copy() if appearance != null else CharacterAppearance.new()

@@ -6,8 +6,8 @@ hard turns scrub momentum before accelerating again. Steer, drift and push every
 platform.
 
 Open `project.godot` in **Godot 4.7.2 Standard** and press F5. The game starts at an
-office home screen with plain white menu options. Choose Play, set 1–3 opponents and a first-to-1–5 win target,
-then start. The default is one AI and first to five wins. Customise opens Hat,
+office home screen with plain white menu options. Choose Play, set 2–10 players and a first-to-1–5 win target,
+then start. The default is two total players (you and one AI) and first to five wins. Customise opens Hat,
 Top, Chair and Colour. Hats include Traffic Cone, Top Hat and Cap.
 Tops include JPMorgan and Hoodie. Clothes use a richer version of the
 selected body colour; JPMorgan automatically chooses contrasting black or white logo ink. Colour
@@ -25,16 +25,17 @@ immediately and persist between launches. Multiplayer is deferred.
 | Gameplay | Steer left | Steer right |
 
 After you are eliminated, hold Right to fast-forward remaining AI combat at 3×
-speed. Release to return to normal speed. A/D also steer during gameplay. Esc pauses or resumes without a menu. Extinguishers start automatically after each map
-introduction and never run out. Introductions and score screens use plain black
+speed. Release to return to normal speed. A/D also steer during gameplay. Esc pauses or resumes without a menu. After each map introduction, steering and gameplay start immediately.
+Extinguisher thrust, pushing force and foam smoothly build to full strength over
+the first two seconds. Extinguishers never run out. Introductions and score screens use plain black
 backgrounds. A held menu key must be released before the next
 screen accepts input or a round begins.
 
 Each round randomly selects **A Floor in the Crack**, **A Crack in the Floor** or
 **The Bull in the Chinese Office**. The bull office has a solid floor: its bull
 telegraphs a target, charges in a locked direction and eliminates on impact. Walls,
-furniture and player impacts briefly stun it. Bulls enter through swinging saloon
-doors at the top center: another arrives every 14 seconds, up to six per round. The second
+furniture and player impacts briefly stun it. The first bull starts at the office center. Later bulls enter through swinging saloon
+doors at the top center, arriving every 14 seconds of live play, up to six per round. The second
 is a walled office with a smaller central pit and bouncing perimeter walls. Both
 introductions show “Don’t fall” below the map name. The first is a circular navy office floor
 above a grey cylindrical foundation descending into black void. A four-station
@@ -95,8 +96,8 @@ and controller-join shortcuts do not control normal matches.
 
 See [adding maps and skins](docs/adding-content.md) for the content workflow and
 [the match flow plan](docs/match-flow-plan.md) for design decisions and future
-map requirements. Only A Floor in the Crack is implemented; the planned office maps are
-future work.
+map requirements. The three current maps share stage lifecycle hooks, with a shared two-second
+extinguisher ramp-up at the start of live play.
 
 Commit Godot `.uid` files. Keep `.godot/`, virtual environments and build output out
 of version control.
