@@ -15,6 +15,7 @@ script = ExtResource("1")
 view_width = 1540.0
 view_focus = Vector2(640, 330)
 content_scale = 1.4
+ai_edge_margin = 55.0
 
 [node name="Furniture" type="Node2D" parent="."]
 

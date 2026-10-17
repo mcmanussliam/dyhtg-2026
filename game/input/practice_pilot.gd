@@ -27,6 +27,7 @@ var _alive_count: int = 0
 var _stall_time: float = 0.0
 var _ignored: Dictionary = {}
 var _risk_margin: float = 95.0
+var _pit_escape_goal := Vector2.INF
 
 
 func _init(random_seed: int = -1) -> void:
@@ -80,12 +81,30 @@ func sample_on_stage(
 		pressure = clampf(
 			maxf((_uncontested_time - 2.0) / 16.0, (_round_age - 10.0) / 20.0), 0.0, 1.0
 		)
-	var predicted := chair.global_position + chair.linear_velocity * lerpf(1.0, 0.40, pressure)
-	if not _recovering and not stage.is_safe(predicted, lerpf(_risk_margin, 10.0, pressure)):
+	var safety_margin := stage.ai_edge_margin * lerpf(1.0, 0.35, pressure)
+	var horizon := lerpf(1.0, 0.40, pressure)
+	if stage.ai_edge_margin > 0:
+		# Hole avoidance keeps time to turn and shed inward momentum even late in a fight.
+		horizon = maxf(horizon, lerpf(0.85, 0.55, pressure))
+		# Long fights trade reaction time for committed, riskier attacks.
+		horizon *= lerpf(1.0, 0.45, clampf((_round_age - 30.0) / 30.0, 0, 1))
+	var predicted := chair.global_position + chair.linear_velocity * horizon
+	if (
+		not _recovering
+		and not stage.is_path_safe(
+			chair.global_position,
+			predicted,
+			maxf(safety_margin, lerpf(_risk_margin, 10.0, pressure))
+		)
+	):
 		_recovering = true
 	elif (
 		_recovering
-		and stage.is_safe(predicted, lerpf(145.0, 65.0, pressure))
+		and stage.is_path_safe(
+			chair.global_position,
+			predicted,
+			maxf(stage.ai_edge_margin + 20, lerpf(145.0, 65.0, pressure))
+		)
 		and stage.is_safe(chair.global_position, lerpf(140.0, 60.0, pressure))
 	):
 		_recovering = false
@@ -94,15 +113,27 @@ func sample_on_stage(
 		_escape_jet = Vector2.from_angle(chair.aim_angle)
 		_turn_arc = 0.0
 		_choose_target(chair, chairs)
+	if stage is PitOfficeStage:
+		if _escape_left <= 0:
+			_pit_escape_goal = Vector2.INF
+		elif _pit_escape_goal == Vector2.INF:
+			_pit_escape_goal = stage.open_floor_target(chair.global_position)
+			_escape_left = 1.7
 	var desired_jet: Vector2
 	if (
 		_escape_left > 0.0
-		and stage.is_safe(chair.global_position + chair.linear_velocity * 0.5, 100.0)
+		and not _recovering
+		and stage.is_path_safe(
+			chair.global_position, chair.global_position + chair.linear_velocity * 0.5, 100.0
+		)
 	):
-		desired_jet = _escape_jet
+		if stage is PitOfficeStage:
+			desired_jet = -_approach_acceleration(chair, _pit_escape_goal, 320)
+		else:
+			desired_jet = _escape_jet
 	elif _recovering:
 		# Cancel both outward drift and the sideways velocity created while turning.
-		var refuge := stage.safe_target(predicted, 300.0)
+		var refuge := stage.recovery_target(chair.global_position, predicted, 300.0)
 		desired_jet = -_approach_acceleration(chair, refuge, 250.0)
 	elif not is_instance_valid(_target):
 		desired_jet = Vector2.from_angle(chair.aim_angle)
@@ -112,9 +143,17 @@ func sample_on_stage(
 			chair.global_position - separation.normalized() * lerpf(230.0, 90.0, pressure)
 		)
 		var can_attack := (
-			stage.is_safe(retreat, lerpf(70.0, 0.0, pressure))
-			and stage.is_safe(predicted, lerpf(135.0, 15.0, pressure))
+			stage.is_path_safe(
+				chair.global_position, retreat, maxf(safety_margin, lerpf(70.0, 0.0, pressure))
+			)
+			and stage.is_path_safe(
+				chair.global_position, predicted, maxf(safety_margin, lerpf(135.0, 15.0, pressure))
+			)
 		)
+		if stage is PitOfficeStage:
+			can_attack = (
+				can_attack and stage.has_push_angle(chair.global_position, _target.global_position)
+			)
 		if (
 			separation.length() < chair.tuning.spray_range * 0.90
 			and _blast_left <= 0.0
@@ -133,11 +172,24 @@ func sample_on_stage(
 				goal += separation.normalized().orthogonal() * _side * _offset
 				if separation.length() < 210.0:
 					_intent = Intent.PURSUE
+			if stage is PitOfficeStage:
+				goal = stage.attack_position(goal)
 			goal = stage.navigation_target(
-				chair.global_position, goal, lerpf(155.0, 30.0, pressure)
+				chair.global_position, goal, maxf(safety_margin, lerpf(155.0, 30.0, pressure))
 			)
 			desired_jet = -(goal - chair.global_position - chair.linear_velocity * 0.25)
+	var before_obstacle := desired_jet
 	desired_jet = _avoid_obstacles(chair, stage, desired_jet)
+	if (
+		stage.ai_edge_margin > 0
+		and not stage.is_path_safe(
+			chair.global_position,
+			chair.global_position - desired_jet.normalized() * 140,
+			stage.ai_edge_margin
+		)
+	):
+		# A desk detour must not replace a safe route with a shortcut into the pit.
+		desired_jet = before_obstacle
 	if desired_jet.length_squared() < 1.0:
 		desired_jet = Vector2.from_angle(chair.aim_angle)
 	var error := wrapf(desired_jet.angle() - chair.aim_angle, -PI, PI)
@@ -150,6 +202,15 @@ func sample_on_stage(
 	)
 	if _escape_left > 0.0 and absf(chair.angular_velocity) > 1.5:
 		command.turn = -signf(chair.angular_velocity)
+	if stage is PitOfficeStage:
+		command.turn = PitSteeringGuard.filter(
+			chair,
+			stage,
+			command.turn,
+			desired_jet,
+			turn_limit,
+			pressure + clampf((_round_age - 30.0) / 30.0, 0, 1)
+		)
 	return command
 
 
@@ -252,7 +313,7 @@ func _avoid_obstacles(chair: Chair, stage: ArenaStage, desired_jet: Vector2) -> 
 	var preference := tangent.dot(-desired_jet.normalized())
 	if preference < -0.05 or (absf(preference) <= 0.05 and _side < 0.0):
 		tangent = -tangent
-	if not stage.is_safe(chair.global_position + tangent * 110.0, 70.0):
+	if not stage.is_path_safe(chair.global_position, chair.global_position + tangent * 110.0, 70.0):
 		tangent = -tangent
 	var desired_velocity := (tangent + normal * 0.65).normalized() * 280.0
 	return -(desired_velocity - chair.linear_velocity)

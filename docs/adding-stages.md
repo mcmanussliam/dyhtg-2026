@@ -17,7 +17,7 @@ projects the circular surface into an ellipse; geometry stays in world space.
    unscaled `Node2D`; the camera supplies the viewing angle.
 2. Create a `StageDefinition` resource with a stable `id`, readable `display_name`
    an optional `hint`, and the scene. Validate the resource using `validation_errors()`.
-3. Register that resource with the match's stage selection. Each round randomly selects from A Floor in the Crack and A Crack in the Floor.
+3. Register that resource with the match's stage selection. Each round randomly selects from the island, pit office and bull office.
    Add its definition to `MatchConfig.stages`; each round draws independently from the list.
 4. Add geometry, support, spawn, navigation and lifecycle tests before shipping.
    Keep stage-specific settings exported in its script or an authored Resource.
@@ -86,10 +86,7 @@ These are adaptation notes, not implemented maps.
 - **Pit of Death**: subtract the hole from support. Navigation must route around
   it instead of returning a nearest point across the pit. Mask falling visuals
   behind the pit rim when that presentation is added.
-- **Bull**: stage-owned physical hazard with readable wind-up, charge, impact and
-  recovery. Contact can report elimination or impart bounded physical impulses,
-  according to the approved map rule. The bull is not a scoring participant and
-  must stop attacking outside live play.
+- **Bull** is now implemented as The Bull in the Chinese Office; see below.
 
 For each map, test edge equality, holes, safe spawns, AI prediction, intro/pause
 inactivity, fresh-round reset and simultaneous elimination. `tests/test_stage.gd`
@@ -121,3 +118,47 @@ printer/storage and a carpeted lounge. `OfficeWallDetails` supplies reusable
 texture-free windows, closed doors and clocks mounted on solid wall geometry.
 AI navigation returns intermediate waypoints around the pit instead of steering
 through its center. Introductions show each definition’s name and smaller hint.
+
+
+## The Bull in the Chinese Office
+
+`OfficeStage` supplies the shared solid office shell, bouncy walls, furniture,
+carpets and wall dressing. The pit map overrides floor support and floor rendering;
+the bull map uses the solid floor and adds an `OfficeBull` hazard.
+
+`bind_participants(chairs)` supplies hazards with the explicit round roster.
+`tick_hazards(delta)` is the bull’s only gameplay clock. Its recovery, windup,
+charge and stun phases stop during introductions, pause and results. Windup locks
+a player’s predicted position or a random floor location, marks it on the floor
+and gives a readable turn/paw animation. The floor guide extends all the way
+to the room boundary in the locked charge direction, even when the selected
+player or spot is nearer. Furniture still stops the actual charge. Charges do not home. Scenery stops native
+kinematic movement; swept player hits are limited to that actual travelled segment.
+Hits emit `elimination_requested(seat, &"bull")`; the round batches scoring and
+starts the existing native ragdoll presentation. Any impact stuns the bull before
+recovery and another windup. AI steering can seek safety away from its charge lane.
+
+The original `BullModel` uses smooth native geometry, shared materials and a
+separate presentation root. Neither the model nor the bull awards points.
+
+
+Bull difficulty grows with stage-owned arrivals. The first bull waits outside the
+centered saloon doorway during the intro and walks through after play begins.
+Additional bulls arrive every `arrival_interval` seconds (default 14), up to
+`max_bulls` (default six). An occupied entrance delays arrivals instead of stacking
+bodies. Entering bulls alone bypass the closed perimeter collider and are harmless
+until completely inside; player spawns and furniture leave that lane clear.
+All bulls receive the same roster and contribute to AI danger queries.
+
+`SaloonDoor` animates its two hinges with a damped spring on the same stage clock.
+Batch only each leaf’s static geometry, preserving its moving pivot. Stop, pause
+and results freeze door motion and arrival time; a fresh stage resets the herd.
+
+
+Bull impact knockouts prepare a world-space launch velocity and tumble on the
+chair before emitting elimination. The round still eliminates immediately and
+batches scoring normally. `ChairView` transfers those velocities to the native
+3D assembly without the live movement speed cap. The already-eliminated visual
+projectile ignores scenery so it clears the room, while native gravity and angular
+motion supply the flight. Ordinary edge falls retain their normal collisions and
+recoverable landings. `prepare_round()` clears launch data.

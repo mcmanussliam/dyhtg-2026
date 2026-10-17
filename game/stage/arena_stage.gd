@@ -12,6 +12,9 @@ signal round_stopped
 @export var view_focus := Vector2(640, 422)
 @export_range(0.75, 1.5, 0.01) var content_scale: float = 1.0
 
+@export_group("AI navigation")
+@export_range(0.0, 150.0, 1.0) var ai_edge_margin := 0.0
+
 var round_running: bool = false
 
 
@@ -31,12 +34,25 @@ func safe_target(world_point: Vector2, _margin: float = 90.0) -> Vector2:
 	return world_point
 
 
+func is_path_safe(_from: Vector2, destination: Vector2, margin: float = 0.0) -> bool:
+	return is_safe(destination, margin)
+
+
+func recovery_target(_from: Vector2, predicted: Vector2, margin: float) -> Vector2:
+	return safe_target(predicted, margin)
+
+
 func navigation_target(_from: Vector2, destination: Vector2, margin: float) -> Vector2:
 	return safe_target(destination, margin)
 
 
 func spawn_pose(_index: int, _count: int) -> Transform2D:
 	return global_transform
+
+
+func bind_participants(_chairs: Array[Chair]) -> void:
+	# Optional actor-specific hazards receive the round roster explicitly.
+	pass
 
 
 func start_round() -> void:

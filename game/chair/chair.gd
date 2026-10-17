@@ -18,6 +18,9 @@ var drive_enabled: bool = true
 var falling: bool = false
 var fall_velocity := Vector2.ZERO
 var fall_spin: float = 0.0
+# World-space 3D velocities are presentation data for an already eliminated actor.
+var knockout_velocity := Vector3.ZERO
+var knockout_spin := Vector3.ZERO
 var impact: float = 0.0
 var spray_reach: float = 176.0
 var command := ChairCommand.new()
@@ -96,6 +99,8 @@ func prepare_round() -> void:
 	active = true
 	falling = false
 	_fall_reported = false
+	knockout_velocity = Vector3.ZERO
+	knockout_spin = Vector3.ZERO
 	drive_enabled = false
 	spraying = false
 	freeze = true
@@ -150,10 +155,16 @@ func confirm_fall() -> void:
 		fall_confirmed.emit(seat)
 
 
+func set_knockout_launch(velocity: Vector3, spin: Vector3) -> void:
+	if active and not falling:
+		knockout_velocity = velocity
+		knockout_spin = spin
+
+
 func eliminate(reason: StringName) -> void:
 	if not active:
 		return
-	if reason == &"fall":
+	if reason in [&"fall", &"bull"]:
 		begin_fall()
 	active = false
 	stop_drive()

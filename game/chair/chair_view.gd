@@ -192,6 +192,14 @@ func _start_fall(chair: Chair) -> void:
 		Vector3(chair.fall_velocity.x, 0, chair.fall_velocity.y) / PIXELS_PER_UNIT
 	)
 	_fall_body.angular_velocity = Vector3(0, -chair.fall_spin, 0)
+	if not chair.knockout_velocity.is_zero_approx():
+		# Eliminated launch bodies are ballistic visual projectiles. Ignoring arena
+		# collision lets them sail out instead of lodging in a wall or nearby desk.
+		# Native gravity and full angular inertia still control the complete flight.
+		_fall_body.collision_layer = 0
+		_fall_body.collision_mask = 0
+		_fall_body.linear_velocity = chair.knockout_velocity
+		_fall_body.angular_velocity = chair.knockout_spin
 	_spray.hide()
 	if not _shared:
 		queue_redraw()

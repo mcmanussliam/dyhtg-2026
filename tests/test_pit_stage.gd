@@ -61,6 +61,16 @@ func run(tree: SceneTree, check: Callable) -> void:
 		stage.is_safe(stage.safe_target(Vector2(640, 422), 300), 100),
 		"Oversized safety inset remains feasible"
 	)
+	check.call(
+		not stage.is_path_safe(Vector2(235, 422), Vector2(1045, 422), 40),
+		"Safe endpoints do not permit a route across the pit"
+	)
+	var recovery := stage.recovery_target(Vector2(235, 422), Vector2(1045, 422), 300)
+	check.call(recovery.x < 640, "Pit recovery stays on the chair's current bank")
+	check.call(
+		stage.is_path_safe(Vector2(235, 422), recovery, 40),
+		"Pit recovery route remains over supported floor"
+	)
 	var outline: PackedVector2Array = stage.hole_outline()
 	var min_radius := INF
 	var max_radius := 0.0

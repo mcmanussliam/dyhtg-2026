@@ -66,6 +66,7 @@ func _ready() -> void:
 		chairs.append(chair)
 		if chair.seat != 0:
 			_pilots[chair.seat] = PracticePilot.new()
+	stage.bind_participants(chairs)
 	var layer := CanvasLayer.new()
 	add_child(layer)
 	_intro_background = ColorRect.new()
@@ -78,7 +79,9 @@ func _ready() -> void:
 	_title.offset_top = -48
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_title.add_theme_font_size_override("font_size", 68)
+	_title.add_theme_font_size_override(
+		"font_size", 68 if _definition.display_name.length() < 27 else 54
+	)
 	_title.add_theme_color_override("font_shadow_color", Color.BLACK)
 	_title.add_theme_constant_override("shadow_offset_y", 4)
 	_title.text = _definition.display_name

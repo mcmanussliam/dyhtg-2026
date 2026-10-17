@@ -6,7 +6,9 @@ const DEFAULT_STAGE_PATH := "res://game/stage/a_floor_in_the_crack.tres"
 
 # Load at instance creation rather than preloading a scene into the class dependency graph.
 @export var stages: Array[StageDefinition] = [
-	load(DEFAULT_STAGE_PATH), load("res://game/stage/a_crack_in_the_floor.tres")
+	load(DEFAULT_STAGE_PATH),
+	load("res://game/stage/a_crack_in_the_floor.tres"),
+	load("res://game/stage/bull_office.tres")
 ]
 
 @export_range(1, 3, 1) var ai_count: int = 1

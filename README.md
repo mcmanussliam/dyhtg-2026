@@ -30,7 +30,11 @@ introduction and never run out. Introductions and score screens use plain black
 backgrounds. A held menu key must be released before the next
 screen accepts input or a round begins.
 
-Each round randomly selects **A Floor in the Crack** or **A Crack in the Floor**. The second
+Each round randomly selects **A Floor in the Crack**, **A Crack in the Floor** or
+**The Bull in the Chinese Office**. The bull office has a solid floor: its bull
+telegraphs a target, charges in a locked direction and eliminates on impact. Walls,
+furniture and player impacts briefly stun it. Bulls enter through swinging saloon
+doors at the top center: another arrives every 14 seconds, up to six per round. The second
 is a walled office with a smaller central pit and bouncing perimeter walls. Both
 introductions show “Don’t fall” below the map name. The first is a circular navy office floor
 above a grey cylindrical foundation descending into black void. A four-station
