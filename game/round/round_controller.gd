@@ -108,6 +108,7 @@ func _ready() -> void:
 	_warm_up_rendering.call_deferred()
 
 
+## Warm actual effect pipelines beneath the opaque title without advancing gameplay.
 func _warm_up_rendering() -> void:
 	# Hidden objects do not compile their GPU paths. Draw them once beneath the
 	# opaque title, then suspend arena rendering until gameplay actually starts.

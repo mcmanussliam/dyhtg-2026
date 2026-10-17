@@ -18,7 +18,7 @@ func run() -> void:
 	app.settings_path = ""
 	root.add_child(app)
 	app.config.appearance.colour_id = &"yellow"
-	app.config.stages = [load("res://game/stage/bull_office.tres")]
+	app.config.stages = [load("res://game/stage/bull_office/bull_office.tres")]
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--players="):
 			app.config.player_count = clampi(int(argument.trim_prefix("--players=")), 2, 10)

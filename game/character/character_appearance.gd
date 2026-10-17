@@ -20,7 +20,6 @@ const PALETTE: Array[Color] = [
 
 @export var hat_id: StringName = NONE
 @export var body_id: StringName = NONE
-@export var chair_id: StringName = NONE
 @export var colour_id: StringName = RANDOM:
 	set(value):
 		colour_id = value
@@ -87,7 +86,6 @@ func save_profile(path: String) -> Error:
 	var validated := validated_copy()
 	file.set_value("appearance", "hat", String(validated.hat_id))
 	file.set_value("appearance", "body", String(validated.body_id))
-	file.set_value("appearance", "chair", String(validated.chair_id))
 	file.set_value("appearance", "colour", String(validated.colour_id))
 	return ProfileStore.save_file(file, path)
 

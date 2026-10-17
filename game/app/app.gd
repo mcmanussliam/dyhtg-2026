@@ -97,9 +97,19 @@ func show_home() -> void:
 
 func show_setup() -> void:
 	_clear_screen()
-	_build_office_page()
+	_build_office_page(null, 368)
 	_setup_labels()
 	current_menu.activated.connect(_setup_action)
+	_guard_transition()
+
+
+func show_map_selection() -> void:
+	_clear_screen()
+	var menu := MapSelectionMenu.new()
+	menu.config = config
+	menu.back_requested.connect(func(): show_setup.call_deferred())
+	_build_office_page(menu, 368)
+	current_menu.offset_right = 800
 	_guard_transition()
 
 
@@ -123,7 +133,7 @@ func _build_office_page(menu: TwoKeyMenu = null, menu_height: int = 292) -> void
 
 func show_customisation() -> void:
 	_clear_screen()
-	_build_office_page(null, 280)
+	_build_office_page(null, 222)
 	_customisation_labels()
 	current_menu.activated.connect(_customisation_action)
 	_guard_transition()
@@ -131,12 +141,11 @@ func show_customisation() -> void:
 
 func _customisation_labels() -> void:
 	current_menu.set_items(
-		PackedStringArray(["Hat", "Top", "Chair", "Colour", "Back"]),
+		PackedStringArray(["Hat", "Top", "Colour", "Back"]),
 		PackedStringArray(
 			[
 				config.appearance.hat_label(),
 				config.appearance.body_label(),
-				"None",
 				config.appearance.colour_label(),
 				""
 			]
@@ -145,7 +154,7 @@ func _customisation_labels() -> void:
 
 
 func _customisation_action(index: int) -> void:
-	if index == 4:
+	if index == 3:
 		show_home.call_deferred()
 		return
 	if index == 0:
@@ -154,7 +163,7 @@ func _customisation_action(index: int) -> void:
 	elif index == 1:
 		config.appearance.cycle_body()
 		_backdrop.set_skin(config.appearance.resolved_skin())
-	elif index == 3:
+	elif index == 2:
 		config.appearance.cycle_colour()
 		_backdrop.set_colour(config.player_colour)
 	else:
@@ -171,11 +180,13 @@ func _setup_labels() -> void:
 		[
 			"Players %d" % config.player_count,
 			"First to %d wins" % config.wins_needed,
+			"Select maps",
 			"Start match",
 			"Back",
 		]
 	)
 	current_menu.set_items(labels)
+	current_menu.set_item_enabled(3, not config.stages.is_empty())
 
 
 func _home_action(index: int) -> void:
@@ -203,12 +214,16 @@ func _setup_action(index: int) -> void:
 			config.wins_needed = config.wins_needed % 5 + 1
 			_setup_labels()
 		2:
-			_guard_transition(_start_match)
+			show_map_selection.call_deferred()
 		3:
+			_guard_transition(_start_match)
+		4:
 			show_home.call_deferred()
 
 
 func _start_match() -> void:
+	if config.stages.is_empty():
+		return
 	_clear_screen()
 	_clear_match()
 	match_controller = MatchController.new()

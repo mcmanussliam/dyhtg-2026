@@ -1,0 +1,16 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://game/props/office_prop.gd" id="1"]
+[ext_resource type="PackedScene" path="res://game/props/bookshelf/bookshelf_visual.tscn" id="2"]
+
+[sub_resource type="RectangleShape2D" id="FootprintShape"]
+size = Vector2(68.8, 19.35)
+
+[node name="OfficeBookshelf" type="StaticBody2D"]
+collision_layer = 1
+collision_mask = 2
+script = ExtResource("1")
+visual_scene = ExtResource("2")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("FootprintShape")

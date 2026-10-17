@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://game/chair/chair.gd" id="1"]
 [ext_resource type="Resource" path="res://game/chair/default_tuning.tres" id="2"]
-[ext_resource type="Script" path="res://game/chair/chair_view.gd" id="3"]
+[ext_resource type="Script" path="res://game/chair/presentation/chair_view.gd" id="3"]
 
 [sub_resource type="CapsuleShape2D" id="ChairShape"]
 radius = 23.0

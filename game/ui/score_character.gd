@@ -30,6 +30,7 @@ func _ready() -> void:
 	_model.build(colour, skin, hat_id)
 	_model.rotation.y = -0.15
 	RenderStyle.setup_world(viewport, true, Color.BLACK, false)
+	# Fixed framing per view: cosmetics never resize the face or shift its position.
 	if close_up:
 		_model.rotation.y = 0
 		# Neutral, softer portrait lighting keeps the palette readable at HUD size.
@@ -37,19 +38,9 @@ func _ready() -> void:
 		environment.environment.ambient_light_energy = 0.5
 		(viewport.get_node("KeyLight") as DirectionalLight3D).light_energy = 0.6
 		(viewport.get_node("FillLight") as DirectionalLight3D).light_energy = 0.08
-		RenderStyle.orthographic_camera(
-			viewport,
-			0.9 if hat_id == &"none" else 1.45,
-			Vector3(0, 1.58 if hat_id == &"none" else 1.80, 5),
-			Vector3(0, 1.43 if hat_id == &"none" else 1.65, 0)
-		)
+		RenderStyle.orthographic_camera(viewport, 0.9, Vector3(0, 1.58, 5), Vector3(0, 1.43, 0))
 	else:
-		RenderStyle.orthographic_camera(
-			viewport,
-			2.35 if hat_id == &"none" else 2.85,
-			Vector3(0.3, 2.1 if hat_id == &"none" else 2.3, 5),
-			Vector3(0, 0.8 if hat_id == &"none" else 1.0, 0)
-		)
+		RenderStyle.orthographic_camera(viewport, 2.85, Vector3(0.3, 2.3, 5), Vector3(0, 1.0, 0))
 
 
 func _process(delta: float) -> void:

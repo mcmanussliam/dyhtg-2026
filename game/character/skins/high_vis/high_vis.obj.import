@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://emhmm0w12m7j"
+path="res://.godot/imported/high_vis.obj-86f972551c8ae8f35aade07fe57ac253.mesh"
+
+[deps]
+
+files=["res://.godot/imported/high_vis.obj-86f972551c8ae8f35aade07fe57ac253.mesh"]
+
+source_file="res://game/character/skins/high_vis/high_vis.obj"
+dest_files=["res://.godot/imported/high_vis.obj-86f972551c8ae8f35aade07fe57ac253.mesh", "res://.godot/imported/high_vis.obj-86f972551c8ae8f35aade07fe57ac253.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

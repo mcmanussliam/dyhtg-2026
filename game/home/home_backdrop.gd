@@ -2,8 +2,8 @@ class_name HomeBackdrop
 extends Control
 ## Full office interior behind the two-key menus, using the gameplay furniture.
 
-const CABINET := preload("res://game/props/cabinet_visual.tscn")
-const PLANT := preload("res://game/props/plant_visual.tscn")
+const CABINET := preload("res://game/props/cabinet/cabinet_visual.tscn")
+const PLANT := preload("res://game/props/plant/plant_visual.tscn")
 const PREVIEW_CAMERA_SIZE := 5.3
 const PREVIEW_TARGET := Vector3(-0.35, 1.95, 0.8)
 const PREVIEW_HEADING := 0.08
@@ -109,31 +109,38 @@ func _build_office(parent: Node3D) -> void:
 	_build_window(room)
 	_build_details(room)
 	var carpet := PlaneMesh.new()
-	carpet.size = Vector2(3.1, 2.5)
+	carpet.size = Vector2(3.0, 3.3)
 	var rug := ModelGeometry.instance(
-		room, carpet, Vector3(2.8, 0.004, -1.6), ModelGeometry.material(Color("637672"), 0, 1)
+		room, carpet, Vector3(2.6, 0.004, 0.1), ModelGeometry.material(Color("637672"), 0, 1)
 	)
 	rug.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var desk := _furniture(
-		room, preload("res://game/props/desk_visual.tscn"), Vector3(-0.8, 0, -2.0)
+		room, preload("res://game/props/desk/desk_visual.tscn"), Vector3(-0.5, 0, -2.35)
 	)
 	OfficeAccessories.desk(desk, Color("b2745f"))
 	StaticModelBatcher.batch(desk)
-	_furniture(room, preload("res://game/props/bookshelf_visual.tscn"), Vector3(3.1, 0, -2.9))
-	var cabinet := _furniture(room, CABINET, Vector3(1.8, 0, -2.92))
+	_furniture(
+		room, preload("res://game/props/bookshelf/bookshelf_visual.tscn"), Vector3(3.25, 0, -3.05)
+	)
+	var cabinet := _furniture(room, CABINET, Vector3(1.9, 0, -2.98))
 	OfficeAccessories.archive_boxes(cabinet, 1.25)
 	StaticModelBatcher.batch(cabinet)
 	var sofa := _furniture(
-		room, preload("res://game/props/sofa_visual.tscn"), Vector3(3.25, 0, -1.6)
+		room, preload("res://game/props/sofa/sofa_visual.tscn"), Vector3(2.9, 0, 0.1)
 	)
 	sofa.rotation.y = -PI * 0.5
 	var table := _furniture(
-		room, preload("res://game/props/coffee_table_visual.tscn"), Vector3(2.0, 0, -1.6)
+		room,
+		preload("res://game/props/coffee_table/coffee_table_visual.tscn"),
+		Vector3(1.65, 0, 0.1)
 	)
 	table.rotation.y = -PI * 0.5
-	_furniture(room, PLANT, Vector3(3.45, 0, -0.3))
-	_furniture(room, CABINET, Vector3(-2.5, 0, -3.0))
-	_furniture(room, PLANT, Vector3(-2.5, 1.25, -3.0))
+	# Keep the entrance clear; storage forms one rear-wall bank beside the lounge.
+	_furniture(room, PLANT, Vector3(-2.25, 0, -2.55))
+	var task_chair := _furniture(
+		room, preload("res://game/props/task_chair/task_chair_visual.tscn"), Vector3(-0.5, 0, -1.35)
+	)
+	task_chair.rotation.y = PI
 
 
 func _build_window(room: Node3D) -> void:
@@ -159,10 +166,10 @@ func _build_details(room: Node3D) -> void:
 	ModelGeometry.capsule(room, Vector3(2.9, 2.3, -3.23), Vector3(2.9, 2.46, -3.23), 0.012, dark)
 	ModelGeometry.capsule(room, Vector3(2.9, 2.3, -3.23), Vector3(3.01, 2.25, -3.23), 0.014, dark)
 	# A small bin sits beside the workstation, away from the character preview.
-	ModelGeometry.cylinder(room, Vector3(-2.5, 0.02, -2.4), Vector3(-2.5, 0.48, -2.4), 0.22, dark)
+	ModelGeometry.cylinder(room, Vector3(-1.25, 0.02, -2.4), Vector3(-1.25, 0.48, -2.4), 0.22, dark)
 	var opening := ModelGeometry.material(Color("263540"), 0, 1)
 	ModelGeometry.cylinder(
-		room, Vector3(-2.5, 0.481, -2.4), Vector3(-2.5, 0.485, -2.4), 0.19, opening
+		room, Vector3(-1.25, 0.481, -2.4), Vector3(-1.25, 0.485, -2.4), 0.19, opening
 	)
 	for x in [-1.5, 1.8]:
 		_box(room, Vector3(x, 0.38, -3.37), Vector3(0.24, 0.16, 0.04), cream)

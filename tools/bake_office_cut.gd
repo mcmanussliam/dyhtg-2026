@@ -8,22 +8,22 @@ const RADIUS := 480.0 / SCALE
 const CONTENT_SCALE := 1.18
 const PRESETS := [
 	{
-		"source": "res://game/props/bookshelf_visual.tscn",
+		"source": "res://game/props/bookshelf/bookshelf_visual.tscn",
 		"position": Vector2(945, 90),
 		"rotation": 0.0,
-		"output": "res://game/stage/art/cut_bookshelf.res",
+		"output": "res://game/stage/a_floor_in_the_crack/art/cut_bookshelf.res",
 	},
 	{
-		"source": "res://game/props/desk_visual.tscn",
+		"source": "res://game/props/desk/desk_visual.tscn",
 		"position": Vector2(170, 270),
 		"rotation": 0.0,
-		"output": "res://game/stage/art/cut_desk.res",
+		"output": "res://game/stage/a_floor_in_the_crack/art/cut_desk.res",
 	},
 	{
-		"source": "res://game/props/desk_visual.tscn",
+		"source": "res://game/props/desk/desk_visual.tscn",
 		"position": Vector2(170, 210),
 		"rotation": PI,
-		"output": "res://game/stage/art/cut_rear_desk.res",
+		"output": "res://game/stage/a_floor_in_the_crack/art/cut_rear_desk.res",
 	},
 ]
 
@@ -33,7 +33,7 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	DirAccess.make_dir_recursive_absolute("res://game/stage/art")
+	DirAccess.make_dir_recursive_absolute("res://game/stage/a_floor_in_the_crack/art")
 	for preset in PRESETS:
 		await _bake(preset)
 	quit()

@@ -2,6 +2,8 @@
 class_name ArenaStage
 extends Node2D
 ## Surface support, arena rules and navigation belong to a stage, never scoring.
+## Navigation points and spawn poses use world coordinates, including transformed maps.
+## Advance hazards on the supplied live physics clock; stop/reset with the round scene.
 
 signal elimination_requested(seat: int, reason: StringName)
 signal round_started

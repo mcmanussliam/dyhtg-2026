@@ -187,7 +187,7 @@ func set_knockout_launch(velocity: Vector3, spin: Vector3) -> void:
 func eliminate(reason: StringName) -> void:
 	if not active:
 		return
-	if reason in [&"fall", &"bull"]:
+	if reason in [&"fall", &"bull"] or knockout_velocity != Vector3.ZERO:
 		begin_fall()
 	active = false
 	stop_drive()

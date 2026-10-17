@@ -1,63 +1,85 @@
 # Please Remain Seated
 
 A native Godot party game about soft characters on swivel office chairs, propelled
-by continuously firing extinguishers. Straight travel builds speed quickly;
-hard turns scrub momentum before accelerating again. Steer, drift and push everyone else off the
-platform.
+by continuously firing extinguishers. Steer, drift and push everyone else off the
+floor. Open `project.godot` in **Godot 4.7.2 Standard** and press F5.
 
-Open `project.godot` in **Godot 4.7.2 Standard** and press F5. The game starts at an
-office home screen with plain white menu options. Choose Play, set 2–10 players and a first-to-1–5 win target,
-then start. The default is two total players (you and one AI) and first to five wins. Customise opens Hat,
-Top, Chair and Colour. Hats include Traffic Cone, Top Hat and Cap.
-Tops include JPMorgan and Hoodie. Clothes use a richer version of the
-selected body colour; JPMorgan automatically chooses contrasting black or white logo ink. Colour
-defaults to Random, with a small named palette available. Hat and Top default to None; Chair remains None. Choices are saved
-locally; Random chooses a colour for the preview and keeps it through the match.
-Settings uses the same two-key option/value menu and saved-profile system:
-anti-aliasing and shadow quality apply
-immediately and persist between launches. Multiplayer is deferred.
+## Play
 
-## Controls
+Home offers Play, Customise, Settings and Quit. Matches have **2–10 total players**
+(default 2): one human and the remaining seats controlled by AI. Multiplayer is
+not implemented. Choose a **first-to-1–5 wins** target; the default is first to five.
+Setup’s Select maps page lets you toggle the testing map pool with Left/Right; all maps
+start selected. Start match is unavailable while the pool is empty. Each round
+independently picks a selected map, so repeats are possible:
+
+- **A Floor in the Crack:** a chipped navy office island above black void.
+- **A Crack in the Floor:** an office around a central pit, with bouncy outer walls.
+- **The Bull in the Chinese Office:** bulls telegraph and charge; impacts launch
+  players out. The first bull starts centrally; more enter through the saloon doors.
+- **HR Training:** three horizontal office rail crossings with flashing red warnings. Trains
+  sweep the top, middle and bottom. Independent arrivals accelerate and overlap;
+  each train warns before entering, with opposing traffic held until its track clears.
+
+Both crack maps begin crumbling after roughly 15 seconds: the island shrinks and
+the hole widens. Full-depth sections fall away. Furniture tips under native 3D
+physics and remains solid to players until it drops below chair height.
 
 | Context | Left arrow | Right arrow |
 | --- | --- | --- |
-| All menus | Select the next item, wrapping | Change a value or confirm |
-| Gameplay | Steer left | Steer right |
+| Menus | Select next item | Change value or confirm |
+| Gameplay | Turn left | Turn right |
+| Spectating after elimination | — | Hold for 3× fast-forward |
 
-After you are eliminated, hold Right to fast-forward remaining AI combat at 3×
-speed. Release to return to normal speed. A/D also steer during gameplay. Esc pauses or resumes without a menu. After each map introduction, steering and gameplay start immediately.
-Extinguisher thrust, pushing force and foam smoothly build to full strength over
-the first two seconds. Extinguishers never run out. Introductions and score screens use plain black
-backgrounds. A held menu key must be released before the next
-screen accepts input or a round begins.
+A/D also steer. Esc pauses/resumes. Extinguishers are continuous and unlimited;
+steering is the only gameplay action. After the black map title, controls start
+immediately while propulsion, spray force and foam build over two seconds.
+Wheel overhang alone does not eliminate a player: they must actually fall.
+Last survivor wins a point; simultaneous elimination is a draw. Black score
+screens show characters and 3D win stars, advancing after three seconds between
+rounds. Final confetti returns to home after five seconds. Right advances early;
+Left returns home. Held keys must be released between screens.
 
-Each round randomly selects **A Floor in the Crack**, **A Crack in the Floor** or
-**The Bull in the Chinese Office**. The bull office has a solid floor: its bull
-telegraphs a target, charges in a locked direction and eliminates on impact. Walls,
-furniture and player impacts briefly stun it. The first bull starts at the office center. Later bulls enter through swinging saloon
-doors at the top center, arriving every 14 seconds of live play, up to six per round. The second
-is a walled office with a smaller central pit and bouncing perimeter walls. Both crack maps begin crumbling after 15 seconds of live play: the hole widens
-and the island shrinks in telegraphed, full-depth sections. Furniture switches to 3D physics as soon as a departing chip touches its footprint,
-letting the remaining floor support it or tip it into the void. Both
-introductions show “Don’t fall” below the map name. The first is a circular navy office floor
-above a grey cylindrical foundation descending into black void. A four-station
-desk island, printer alcove, aligned storage and seating nook furnish the floor. A desk and
-bookshelf are sliced through by the circular edge. Centered circular close-ups along the bottom show each character, greying out eliminated players. Crossing
-its edge starts a native fall once the chair loses floor support. Elimination
-is confirmed after the body drops below the floor, allowing partial wheel overhang. The last survivor wins a point;
-a simultaneous fall is a draw. Results show one 3D gold star per win. The first
-participant to reach the selected target wins the match, with confetti on the
-final results. Score pages show only characters and stars. They advance after
-three seconds between rounds; the final celebration returns home after five.
-Right advances early, and Left returns home.
+Customisation offers Hat, Top and Colour. Hats include Traffic Cone, Top Hat, Cap,
+Mohawk, Glasses, Bald Side Hair, Hot Dog Hat and
+Construction Helmet. Tops include JPMorgan, Hoodie, JPMorgan Hoodie,
+T-shirt, Tank Top and High Vis Vest. Hats and tops default to None, colour to
+Random; choices persist locally. Settings contains only anti-aliasing and shadows.
+
+## Repository layout
+
+Keep scenes, scripts and owned assets together by feature. Shared code belongs at
+its narrowest common owner, rather than in another map's folder.
+
+| Directory | Responsibility |
+| --- | --- |
+| `game/app/`, `game/home/` | Screen navigation and the home office diorama. |
+| `game/match/`, `game/round/` | Persistent scores, round lifetime, spawning, results and spectator timing. |
+| `game/stage/<map>/` | Each map's scene, definition, script and private actors/assets. |
+| `game/stage/shared/` | Reusable office shell, rim geometry, shaders and crumbling. |
+| `game/props/<type>/` | Reusable furniture scene, visual scene and model. |
+| `game/props/physics/`, `shared/` | Furniture movement/collision handoff and common model helpers. |
+| `game/chair/` | Chair physics and tuning; `presentation/` owns models, views and foam. |
+| `game/character/` | Cosmetic IDs and profiles; `skins/<skin>/` keeps each definition with its assets. |
+| `game/input/`, `game/input/ai/` | The shared steering command, local input and AI. |
+| `game/combat/`, `game/render/` | Spray forces and shared rendering/mesh utilities. |
+| `game/ui/`, `game/settings/` | Reusable UI, graphics preferences and atomic profile storage. |
+| `game/sandbox/` | Legacy movement/controller fixture, not production boot. |
+| `tests/<feature>/` | Feature regression suites; root runners preserve execution order. |
+| `tools/`, `docs/` | Development utilities and short process guides. |
+
+The app owns a match; the match owns one round; the round owns its stage and chairs.
+`MatchState` owns scores outside replaceable round scenes. Maps request eliminations
+but never award points. `ArenaStage` documents world-coordinate navigation and
+physics-clock hazard hooks. AI supplies the same scalar steering command as humans.
+
+Live movement uses 2D rigid bodies, with real torque and inertia. Stage, furniture,
+characters and foam share one angled 3D world/depth buffer. Unsupported chairs and
+furniture transfer to native 3D physics. `PropCollisionBridge` keeps falling props
+solid to live 2D chairs. `RenderStyle` defines **43 pixels per metre**; keep simulated
+rigid-body nodes unscaled. Python is tooling only, never a game dependency.
 
 ## Development
-
-The simulation uses native 2D rigid bodies with torque steering and continuous
-thrust. The stage and character models share one angled 3D view, with real depth
-occlusion. Live movement stays in 2D; unsupported falls transfer into 3D physics
-for platform-edge contacts, tipping and gravity.
-Python is development tooling only; the game itself does not require Python.
 
 ```sh
 python3 -m venv .venv
@@ -66,40 +88,10 @@ python -m pip install -r tools/requirements-dev.txt
 python tools/check.py --godot /Applications/Godot.app/Contents/MacOS/Godot
 ```
 
-Adjust the Godot path for your installation. Automated checks cover formatting,
-lint, engine import, physics regressions and startup. Headless checks cannot judge
-movement feel, graphics quality or physical controller behaviour; playtest those
-locally.
+Adjust the Godot path for your installation. Checks cover formatting, lint,
+import/parse, engine regressions and startup. Also playtest natively: headless checks
+cannot judge appearance, controller hardware or subjective movement feel.
 
-## Code ownership
-
-- `game/app/`: home/setup navigation and screen lifetime.
-- `game/home/`: the animated office diorama.
-- `game/match/`: setup configuration, participants, authoritative scores and results.
-- `game/round/`: map introduction, synchronised start and elimination resolution.
-- `game/stage/`: stage definitions, floor support, arena rules and hazard lifecycle.
-- `game/chair/`: rigid-body movement, contact feedback, 3D models and foam.
-- `game/character/`: skin definitions, character art, validated cosmetics and profiles.
-- `game/settings/`: graphics preferences and shared atomic profile storage.
-- `game/input/`: common steering commands for human and AI controllers.
-- `game/combat/`: extinguisher forces and obstruction.
-- `game/ui/`: two-key menus, 3D score tokens and victory confetti.
-- `tests/`: engine-driven regression suites.
-
-The match owns its current round; the round owns its stage and chairs. Scores live
-outside round scenes so replacing a round cannot reset the match. UI displays
-snapshots and emits actions; it does not award points. Stage support, legal arena
-boundaries and hazards remain separate so future office maps can support shrinking
-fire, sumo boundaries, pits and moving hazards without rewriting scoring.
-
-The former sandbox remains a development fixture at
-`game/session/gameplay.tscn`; it is not the normal boot scene. Its reset, takeover
-and controller-join shortcuts do not control normal matches.
-
-See [adding maps and skins](docs/adding-content.md) for the content workflow and
-[the match flow plan](docs/match-flow-plan.md) for design decisions and future
-map requirements. The three current maps share stage lifecycle hooks, with a shared two-second
-extinguisher ramp-up at the start of live play.
-
-Commit Godot `.uid` files. Keep `.godot/`, virtual environments and build output out
-of version control.
+See [development and profiling](docs/development.md) and
+[adding content](docs/adding-content.md). Implementation contracts live in script
+doc comments. Keep `.uid` files; exclude `.godot/`, virtual environments and builds.

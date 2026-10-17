@@ -1,7 +1,7 @@
 extends SceneTree
 ## Engine regressions for continuous-spray, torque-steered physics play.
 
-const GAME: PackedScene = preload("res://game/session/gameplay.tscn")
+const GAME: PackedScene = preload("res://game/sandbox/gameplay.tscn")
 
 var _checks: int = 0
 var _failures := PackedStringArray()

@@ -1,6 +1,7 @@
 class_name RenderStyle
 extends RefCounted
-## Shared native rendering conventions. Framing and scene content stay with each view.
+## Shared native rendering conventions: metres in 3D, 43 authoring pixels per metre in 2D.
+## Framing/content stay with each view; lighting and quality settings stay consistent.
 
 const PIXELS_PER_UNIT := 43.0
 const GAME_CAMERA_ELEVATION := 0.60

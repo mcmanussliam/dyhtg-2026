@@ -12,6 +12,7 @@ var _rows: Array[Label] = []
 var _values := PackedStringArray()
 var _value_rows: Array[Label] = []
 var _markers: Array[Label] = []
+var _disabled_items: Dictionary = {}
 var _list: VBoxContainer
 
 
@@ -26,6 +27,14 @@ func set_items(labels: PackedStringArray, values: PackedStringArray = PackedStri
 	chosen = clampi(chosen, 0, maxi(0, labels.size() - 1))
 	if is_inside_tree():
 		_build()
+
+
+func set_item_enabled(index: int, enabled: bool) -> void:
+	if enabled:
+		_disabled_items.erase(index)
+	else:
+		_disabled_items[index] = true
+	_refresh()
 
 
 func _build() -> void:
@@ -88,7 +97,10 @@ func _label(font_size: int, height: float) -> Label:
 
 func _refresh() -> void:
 	for index in _rows.size():
-		_rows[index].add_theme_color_override("font_color", Color(1, 1, 1, 0.92))
+		_rows[index].add_theme_color_override(
+			"font_color",
+			Color(0.45, 0.45, 0.45) if _disabled_items.has(index) else Color(1, 1, 1, 0.92)
+		)
 		if _values.is_empty():
 			_rows[index].text = (">  " if index == chosen else "    ") + _items[index]
 		else:
@@ -109,4 +121,5 @@ func _unhandled_input(event: InputEvent) -> void:
 		_refresh()
 	elif event.is_action_pressed("menu_activate"):
 		get_viewport().set_input_as_handled()
-		activated.emit(chosen)
+		if not _disabled_items.has(chosen):
+			activated.emit(chosen)

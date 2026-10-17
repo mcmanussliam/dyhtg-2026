@@ -19,7 +19,7 @@ func run() -> void:
 	state.configure(config)
 	var round_scene := load("res://game/round/round.tscn").instantiate() as RoundController
 	round_scene.configure(
-		state.participants, load("res://game/stage/a_floor_in_the_crack.tres"), 1, 5
+		state.participants, load("res://game/stage/a_floor_in_the_crack/a_floor_in_the_crack.tres"), 1, 5
 	)
 	var started := Time.get_ticks_usec()
 	root.add_child(round_scene)

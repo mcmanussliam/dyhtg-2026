@@ -1,7 +1,9 @@
 @tool
 class_name OfficeProp
 extends PhysicsBody2D
-## Authored 2D gameplay footprint with a reusable, depth-tested 3D presentation.
+## Authored 2D footprint and native presentation, shared by static and rigid prop roots.
+## Fractures release the existing model/colliders to 3D; PropCollisionBridge keeps it
+## solid to live planar chairs until the geometry drops below their height.
 
 const AUTHORING_PIXELS_PER_UNIT := RenderStyle.PIXELS_PER_UNIT
 

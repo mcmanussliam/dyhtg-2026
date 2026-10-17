@@ -1,0 +1,27 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://game/props/office_prop.gd" id="1"]
+[ext_resource type="PackedScene" path="res://game/props/plant/plant_visual.tscn" id="2"]
+
+[sub_resource type="CircleShape2D" id="FootprintShape"]
+radius = 12.04
+
+[sub_resource type="PhysicsMaterial" id="PropMaterial"]
+friction = 0.1
+bounce = 0.08
+
+[node name="OfficePlant" type="RigidBody2D"]
+mass = 1.2
+gravity_scale = 0.0
+linear_damp = 2.3
+angular_damp = 2.0
+freeze = true
+continuous_cd = 1
+physics_material_override = SubResource("PropMaterial")
+collision_layer = 1
+collision_mask = 3
+script = ExtResource("1")
+visual_scene = ExtResource("2")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("FootprintShape")

@@ -3,9 +3,13 @@ extends RefCounted
 ## Explicit, stable content registration; profile files never load arbitrary paths.
 
 const PATHS := [
-	"res://game/character/skins/default.tres",
-	"res://game/character/skins/jpmorgan_tshirt.tres",
-	"res://game/character/skins/hoodie.tres",
+	"res://game/character/skins/default/default.tres",
+	"res://game/character/skins/jpmorgan/jpmorgan_tshirt.tres",
+	"res://game/character/skins/hoodie/hoodie.tres",
+	"res://game/character/skins/jpmorgan/jpmorgan_hoodie.tres",
+	"res://game/character/skins/tshirt/tshirt.tres",
+	"res://game/character/skins/tank_top/tank_top.tres",
+	"res://game/character/skins/high_vis/high_vis.tres",
 ]
 
 
