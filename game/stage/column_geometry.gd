@@ -82,9 +82,12 @@ static func outline(radius: float) -> PackedVector2Array:
 
 
 static func build(radius: float, depth: float) -> ArrayMesh:
+	return build_outline(outline(radius), depth)
+
+
+static func build_outline(points: PackedVector2Array, depth: float) -> ArrayMesh:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var points := outline(radius)
 	for index in points.size():
 		var first := points[index]
 		var next := points[(index + 1) % points.size()]
@@ -100,9 +103,12 @@ static func build(radius: float, depth: float) -> ArrayMesh:
 
 
 static func floor_mesh(radius: float) -> ArrayMesh:
+	return floor_outline_mesh(outline(radius))
+
+
+static func floor_outline_mesh(points: PackedVector2Array) -> ArrayMesh:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var points := outline(radius)
 	for index in points.size():
 		var first := points[index]
 		var next := points[(index + 1) % points.size()]

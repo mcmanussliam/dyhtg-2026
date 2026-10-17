@@ -1,6 +1,6 @@
 class_name PropMotion
 extends Node
-## Passive 2D furniture motion; native 3D gravity takes over after all floor support is lost.
+## Passive planar furniture motion; edge fractures hand support and tipping to native 3D.
 
 var _body: RigidBody2D
 var _stage: ArenaStage
@@ -72,6 +72,12 @@ func _physics_process(_delta: float) -> void:
 		_start_fall()
 
 
+func release_to_3d() -> void:
+	# Floor fractures can wake/release a sleeping prop before its centre loses support.
+	if not _falling:
+		_start_fall()
+
+
 func _start_fall() -> void:
 	_falling = true
 	var velocity := _body.linear_velocity
@@ -94,6 +100,7 @@ func _start_fall() -> void:
 	_model = falling
 	falling.linear_velocity = Vector3(velocity.x, 0, velocity.y) * _units
 	falling.angular_velocity = Vector3(0, -spin, 0)
+	_body.call("attach_falling_collision", falling, _units)
 
 
 func _exit_tree() -> void:

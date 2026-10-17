@@ -20,11 +20,19 @@ var _outline := PackedVector2Array()
 var _outline_radius := -1.0
 var _outline_center := Vector2.INF
 var _safe_radius := 0.0
+var _outline_revision := -1
+var _erosion: CrumblingEdge
+var _fracture_view: FractureView
+var _world: Node3D
+var _units := 1.0 / RenderStyle.PIXELS_PER_UNIT
+var _platform: StaticBody3D
 
 
 func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
+	_erosion = CrumblingEdge.new()
+	_erosion.configure(radius, 35.0, false)
 	for prop in $Furniture.get_children():
 		if prop is OfficeProp:
 			prop.resize_for_stage(content_scale)
@@ -64,8 +72,9 @@ func safe_target(world_point: Vector2, margin: float = 90.0) -> Vector2:
 
 
 func floor_outline() -> PackedVector2Array:
-	if _outline_radius != radius or _outline_center != center:
-		_outline = ColumnGeometry.outline(radius)
+	var revision := _erosion.revision if _erosion != null else 0
+	if _outline_radius != radius or _outline_center != center or _outline_revision != revision:
+		_outline = _erosion.outline.duplicate() if revision > 0 else ColumnGeometry.outline(radius)
 		for index in _outline.size():
 			_outline[index] += center
 		_safe_radius = radius
@@ -78,6 +87,7 @@ func floor_outline() -> PackedVector2Array:
 					)
 				)
 			)
+		_outline_revision = revision
 		_outline_radius = radius
 		_outline_center = center
 	return _outline
@@ -108,6 +118,8 @@ func _draw() -> void:
 
 
 func create_presentation(parent: Node3D, units_per_pixel: float) -> void:
+	_world = parent
+	_units = units_per_pixel
 	var centre := to_global(center) * units_per_pixel
 	var world_radius := radius * units_per_pixel
 	var platform := StaticBody3D.new()
@@ -115,6 +127,7 @@ func create_presentation(parent: Node3D, units_per_pixel: float) -> void:
 	platform.add_to_group("stage_floor")
 	platform.position = Vector3(centre.x, -12.0, centre.y)
 	parent.add_child(platform)
+	_platform = platform
 	var mesh := ColumnGeometry.build(world_radius, 24.0)
 	var wall_material := ShaderMaterial.new()
 	wall_material.shader = preload("res://game/stage/cylinder.gdshader")
@@ -148,6 +161,48 @@ func create_presentation(parent: Node3D, units_per_pixel: float) -> void:
 				elif prop.name in [&"Cabinet", &"PrintCabinet"]:
 					OfficeAccessories.archive_boxes(model, 1.25)
 				StaticModelBatcher.batch(model)
+
+	_fracture_view = FractureView.new()
+	_fracture_view.configure(self, parent, center, units_per_pixel, 24.0, wall_material)
+
+
+func tick_hazards(delta: float) -> void:
+	if not round_running or _erosion == null:
+		return
+	var changed := _erosion.advance(delta)
+	if changed:
+		floor_outline()
+		queue_redraw()
+		if is_instance_valid(_platform):
+			var points := _erosion.outline.duplicate()
+			for index in points.size():
+				points[index] *= _units
+			var mesh := ColumnGeometry.build_outline(points, 24)
+			_platform.get_node("ColumnSurface").mesh = mesh
+			_platform.get_node("ColumnCollision").shape = mesh.create_trimesh_shape()
+			_platform.get_node("FloorSurface").mesh = ColumnGeometry.floor_outline_mesh(points)
+			for label in ["LoungeCarpet", "StorageCarpet"]:
+				var carpet := _world.get_node_or_null(label)
+				if carpet != null:
+					_world.remove_child(carpet)
+					carpet.queue_free()
+			_create_carpet(
+				_world, _units, Rect2(800, 475, 320, 340), Color("637672"), "LoungeCarpet"
+			)
+			_create_carpet(
+				_world, _units, Rect2(640, -30, 380, 215), Color("526979"), "StorageCarpet"
+			)
+		for prop in $Furniture.get_children():
+			if prop is OfficeProp:
+				prop.release_for_fracture(self, _erosion.fallen, center)
+	if _fracture_view != null:
+		_fracture_view.refresh(_erosion, false)
+
+
+func stop_round() -> void:
+	super.stop_round()
+	if _fracture_view != null:
+		_fracture_view.set_active(false)
 
 
 func _create_carpet(

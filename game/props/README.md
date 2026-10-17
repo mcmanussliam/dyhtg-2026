@@ -41,7 +41,12 @@ Task chairs, plants and coffee tables use `RigidBody2D` roots with the same
 `OfficeProp` authoring script. Desks, shelving and large fixtures keep static
 roots. `PropMotion` connects to the owning stage's local round lifecycle signals,
 keeps the native 3D `AnimatableBody3D` presentation aligned, and transfers it to an
-unscaled `RigidBody3D` when floor support is lost. The 2D obstacle is then removed.
+unscaled `RigidBody3D` when floor support is lost or a fracture reaches its footprint.
+`PropCollisionBridge` replaces the original 2D obstacle with projected compound
+colliders clipped to live chair height. These follow native movement and tilt,
+forward chair/spray impulses to the 3D body, and clear once the furniture drops
+below the floor. Native 3D colliders remain active throughout the handoff.
+The bridge is removed with its native body; unchanged poses skip geometry updates.
 
 Task chair footprints are circles to avoid catching players on square corners.
 Loose props use low friction and modest mass; impacts and extinguisher spray can

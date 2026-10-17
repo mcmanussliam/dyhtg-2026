@@ -123,3 +123,13 @@ previous scripted tick time, then reports live maximum and 95th-percentile frame
 times. Regression checks verify warmup restores visibility and leaves player and
 hazard state unchanged. Headless tests skip GPU warmup but exercise the hazard's
 presentation state restoration.
+
+
+## Crumbling floors
+
+Fractures rebuild stage meshes and supporting colliders only when an outline
+revision changes, rather than per physics tick. AI uses a cached 512-direction
+clearance table. Warning meshes update only when their pending revision changes;
+falling chips share materials and are capped at 36 non-colliding rigid bodies,
+with primitive inertia proxies and finite lifetimes. Existing furniture models
+are transferred at first contact with a departing chip rather than rebuilt.

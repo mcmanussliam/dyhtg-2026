@@ -117,7 +117,10 @@ position progress independently of the current target and reported speed. After
 roughly three seconds without meaningful displacement it chooses a safe, clear
 escape corridor and commits long enough to leave the obstruction. Wider retries,
 asymmetric seat timing and less crowded destinations break mirrored responses;
-brief pushing contests continue normally. The pit steering rollout predicts
+brief pushing contests continue normally. Sustained close, slow-moving crowds
+also trigger an escape, even when the pack drifts enough to reset the positional
+watchdog. Target weights discourage piling onto a rival already surrounded, and
+escape paths favour gaps between chairs. The pit steering rollout predicts
 braking toward that escape goal, avoiding false vetoes that previously pinned
 chairs beside furniture. New hazards or an unsafe route cancel the escape. Long physics regressions cover six
 seeded two-, three- and four-chair fights for 90 simulated seconds each, checking
@@ -168,3 +171,30 @@ in planar gameplay. Loss of all support starts native falling but keeps the seat
 alive; `ChairView` confirms the drop only when the native body descends below the
 floor. The round then commits elimination, updates portraits and resolves scores.
 Falling chairs cannot drive, receive planar spray forces or become AI targets.
+
+
+The two crack stages own a `CrumblingEdge` on their live physics clock. After a
+15-second grace period it advances broad sections around the least-eroded rim,
+bounding radial variation so the floor stays roughly circular. One outline
+supplies native floor/side meshes, 3D collision, support and AI clearance; pending
+chips are shown before support changes. Detached sections retain the full
+24-metre island foundation or four-metre pit wall, using the same side material
+as the standing floor; top and sides fall as one rigid body. The blue top copies
+the side shader’s map-specific world-depth fade, so the entire section darkens
+into the void together. Larger, less frequent breaks retain the gradual collapse. `FractureGeometry` triangulates remaining
+pit-floor sectors even when the hole reaches the office walls. `FractureView`
+reuses materials and caps falling cosmetic debris at 36 bodies; furniture touched
+by a departing chip transfers its existing model and colliders into native 3D
+physics immediately, allowing the remaining floor to support or tip it.
+Results stop the clock and freeze detached pieces. A fresh scene resets all
+fracture state.
+
+
+Falling furniture keeps its native 3D colliders and a `PropCollisionBridge` in the
+planar world while it overlaps live chair height. The bridge projects each compound
+collider independently, clips to that height band, and follows translation and tilt.
+Chair contacts and jets queue impulses back to the native body outside the 2D
+physics callback. This avoids pass-through furniture during tipping without leaving
+an invisible obstacle after it falls. Cached collider faces and bounds avoid mesh
+extraction per tick; unchanged native poses skip projection. Native body cleanup
+also removes its bridge.

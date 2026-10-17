@@ -61,7 +61,9 @@ func _test_prop_fall(tree: SceneTree, check: Callable) -> void:
 		check.call(
 			falling.position.y < height - 0.5, "Loose furniture actually falls below the floor"
 		)
-	check.call(prop.collision_layer == 0, "Fallen furniture leaves no invisible 2D obstacle")
+	check.call(
+		prop.collision_layer == 0, "Released furniture retires its original fixed 2D footprint"
+	)
 	if is_instance_valid(falling):
 		falling.global_position.y = -40
 		await tree.physics_frame

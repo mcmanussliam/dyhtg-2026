@@ -27,6 +27,9 @@ const SUITES = [
 	preload("res://tests/test_app_flow.gd"),
 	preload("res://tests/test_large_roster.gd"),
 	preload("res://tests/test_deadlock_physics.gd"),
+	preload("res://tests/test_crumbling_stages.gd"),
+	preload("res://tests/test_crowded_crumbling_physics.gd"),
+	preload("res://tests/test_falling_prop_collision.gd"),
 ]
 
 var _checks: int = 0

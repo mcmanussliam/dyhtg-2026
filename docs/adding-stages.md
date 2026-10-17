@@ -162,3 +162,19 @@ batches scoring normally. `ChairView` transfers those velocities to the native
 projectile ignores scenery so it clears the room, while native gravity and angular
 motion supply the flight. Ordinary edge falls retain their normal collisions and
 recoverable landings. `prepare_round()` clears launch data.
+
+
+## Progressive floor loss
+
+The crack maps use `CrumblingEdge` for the current outline and pending fractured sections.
+Advance it only from `tick_hazards(delta)` while `round_running`. A changed revision
+updates the rendered floor, native supporting collider, carpets and support
+queries together; AI must query that current outline rather than an initial
+radius. Clip pit-floor geometry to the room so late fractures can reach the outer
+walls without leaving invisible support. Warning and detached polygons come from
+the same outline change. `FractureView` samples bounded cosmetic debris across the
+whole rim; debris cannot block players. Call `OfficeProp.release_for_fracture`
+with the newly removed polygons when floor changes. Partial footprint overlap
+releases both fixed and sleeping loose furniture into native 3D; remaining support
+then determines whether it rests, tips or falls. Stop debris with
+the round, and keep mutable fracture state on the scene instance.

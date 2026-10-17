@@ -10,9 +10,12 @@ const AUTHORING_PIXELS_PER_UNIT := RenderStyle.PIXELS_PER_UNIT
 
 var _motion: PropMotion
 var _presentation_scale := 1.0
+var _presentation_units := 1.0 / RenderStyle.PIXELS_PER_UNIT
 var _clip_configured := false
 var _clip_boundary := PackedVector2Array()
 var _clip_collisions: Array[CollisionPolygon2D] = []
+var _presentation: Node3D
+var _floor_detached := false
 
 
 func _ready() -> void:
@@ -84,6 +87,7 @@ func clip_to_polygon(boundary: PackedVector2Array) -> void:
 func create_presentation(parent: Node3D, units_per_pixel: float) -> Node3D:
 	if visual_scene == null:
 		return null
+	_presentation_units = units_per_pixel
 	var model := visual_scene.instantiate() as Node3D
 	model.name = name
 	parent.add_child(model)
@@ -104,7 +108,66 @@ func create_presentation(parent: Node3D, units_per_pixel: float) -> Node3D:
 		model.add_child(visual)
 	if is_instance_valid(_motion):
 		model = _motion.bind_presentation(model, units_per_pixel)
+	_presentation = model
 	return model
+
+
+func release_for_fracture(
+	stage: ArenaStage, chips: Array[PackedVector2Array], center: Vector2
+) -> void:
+	if _floor_detached:
+		return
+	var source := get_node("CollisionShape2D") as CollisionShape2D
+	var reach := source.shape.get_rect().size.length() * global_scale.x * 0.5
+	var touched := not stage.has_support_near(global_position, reach)
+	if not chips.is_empty():
+		# Compare the actual rotated footprint to newly removed floor, not a centre
+		# or bounding-circle test. Edge contact hands support/tipping to native 3D.
+		var footprint := PackedVector2Array()
+		if source.shape is RectangleShape2D:
+			for corner in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+				var point := source.to_global(source.shape.size * 0.5 * corner)
+				footprint.append(stage.to_local(point) - center)
+		elif source.shape is CircleShape2D:
+			for index in 24:
+				var point := source.to_global(
+					Vector2.from_angle(index * TAU / 24) * source.shape.radius
+				)
+				footprint.append(stage.to_local(point) - center)
+		for chip in chips:
+			if not Geometry2D.intersect_polygons(footprint, chip).is_empty():
+				touched = true
+				break
+	if not touched:
+		return
+	if _motion != null:
+		_floor_detached = true
+		_motion.release_to_3d()
+		return
+	_floor_detached = true
+	collision_layer = 0
+	collision_mask = 0
+	if not is_instance_valid(_presentation):
+		return
+	var falling := FallingStagePiece.new()
+	falling.name = "FallingFurniture"
+	falling.mass = 20
+	falling.continuous_cd = true
+	falling.lifetime = 0
+	stage.round_stopped.connect(falling.freeze_for_results)
+	_presentation.get_parent().add_child(falling)
+	falling.global_transform = _presentation.global_transform.orthonormalized()
+	for child in _presentation.get_children():
+		child.reparent(falling, true)
+	_presentation.queue_free()
+	_presentation = falling
+	attach_falling_collision(falling, _presentation_units)
+
+
+func attach_falling_collision(body: RigidBody3D, units: float) -> void:
+	var bridge := PropCollisionBridge.new()
+	get_parent().add_child(bridge)
+	bridge.configure(body, units, maxf(_presentation_scale, global_scale.x))
 
 
 func _build_clipped_collider(model: Node3D, units_per_pixel: float) -> void:

@@ -99,6 +99,8 @@ func _simulate(tree: SceneTree, check: Callable, scenario: Array) -> void:
 	check.call(longest.max() < 6.5, "No prolonged stationary AI deadlock: %s" % stage.name)
 	if stage is PitOfficeStage:
 		check.call(interventions > 0, "Reproduced furniture stalemate activates committed escape")
+	elif count > 2:
+		check.call(interventions <= count * 2, "Crowded escapes do not become constant fleeing")
 	else:
 		check.call(interventions == 0, "Brief physical contests do not trigger unnecessary escape")
 	arena.queue_free()

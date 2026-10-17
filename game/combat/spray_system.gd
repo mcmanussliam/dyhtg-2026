@@ -15,7 +15,7 @@ func apply(source: Chair, chairs: Array[Chair], delta: float) -> void:
 	var reach := source.tuning.spray_range
 	if not hit.is_empty():
 		reach = origin.distance_to(hit.position)
-		if hit.collider is OfficeProp:
+		if hit.collider is OfficeProp or hit.collider is PropCollisionBridge:
 			hit.collider.push(
 				forward * source.tuning.push_force * source.jet_strength * 0.25 * delta,
 				hit.position - hit.collider.global_position

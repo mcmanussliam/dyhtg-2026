@@ -181,6 +181,21 @@ func sample_on_stage(
 				goal += separation.normalized().orthogonal() * _side * _offset
 				if separation.length() < 210.0:
 					_intent = Intent.PURSUE
+			if separation.length() < 350:
+				var flank := (
+					separation.normalized().orthogonal() * _side * (50 + chair.seat % 3 * 25)
+				)
+				var crowded := chairs.any(
+					func(rival: Chair):
+						return (
+							rival != chair
+							and rival != _target
+							and rival.active
+							and rival.global_position.distance_squared_to(goal) < 150 * 150
+						)
+				)
+				if crowded:
+					goal += flank
 			if stage is PitOfficeStage:
 				goal = stage.attack_position(goal)
 			goal = stage.navigation_target(
@@ -250,6 +265,12 @@ func _choose_target(chair: Chair, chairs: Array[Chair]) -> void:
 		weight *= 1.0 + minf(float(_ignored.get(candidate.seat, 0.0)) / 3.0, 4.0)
 		if candidate == _target:
 			weight *= 0.45
+		var crowd := 0
+		for rival in chairs:
+			if rival != chair and rival != candidate and rival.active and not rival.falling:
+				if rival.global_position.distance_squared_to(candidate.global_position) < 180 * 180:
+					crowd += 1
+		weight /= 1.0 + crowd * 0.7
 		candidates.append(candidate)
 		weights.append(weight)
 		total += weight
@@ -315,7 +336,11 @@ func _avoid_obstacles(chair: Chair, stage: ArenaStage, desired_jet: Vector2) -> 
 		var origin: Vector2 = chair.global_position + motion.orthogonal() * offset
 		var query := PhysicsRayQueryParameters2D.create(origin, origin + motion * reach, 1)
 		var hit := chair.get_world_2d().direct_space_state.intersect_ray(query)
-		if not hit.is_empty() and hit.collider is OfficeProp and hit.collider.is_movable():
+		if (
+			not hit.is_empty()
+			and (hit.collider is OfficeProp or hit.collider is PropCollisionBridge)
+			and hit.collider.is_movable()
+		):
 			continue
 		if not hit.is_empty() and origin.distance_to(hit.position) < closest:
 			closest = origin.distance_to(hit.position)

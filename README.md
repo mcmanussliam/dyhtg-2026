@@ -36,7 +36,9 @@ Each round randomly selects **A Floor in the Crack**, **A Crack in the Floor** o
 telegraphs a target, charges in a locked direction and eliminates on impact. Walls,
 furniture and player impacts briefly stun it. The first bull starts at the office center. Later bulls enter through swinging saloon
 doors at the top center, arriving every 14 seconds of live play, up to six per round. The second
-is a walled office with a smaller central pit and bouncing perimeter walls. Both
+is a walled office with a smaller central pit and bouncing perimeter walls. Both crack maps begin crumbling after 15 seconds of live play: the hole widens
+and the island shrinks in telegraphed, full-depth sections. Furniture switches to 3D physics as soon as a departing chip touches its footprint,
+letting the remaining floor support it or tip it into the void. Both
 introductions show “Don’t fall” below the map name. The first is a circular navy office floor
 above a grey cylindrical foundation descending into black void. A four-station
 desk island, printer alcove, aligned storage and seating nook furnish the floor. A desk and

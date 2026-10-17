@@ -88,6 +88,9 @@ func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 			)
 			var closing_speed := maxf(-relative.dot(normal), 0.0)
 			impulse = normal * closing_speed * mass
+		var collider := state.get_contact_collider_object(index)
+		if collider is PropCollisionBridge:
+			collider.push(-impulse, global_position - collider.global_position)
 		if impulse.length_squared() > strongest.length_squared():
 			strongest = impulse
 	var change := strongest.length() / mass

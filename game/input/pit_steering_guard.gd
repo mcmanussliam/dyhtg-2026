@@ -19,14 +19,13 @@ static func filter(
 	if state == null:
 		return requested
 	var center := stage.to_global(stage.center)
-	var radius := stage.hole_radius
 	# Commitment rises from cautious opening play (0) to late-round risks (2).
 	var margin := lerpf(35.0 + chair.size_scale * 10, 8.0, minf(commitment, 1.0))
 	var wanted := desired_jet.angle()
 	var original := _clearance(
 		chair,
 		center,
-		radius,
+		stage,
 		requested,
 		wanted,
 		turn_limit,
@@ -43,7 +42,7 @@ static func filter(
 		var clearance := _clearance(
 			chair,
 			center,
-			radius,
+			stage,
 			turn,
 			wanted,
 			turn_limit,
@@ -62,7 +61,7 @@ static func filter(
 static func _clearance(
 	chair: Chair,
 	center: Vector2,
-	radius: float,
+	stage: PitOfficeStage,
 	initial_turn: float,
 	wanted: float,
 	turn_limit: float,
@@ -71,11 +70,13 @@ static func _clearance(
 	commitment: float,
 	navigation_goal: Vector2
 ) -> float:
+	var radius := stage.hole_radius
+	var changing := stage.edge_changed()
 	var point := chair.global_position
 	var velocity := chair.linear_velocity
 	var heading := chair.aim_angle
 	var spin := chair.angular_velocity
-	var nearest := point.distance_to(center) - radius
+	var nearest := point.distance_to(center) - (stage.pit_radius(point) if changing else radius)
 	for index in int(lerpf(STEPS, 7, commitment / 2.0)):
 		var turn := initial_turn
 		if index >= 5:
@@ -106,5 +107,7 @@ static func _clearance(
 		velocity = velocity.limit_length(chair.tuning.maximum_speed)
 		heading += spin * STEP
 		point += velocity * STEP
-		nearest = minf(nearest, point.distance_to(center) - radius)
+		nearest = minf(
+			nearest, point.distance_to(center) - (stage.pit_radius(point) if changing else radius)
+		)
 	return nearest
