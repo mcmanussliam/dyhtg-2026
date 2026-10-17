@@ -26,15 +26,15 @@ func run(tree: SceneTree, check: Callable) -> void:
 	)
 	check.call(
 		(
-			view.world.get_node_or_null("BackDesk") != null
-			and view.world.get_node_or_null("SideDesk") != null
+			view.world.get_node_or_null("FrontDesk") != null
+			and view.world.get_node_or_null("RearDesk") != null
 			and view.world.get_node_or_null("Cabinet") != null
 		),
 		"Office level instantiates sparse reusable furniture"
 	)
 	check.call(
-		round_scene.stage.get_node("Furniture").get_child_count() == 7,
-		"Larger office includes desks, cabinet, sofa, bookshelf and plants"
+		round_scene.stage.get_node("Furniture").get_child_count() >= 18,
+		"Office includes furnished workstations, service storage and a complete lounge"
 	)
 	await tree.physics_frame
 	var clear_spawns := true

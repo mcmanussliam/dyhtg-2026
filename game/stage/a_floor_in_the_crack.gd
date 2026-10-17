@@ -17,6 +17,14 @@ const FLOOR_COLOUR := Color("2e4055")
 @export_range(0.15, 0.70, 0.01) var spawn_radius_ratio: float = 0.43
 
 
+func _ready() -> void:
+	if Engine.is_editor_hint():
+		return
+	for prop in $Furniture.get_children():
+		if prop is OfficeProp and prop.get_meta("cut_at_edge", false):
+			prop.clip_to_circle(to_global(center), radius)
+
+
 func has_support(world_point: Vector2) -> bool:
 	return to_local(world_point).distance_squared_to(center) <= radius * radius
 
@@ -80,12 +88,58 @@ func create_presentation(parent: Node3D, units_per_pixel: float) -> void:
 		platform, _floor_disk(world_radius), Vector3(0, 12.0, 0), floor_material
 	)
 	floor_surface.name = "FloorSurface"
+	_create_carpet(
+		parent, units_per_pixel, Rect2(800, 475, 320, 340), Color("637672"), "LoungeCarpet"
+	)
+	_create_carpet(
+		parent, units_per_pixel, Rect2(640, -30, 380, 215), Color("526979"), "StorageCarpet"
+	)
 
 	var furniture := get_node_or_null("Furniture")
 	if furniture != null:
 		for prop in furniture.get_children():
 			if prop is OfficeProp:
-				prop.create_presentation(parent, units_per_pixel)
+				if prop.get_meta("cut_at_edge", false):
+					prop.clip_to_circle(to_global(center), radius)
+				var model: Node3D = prop.create_presentation(parent, units_per_pixel)
+				if prop.name in [&"FrontDesk", &"RearDesk2", &"FrontDesk3"]:
+					OfficeAccessories.desk(model, Color("b2745f"))
+				elif prop.name in [&"Cabinet", &"PrintCabinet"]:
+					OfficeAccessories.archive_boxes(model, 1.25)
+
+
+func _create_carpet(
+	parent: Node3D, units_per_pixel: float, area: Rect2, colour: Color, label: String
+) -> void:
+	var outline := PackedVector2Array(
+		[
+			area.position,
+			Vector2(area.end.x, area.position.y),
+			area.end,
+			Vector2(area.position.x, area.end.y)
+		]
+	)
+	var boundary := PackedVector2Array()
+	for index in 256:
+		boundary.append(center + Vector2.from_angle(index * TAU / 256.0) * radius)
+	var clipped := Geometry2D.intersect_polygons(outline, boundary)
+	if clipped.is_empty():
+		return
+	var polygon: PackedVector2Array = clipped[0]
+	var triangles := Geometry2D.triangulate_polygon(polygon)
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	# Godot front faces are clockwise when viewed from above.
+	for triangle in range(0, triangles.size(), 3):
+		for corner in [0, 1, 2]:
+			var point := to_global(polygon[triangles[triangle + corner]]) * units_per_pixel
+			surface.set_normal(Vector3.UP)
+			surface.add_vertex(Vector3(point.x, 0.003, point.y))
+	var carpet := ModelGeometry.instance(
+		parent, surface.commit(), Vector3.ZERO, ModelGeometry.material(colour, 0, 1)
+	)
+	carpet.name = label
+	carpet.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 func _floor_disk(world_radius: float) -> ArrayMesh:

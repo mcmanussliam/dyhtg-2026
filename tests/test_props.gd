@@ -6,6 +6,10 @@ const CABINET = preload("res://game/props/office_cabinet.tscn")
 const SOFA = preload("res://game/props/office_sofa.tscn")
 const BOOKSHELF = preload("res://game/props/office_bookshelf.tscn")
 const PLANT = preload("res://game/props/office_plant.tscn")
+const COPIER = preload("res://game/props/office_copier.tscn")
+const COFFEE_TABLE = preload("res://game/props/office_coffee_table.tscn")
+const TASK_CHAIR = preload("res://game/props/office_task_chair.tscn")
+const DIVIDER = preload("res://game/props/office_desk_divider.tscn")
 const CHAIR = preload("res://game/chair/chair.tscn")
 const SCALE = 43.0
 
@@ -19,7 +23,9 @@ func run(tree: SceneTree, check: Callable) -> void:
 	world.position = Vector3(2.0, 0.0, -3.0)
 	world.rotation.y = 0.30
 	tree.root.add_child(world)
-	for resource in [DESK, CABINET, SOFA, BOOKSHELF, PLANT]:
+	for resource in [
+		DESK, CABINET, SOFA, BOOKSHELF, PLANT, COPIER, COFFEE_TABLE, TASK_CHAIR, DIVIDER
+	]:
 		var prop := resource.instantiate() as OfficeProp
 		prop.position = Vector2(100, 80)
 		prop.rotation = -0.73
@@ -41,6 +47,7 @@ func run(tree: SceneTree, check: Callable) -> void:
 	world.queue_free()
 	await tree.process_frame
 	await _test_blocking(tree, check)
+	await _test_edge_clipping(tree, check)
 
 
 func _check_footprint(prop: OfficeProp, model: StaticBody3D, check: Callable) -> void:
@@ -114,3 +121,90 @@ func _test_blocking(tree: SceneTree, check: Callable) -> void:
 	check.call(not crossed, "Furniture physically prevents the chair passing through")
 	arena.queue_free()
 	await tree.process_frame
+
+
+func _test_edge_clipping(tree: SceneTree, check: Callable) -> void:
+	var center := Vector2(2200, 2200)
+	var radius := 100.0
+	for resource in [DESK, BOOKSHELF, PLANT]:
+		var prop := resource.instantiate() as OfficeProp
+		prop.position = center + Vector2(96, 0)
+		prop.rotation = 0.4
+		tree.root.add_child(prop)
+		prop.clip_to_circle(center, radius)
+		prop.clip_to_circle(center, radius)
+		var world := Node3D.new()
+		tree.root.add_child(world)
+		var mesh := BoxMesh.new()
+		prop.baked_visual_mesh = mesh
+		var model := prop.create_presentation(world, 1.0 / SCALE) as StaticBody3D
+		await tree.process_frame
+		var clipped := prop.get_node("ClippedFootprint") as CollisionPolygon2D
+		var inside := clipped.polygon.size() >= 3
+		for point in clipped.polygon:
+			inside = inside and prop.to_global(point).distance_to(center) <= radius + 0.01
+		check.call(inside, "Cut furniture has no 2D collision beyond stage edge (%s)" % prop.name)
+		check.call(
+			(prop.get_node("CollisionShape2D") as CollisionShape2D).disabled,
+			"Cut furniture disables its uncut footprint (%s)" % prop.name
+		)
+		var colliders := model.find_children("*", "CollisionShape3D", true, false)
+		var bounded := not colliders.is_empty()
+		var highest := 0.0
+		for collider in colliders:
+			var shape := (collider as CollisionShape3D).shape as ConvexPolygonShape3D
+			bounded = bounded and shape != null
+			for point in shape.points:
+				var position := model.to_global(point)
+				highest = maxf(highest, position.y)
+				bounded = (
+					bounded
+					and (
+						Vector2(position.x, position.z).distance_to(center / SCALE)
+						<= radius / SCALE + 0.001
+					)
+				)
+		if resource == DESK:
+			var tabletop := (
+				(model.get_node("Footprint") as CollisionShape3D).shape as ConvexPolygonShape3D
+			)
+			var tabletop_height := 0.0
+			for vertex in tabletop.points:
+				tabletop_height = maxf(tabletop_height, vertex.y)
+			check.call(
+				is_equal_approx(tabletop_height, 0.86),
+				"Clipped desk keeps tabletop collision below its separate monitor"
+			)
+			var monitor := (
+				(model.get_node("Monitor") as CollisionShape3D).shape as ConvexPolygonShape3D
+			)
+			var monitor_bottom := INF
+			for vertex in monitor.points:
+				monitor_bottom = minf(monitor_bottom, vertex.y)
+			check.call(
+				is_equal_approx(monitor_bottom, 1.025),
+				"Clipped monitor preserves its authored lower height"
+			)
+		check.call(bounded, "Cut furniture has no 3D support beyond stage edge (%s)" % prop.name)
+		var expected_height := (
+			0.45 if resource == PLANT else (1.65 if resource == BOOKSHELF else 1.575)
+		)
+		check.call(
+			is_equal_approx(highest, expected_height),
+			"Cut collision preserves complete authored height (%s)" % prop.name
+		)
+		var meshes := model.find_children("*", "MeshInstance3D", true, false)
+		check.call(
+			meshes.size() == 1 and meshes[0].mesh == mesh,
+			"Baked furniture replaces procedural meshes (%s)" % prop.name
+		)
+		await tree.physics_frame
+		var outside := center + Vector2(radius + 8.0, 0)
+		var ray := PhysicsRayQueryParameters2D.create(outside, outside + Vector2(20, 0), 1)
+		check.call(
+			prop.get_world_2d().direct_space_state.intersect_ray(ray).is_empty(),
+			"Cut prop cannot invisibly block chairs beyond the edge (%s)" % prop.name
+		)
+		prop.queue_free()
+		world.queue_free()
+		await tree.process_frame

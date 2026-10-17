@@ -21,8 +21,10 @@ introduction and never run out. Introductions and score screens use plain black
 backgrounds. A held menu key must be released before the next
 screen accepts input or a round begins.
 
-Each round currently uses **A Floor in the Crack**, a circular navy office floor with sparse desks and a filing cabinet above a
-grey cylindrical foundation descending into black void. Crossing its edge eliminates a participant. The last survivor wins a point;
+Each round currently uses **A Floor in the Crack**, a circular navy office floor
+above a grey cylindrical foundation descending into black void. A four-station
+desk island, printer alcove, aligned storage and seating nook furnish the floor. A desk and
+bookshelf are sliced through by the circular edge. Crossing its edge eliminates a participant. The last survivor wins a point;
 a simultaneous fall is a draw. Results show one 3D gold star per win. The first
 participant to reach the selected target wins the match, with confetti on the
 final results. Score pages show only characters and stars: Right continues to the

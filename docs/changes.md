@@ -1,5 +1,34 @@
 # Match flow 0.4
 
+- Stage radius reduces from 500 to 480 pixels, with cut furniture rebaked to the
+  new boundary. Printer and adjacent cabinet share an aligned front edge on the
+  upper carpet. The lounge task chair is replaced with an opposing sofa, keeping
+  the coffee table between the two seats.
+
+- The lounge expands down/right with its left carpet edge fixed. A second clean
+  carpet defines the bookshelf area. The workstation bench extends to the left
+  cut edge with matching baked desk ends; isolated side furniture is removed.
+
+- A flush, muted green carpet defines the lounge, clipped to the circular floor.
+  Mugs, folders and archive boxes dress existing furniture without adding driving
+  obstacles. Home-menu key and fill lighting are reduced independently of gameplay.
+
+- Office placement now balances aligned storage with a workstation island, a
+  printer alcove and an open lounge. The island breaks spray contact and provides
+  alternate circling routes; the printer corner trades cover for limited retreat;
+  the lounge catches drifting chairs without closing off its exits. Side furniture
+  interrupts the edge route while the centre/front stay open for recovery.
+  Cut pieces remain at the ends of the original office runs.
+- The larger office now has a four-station desk bench with acoustic dividers and
+  task chairs, a copier/storage area and a separate lounge with a coffee table.
+  Nine reusable furniture types share aligned 2D/3D footprints; the centre and
+  front remain open for movement. A desk and bookshelf at the boundary are
+  physically sliced to the circular outline, with capped baked meshes and
+  clipped compound colliders. No runtime CSG is required.
+- The plain grey column gains a small smooth bevel beneath the floor rim and
+  refined lighting response, retaining its exact floor height, maximum radius,
+  24-metre depth and long 8–24-metre fade. No surface textures are introduced.
+
 - Office flooring is one muted navy shade with no surface textures. The plain
   grey cylinder retains lit shading, with its long fade starting 8 metres below
   the floor and ending at 24 metres. The gameplay camera is more front-facing.

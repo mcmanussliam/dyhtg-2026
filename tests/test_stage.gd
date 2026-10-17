@@ -36,10 +36,10 @@ func run(tree: SceneTree, check: Callable) -> void:
 	check.call(
 		DEFINITION.display_name == "A Floor in the Crack", "First map displays its authored name"
 	)
-	check.call(stage.has_support(Vector2(1140, 422)), "Circle edge retains centre support")
-	check.call(not stage.has_support(Vector2(1140.01, 422)), "Past circle edge loses support")
-	check.call(stage.elimination_reason(Vector2(1141, 422)) == &"fall", "Circle loss is falling")
-	check.call(not stage.is_safe(Vector2(1130, 422), 30), "AI inset respects platform edge")
+	check.call(stage.has_support(Vector2(1120, 422)), "Circle edge retains centre support")
+	check.call(not stage.has_support(Vector2(1120.01, 422)), "Past circle edge loses support")
+	check.call(stage.elimination_reason(Vector2(1121, 422)) == &"fall", "Circle loss is falling")
+	check.call(not stage.is_safe(Vector2(1110, 422), 30), "AI inset respects platform edge")
 	check.call(
 		stage.is_safe(stage.safe_target(Vector2(2000, 422)), 89.9), "AI target clamps safely"
 	)
@@ -72,7 +72,7 @@ func run(tree: SceneTree, check: Callable) -> void:
 	var mesh_matches := false
 	for child in platform.get_children():
 		if child is MeshInstance3D:
-			var bounds := child.mesh.get_aabb()
+			var bounds: AABB = child.mesh.get_aabb()
 			if bounds.size.y >= 20.0:
 				mesh_matches = (
 					is_equal_approx(bounds.size.y, shape.height)
