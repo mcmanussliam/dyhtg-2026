@@ -62,6 +62,7 @@ func _build() -> void:
 		var character := ScoreCharacter.new()
 		character.colour = participant.colour
 		character.skin = participant.get("skin", SkinCatalog.default_definition())
+		character.hat_id = participant.get("hat_id", &"none")
 		row.add_child(character)
 		var tokens := WinTokens.new()
 		tokens.token_count = participant.wins

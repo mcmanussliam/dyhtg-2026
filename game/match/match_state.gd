@@ -36,6 +36,7 @@ func configure(config: MatchConfig) -> void:
 				{
 					"id": index,
 					"skin": skin.duplicate(),
+					"hat_id": appearance.hat_id if index == 0 else &"none",
 					"name": "You" if index == 0 else "AI %d" % index,
 					"colour": colour,
 					"wins": 0,

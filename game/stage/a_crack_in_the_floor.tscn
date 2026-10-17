@@ -12,7 +12,7 @@
 
 [node name="ACrackInTheFloor" type="Node2D"]
 script = ExtResource("1")
-view_width = 1420.0
+view_width = 1540.0
 view_focus = Vector2(640, 330)
 content_scale = 1.4
 

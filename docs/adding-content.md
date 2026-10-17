@@ -45,17 +45,19 @@ uniforms. Colour uniforms must use `source_color`.
 
 `CharacterAppearance.body_id` resolves the registered resource. The match copies
 its metadata into the participant roster. Home previews, live chairs, falling
-models, HUD portraits and scores all use `ChairModel.build(colour, skin)`.
+models, HUD portraits and scores all use `ChairModel.build(colour, skin, hat_id)`.
 Shared meshes and shaders are immutable; each model owns its material instance.
 Skins must not change mass, collision, thrust or steering.
 
-The Body menu cycles None and registered non-default skin IDs. It currently
-includes JPMorgan, a black T-shirt using the original mesh and a clothing shader.
+The Top menu cycles None and registered non-default skin IDs. It currently
+includes JPMorgan and Hoodie using the original mesh and clothing shaders.
+`CosmeticColours` supplies a saturated garment colour and contrasting logo ink.
 Its optional `chest_logo` texture is supplied by the skin resource. The shared
 `character_surface.gdshaderinc` keeps the default face and two eyes identical
-between skins. Registering another valid resource exposes it in Body automatically.
-Hat and chair slots remain None and need their own authored attachment contract
-before options are introduced.
+between skins. Registering another valid resource exposes it in Top automatically.
+Hats attach to the animated Character node through `CharacterHats`; IDs persist
+independently of tops and travel with the roster into previews, gameplay and scores.
+The Chair slot remains None.
 
 ## UI and lifecycle
 

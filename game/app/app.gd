@@ -110,6 +110,7 @@ func _build_office_page(menu: TwoKeyMenu = null, menu_height: int = 292) -> void
 	_backdrop = HomeBackdrop.new()
 	_backdrop.character_colour = config.player_colour
 	_backdrop.skin = config.appearance.resolved_skin()
+	_backdrop.hat_id = config.appearance.hat_id
 	screen.add_child(_backdrop)
 	current_menu = menu if menu != null else TwoKeyMenu.new()
 	screen.add_child(current_menu)
@@ -130,9 +131,15 @@ func show_customisation() -> void:
 
 func _customisation_labels() -> void:
 	current_menu.set_items(
-		PackedStringArray(["Hat", "Body", "Chair", "Colour", "Back"]),
+		PackedStringArray(["Hat", "Top", "Chair", "Colour", "Back"]),
 		PackedStringArray(
-			["None", config.appearance.body_label(), "None", config.appearance.colour_label(), ""]
+			[
+				config.appearance.hat_label(),
+				config.appearance.body_label(),
+				"None",
+				config.appearance.colour_label(),
+				""
+			]
 		)
 	)
 
@@ -141,7 +148,10 @@ func _customisation_action(index: int) -> void:
 	if index == 4:
 		show_home.call_deferred()
 		return
-	if index == 1:
+	if index == 0:
+		config.appearance.cycle_hat()
+		_backdrop.set_hat(config.appearance.hat_id)
+	elif index == 1:
 		config.appearance.cycle_body()
 		_backdrop.set_skin(config.appearance.resolved_skin())
 	elif index == 3:

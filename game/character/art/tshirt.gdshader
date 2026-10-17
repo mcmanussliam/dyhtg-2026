@@ -21,13 +21,13 @@ void fragment() {
 	float arm_region = smoothstep(0.20, 0.25, abs(p.x));
 	float sleeve_end = smoothstep(0.19, 0.215, p.y - p.z);
 	float shirt = mix(1.0, sleeve_end, arm_region) * torso * hem * collar;
-	vec3 colour = mix(character_surface(p), vec3(0.115, 0.120, 0.130), shirt);
+	vec3 colour = mix(character_surface(p), clothing_colour.rgb, shirt);
 	// Project onto the chest surface: the print bends with the same seamless body.
 	vec2 logo_uv = vec2(p.x / 0.39 + 0.5, (0.705 - p.y) / 0.08357 + 0.5);
 	float inside = step(0.0, logo_uv.x) * step(logo_uv.x, 1.0)
 		* step(0.0, logo_uv.y) * step(logo_uv.y, 1.0);
 	float print_mask = texture(chest_logo, logo_uv).a * inside * front * shirt;
-	ALBEDO = mix(colour, vec3(1.0), print_mask);
+	ALBEDO = mix(colour, logo_colour.rgb, print_mask);
 	ROUGHNESS = 0.96;
 	SPECULAR = 0.12;
 }

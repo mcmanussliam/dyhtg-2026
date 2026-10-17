@@ -5,6 +5,7 @@ extends RefCounted
 const PATHS := [
 	"res://game/character/skins/default.tres",
 	"res://game/character/skins/jpmorgan_tshirt.tres",
+	"res://game/character/skins/hoodie.tres",
 ]
 
 

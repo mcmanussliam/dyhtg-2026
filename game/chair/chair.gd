@@ -9,6 +9,7 @@ signal fall_confirmed(seat: int)
 
 var size_scale: float = 1.0
 var seat: int = 0
+var hat_id: StringName = &"none"
 var skin: CharacterSkin
 var colour := Color("f4d782")
 var active: bool = true

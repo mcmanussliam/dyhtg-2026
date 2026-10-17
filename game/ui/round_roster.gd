@@ -21,6 +21,7 @@ func _ready() -> void:
 		var portrait := ScoreCharacter.new()
 		portrait.colour = participant.colour
 		portrait.skin = participant.get("skin", SkinCatalog.default_definition())
+		portrait.hat_id = participant.get("hat_id", &"none")
 		portrait.display_size = Vector2(88, 88)
 		portrait.animated = false
 		portrait.close_up = true

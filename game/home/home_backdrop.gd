@@ -8,6 +8,7 @@ const PREVIEW_CAMERA_SIZE := 5.3
 const PREVIEW_TARGET := Vector3(-0.35, 1.95, 0.8)
 const PREVIEW_HEADING := 0.08
 
+var hat_id: StringName = &"none"
 var skin: CharacterSkin
 var character_colour := MatchState.COLOURS[0]
 var _model: ChairModel
@@ -64,6 +65,11 @@ func set_colour(colour: Color) -> void:
 		_build_character(room)
 
 
+func set_hat(id: StringName) -> void:
+	hat_id = id
+	set_colour(character_colour)
+
+
 func set_skin(definition: CharacterSkin) -> void:
 	skin = definition
 	set_colour(character_colour)
@@ -75,7 +81,7 @@ func _build_character(room: Node3D) -> void:
 	_model.position = Vector3(1.0, 0, 1.0)
 	_model.rotation.y = PREVIEW_HEADING
 	_model.scale = Vector3.ONE * 1.5
-	_model.build(character_colour, skin)
+	_model.build(character_colour, skin, hat_id)
 
 
 func _build_office(parent: Node3D) -> void:

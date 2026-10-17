@@ -20,7 +20,7 @@ func run(tree: SceneTree, check: Callable) -> void:
 	await _tap(tree, &"menu_activate")
 	await tree.process_frame
 	check.call(
-		app.current_menu._items == PackedStringArray(["Hat", "Body", "Chair", "Colour", "Back"]),
+		app.current_menu._items == PackedStringArray(["Hat", "Top", "Chair", "Colour", "Back"]),
 		"Customisation contains four categories and two-key Back navigation"
 	)
 	var original_colour := app.config.player_colour
@@ -37,6 +37,13 @@ func run(tree: SceneTree, check: Callable) -> void:
 			and app.get("_backdrop").skin.id == &"jpmorgan_tshirt"
 		),
 		"Body selection equips the T-shirt in the live preview"
+	)
+	check.call(
+		(
+			app.config.appearance.hat_id == &"traffic_cone"
+			and app.get("_backdrop").hat_id == &"traffic_cone"
+		),
+		"Hat selection updates the live preview independently of the top"
 	)
 	for index in CharacterAppearance.COLOUR_IDS.size():
 		await _tap(tree, &"menu_activate")

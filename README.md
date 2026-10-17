@@ -8,9 +8,10 @@ platform.
 Open `project.godot` in **Godot 4.7.2 Standard** and press F5. The game starts at an
 office home screen with plain white menu options. Choose Play, set 1–3 opponents and a first-to-1–5 win target,
 then start. The default is one AI and first to five wins. Customise opens Hat,
-Body, Chair and Colour. Body offers None or JPMorgan, a black T-shirt with a white chest logo. Colour
-defaults to Random, with a small named palette available. Hat and Chair remain
-None. Choices are saved
+Top, Chair and Colour. Hats include Traffic Cone, Top Hat and Cap.
+Tops include JPMorgan and Hoodie. Clothes use a richer version of the
+selected body colour; JPMorgan automatically chooses contrasting black or white logo ink. Colour
+defaults to Random, with a small named palette available. Hat and Top default to None; Chair remains None. Choices are saved
 locally; Random chooses a colour for the preview and keeps it through the match.
 Settings uses the same two-key option/value menu and saved-profile system:
 anti-aliasing and shadow quality apply

@@ -2,6 +2,7 @@ class_name ScoreCharacter
 extends TextureRect
 ## Reuses the gameplay model so score identity matches the character on stage.
 
+var hat_id: StringName = &"none"
 var skin: CharacterSkin
 var colour := Color.WHITE
 var animated := true
@@ -26,7 +27,7 @@ func _ready() -> void:
 	texture = viewport.get_texture()
 	_model = ChairModel.new()
 	viewport.add_child(_model)
-	_model.build(colour, skin)
+	_model.build(colour, skin, hat_id)
 	_model.rotation.y = -0.15
 	RenderStyle.setup_world(viewport, true, Color.BLACK, false)
 	if close_up:
@@ -36,9 +37,19 @@ func _ready() -> void:
 		environment.environment.ambient_light_energy = 0.5
 		(viewport.get_node("KeyLight") as DirectionalLight3D).light_energy = 0.6
 		(viewport.get_node("FillLight") as DirectionalLight3D).light_energy = 0.08
-		RenderStyle.orthographic_camera(viewport, 0.9, Vector3(0, 1.58, 5), Vector3(0, 1.43, 0))
+		RenderStyle.orthographic_camera(
+			viewport,
+			0.9 if hat_id == &"none" else 1.45,
+			Vector3(0, 1.58 if hat_id == &"none" else 1.80, 5),
+			Vector3(0, 1.43 if hat_id == &"none" else 1.65, 0)
+		)
 	else:
-		RenderStyle.orthographic_camera(viewport, 2.35, Vector3(0.3, 2.1, 5), Vector3(0, 0.8, 0))
+		RenderStyle.orthographic_camera(
+			viewport,
+			2.35 if hat_id == &"none" else 2.85,
+			Vector3(0.3, 2.1 if hat_id == &"none" else 2.3, 5),
+			Vector3(0, 0.8 if hat_id == &"none" else 1.0, 0)
+		)
 
 
 func _process(delta: float) -> void:

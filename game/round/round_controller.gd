@@ -54,6 +54,7 @@ func _ready() -> void:
 	for participant in _roster:
 		var chair := CHAIR_SCENE.instantiate() as Chair
 		chair.skin = participant.get("skin", SkinCatalog.default_definition())
+		chair.hat_id = participant.get("hat_id", &"none")
 		chair.resize_for_stage(stage.content_scale)
 		var pose := stage.spawn_pose(participant.id, _roster.size())
 		chair.configure(participant.id, participant.colour, Vector2.from_angle(pose.get_rotation()))

@@ -43,7 +43,7 @@ func _ready() -> void:
 	add_child(_viewport)
 	_model = MODEL_SCRIPT.new()
 	_viewport.add_child(_model)
-	_model.build(chair.colour, chair.skin)
+	_model.build(chair.colour, chair.skin, chair.hat_id)
 	_model.scale = Vector3.ONE * chair.size_scale
 	RenderStyle.setup_world(_viewport, true)
 	var target := Vector3(0, 0.85, 0)
@@ -272,7 +272,7 @@ func _ready_shared() -> void:
 	_world.add_child(_rig)
 	_model = MODEL_SCRIPT.new()
 	_rig.add_child(_model)
-	_model.build(chair.colour, chair.skin)
+	_model.build(chair.colour, chair.skin, chair.hat_id)
 	_model.scale = Vector3.ONE * chair.size_scale
 	_spray = SprayView.new()
 	_world.add_child(_spray)

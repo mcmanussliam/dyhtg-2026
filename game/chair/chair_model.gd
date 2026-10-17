@@ -12,7 +12,7 @@ var _tilt := Vector2.ZERO
 var _tilt_velocity := Vector2.ZERO
 
 
-func build(tint: Color, skin: CharacterSkin = null) -> void:
+func build(tint: Color, skin: CharacterSkin = null, hat_id: StringName = &"none") -> void:
 	if skin == null or not skin.is_valid():
 		skin = SkinCatalog.default_definition()
 	face_colour = tint.lightened(skin.face_lightening)
@@ -30,10 +30,16 @@ func build(tint: Color, skin: CharacterSkin = null) -> void:
 	skin_shader.shader = skin.body_shader
 	skin_shader.set_shader_parameter("skin_colour", tint)
 	skin_shader.set_shader_parameter("face_colour", face_colour)
+	var fabric := CosmeticColours.fabric(tint)
+	skin_shader.set_shader_parameter("clothing_colour", fabric)
+	skin_shader.set_shader_parameter("logo_colour", CosmeticColours.logo_ink(fabric))
 	if skin.chest_logo != null:
 		skin_shader.set_shader_parameter("chest_logo", skin.chest_logo)
 	torso.material_override = skin_shader
 	body.add_child(torso)
+	CharacterHats.build(body, hat_id, tint)
+	if skin.id == &"hoodie":
+		_build_hoodie_details(tint)
 	extinguisher = ExtinguisherModel.new()
 	extinguisher.position = Vector3(0, 0.13, 0.38)
 	office_chair.seat_rig.add_child(extinguisher)
@@ -64,3 +70,14 @@ func animate(
 	body.rotation.x = lean.x * 0.012 - _tilt.x * 0.7
 	body.rotation.z = -lean.y * 0.012 - _tilt.y * 0.7
 	body.position.y = 0.04 + sin(time * 8) * speed * 0.008
+
+
+func _build_hoodie_details(tint: Color) -> void:
+	var cloth := ModelGeometry.material(CosmeticColours.fabric(tint), 0, 0.95)
+	# A lowered hood rests behind the neck, leaving room for independently equipped hats.
+	ModelGeometry.ellipsoid(body, Vector3(0, 0.79, -0.16), Vector3(0.24, 0.13, 0.14), cloth)
+	var cord := ModelGeometry.material(CosmeticColours.fabric(tint).lightened(0.25), 0, 1)
+	for side in [-1.0, 1.0]:
+		ModelGeometry.capsule(
+			body, Vector3(side * 0.13, 0.77, 0.21), Vector3(side * 0.16, 0.60, 0.245), 0.009, cord
+		)

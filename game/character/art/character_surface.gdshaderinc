@@ -1,6 +1,9 @@
 uniform vec4 skin_colour : source_color = vec4(0.92, 0.88, 0.82, 1.0);
 uniform vec4 face_colour : source_color = vec4(0.96, 0.94, 0.90, 1.0);
 
+uniform vec4 clothing_colour : source_color = vec4(0.2, 0.6, 0.4, 1.0);
+uniform vec4 logo_colour : source_color = vec4(1.0);
+
 vec3 character_surface(vec3 model_position) {
 	// Colour on the head surface itself: no raised panel or intersecting shells.
 	float front = smoothstep(0.10, 0.15, model_position.z);

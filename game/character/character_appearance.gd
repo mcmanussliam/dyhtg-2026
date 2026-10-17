@@ -53,7 +53,8 @@ func cycle_colour() -> void:
 
 func validated_copy() -> CharacterAppearance:
 	var copy := CharacterAppearance.new()
-	# Hat/chair slots remain None; only registered body IDs can reach a match.
+	# Only registered cosmetic IDs can reach a match.
+	copy.hat_id = hat_id if hat_id in CharacterHats.IDS else NONE
 	copy.colour_id = colour_id if colour_id in COLOUR_IDS else RANDOM
 	for skin in SkinCatalog.definitions():
 		if skin.is_valid() and skin.id == body_id:
@@ -75,6 +76,9 @@ static func load_profile(path: String) -> CharacterAppearance:
 		for skin in SkinCatalog.definitions():
 			if skin.is_valid() and skin.id == StringName(body):
 				appearance.body_id = skin.id
+	var hat: Variant = file.get_value("appearance", "hat", String(NONE))
+	if (hat is String or hat is StringName) and StringName(hat) in CharacterHats.IDS:
+		appearance.hat_id = StringName(hat)
 	return appearance
 
 
@@ -105,3 +109,11 @@ func cycle_body() -> void:
 		if skin.id != SkinCatalog.default_definition().id:
 			choices.append(skin.id)
 	body_id = choices[(choices.find(body_id) + 1) % choices.size()]
+
+
+func hat_label() -> String:
+	return CharacterHats.NAMES[maxi(CharacterHats.IDS.find(hat_id), 0)]
+
+
+func cycle_hat() -> void:
+	hat_id = CharacterHats.IDS[(CharacterHats.IDS.find(hat_id) + 1) % CharacterHats.IDS.size()]

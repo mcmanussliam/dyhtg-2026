@@ -13,6 +13,41 @@ func run(tree: SceneTree, check: Callable) -> void:
 		),
 		"Appearance defaults to Random colour and no equipped cosmetics"
 	)
+	for hat in CharacterHats.IDS:
+		check.call(appearance.hat_id == hat, "Hat cycle includes %s" % hat)
+		var hat_copy := appearance.validated_copy()
+		check.call(hat_copy.hat_id == hat, "Hat choice survives appearance snapshots")
+		var model := ChairModel.new()
+		model.build(Color("72d9ae"), appearance.resolved_skin(), hat)
+		check.call(
+			model.body.has_node("Hat") == (hat != &"none"),
+			"Hat attachment matches the selected slot"
+		)
+		model.free()
+		appearance.cycle_hat()
+	check.call(appearance.hat_id == &"none", "Hat choices wrap back to None")
+	check.call(
+		CosmeticColours.logo_ink(Color.WHITE) == Color.BLACK, "Bright shirts use black logo ink"
+	)
+	check.call(
+		CosmeticColours.logo_ink(Color.BLACK) == Color.WHITE, "Dark shirts use white logo ink"
+	)
+	for base in CharacterAppearance.PALETTE:
+		var fabric := CosmeticColours.fabric(base)
+		var ink := CosmeticColours.logo_ink(fabric)
+		var lighter := maxf(
+			fabric.srgb_to_linear().get_luminance(), ink.srgb_to_linear().get_luminance()
+		)
+		var darker := minf(
+			fabric.srgb_to_linear().get_luminance(), ink.srgb_to_linear().get_luminance()
+		)
+		check.call(
+			(lighter + 0.05) / (darker + 0.05) >= 4.5, "Palette shirt has contrasting logo ink"
+		)
+		check.call(
+			fabric.s > base.s and fabric.v < base.v,
+			"Clothing uses a richer version of its body colour"
+		)
 	var colour := appearance.resolved_colour()
 	check.call(colour in CharacterAppearance.PALETTE, "Random resolves to a supported colour")
 	check.call(appearance.resolved_colour() == colour, "Random stays stable across preview updates")
@@ -69,12 +104,15 @@ func run(tree: SceneTree, check: Callable) -> void:
 	check.call(appearance.body_label() == "JPMorgan", "Clothing uses its concise display name")
 	var shirt_snapshot := appearance.validated_copy()
 	appearance.cycle_body()
+	check.call(appearance.body_id == &"hoodie", "Tops include Hoodie")
+	appearance.cycle_body()
 	check.call(appearance.body_id == CharacterAppearance.NONE, "Body cycles back to no clothing")
 	check.call(
 		shirt_snapshot.body_id == &"jpmorgan_tshirt",
 		"Editing clothing leaves a running snapshot unchanged"
 	)
 	appearance.body_id = &"jpmorgan_tshirt"
+	appearance.hat_id = &"cap"
 	var path := "user://appearance_test_%d.cfg" % Time.get_ticks_usec()
 	appearance.colour_id = &"blue"
 	check.call(appearance.save_profile(path) == OK, "Appearance profile saves atomically")
@@ -84,6 +122,7 @@ func run(tree: SceneTree, check: Callable) -> void:
 			loaded.colour_id == &"blue"
 			and loaded.resolved_colour() == appearance.resolved_colour()
 			and loaded.body_id == &"jpmorgan_tshirt"
+			and loaded.hat_id == &"cap"
 		),
 		"Named colour survives profile reload"
 	)
@@ -95,5 +134,19 @@ func run(tree: SceneTree, check: Callable) -> void:
 		CharacterAppearance.load_profile(path).colour_id == CharacterAppearance.RANDOM,
 		"Random persists as a choice rather than a permanently resolved colour"
 	)
+	var legacy := ConfigFile.new()
+	legacy.set_value("appearance", "hat", "cowboy_hat")
+	legacy.set_value("appearance", "body", "bikini")
+	legacy.set_value("appearance", "colour", "blue")
+	ProfileStore.save_file(legacy, path)
+	var migrated := CharacterAppearance.load_profile(path)
+	check.call(
+		(
+			migrated.hat_id == CharacterAppearance.NONE
+			and migrated.body_id == CharacterAppearance.NONE
+		),
+		"Removed cosmetics in saved profiles fall back to None"
+	)
+	check.call(migrated.colour_id == &"blue", "Removed cosmetics preserve the saved colour")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	await tree.process_frame
