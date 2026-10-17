@@ -24,7 +24,7 @@ A Floor in the Crack uses three map-specific, capped ArrayMesh resources in
 godot --headless --path . --script tools/bake_office_cut.gd
 ```
 
-The bake presets contain the source prop poses and stage outline. Update them and
+The bake presets contain the source prop poses, content scale and stage outline. Update them and
 rebake when changing those cut pieces or the radius. Assign the result through
 `baked_visual_mesh`; the stage calls `clip_to_polygon()` for props tagged
 `cut_at_edge`. This clips both live 2D footprints and each compound 3D collider,
@@ -34,3 +34,17 @@ CSG runs only during this offline bake, never during gameplay.
 `OfficeAccessories` adds small mugs, document folders and archive boxes directly
 to existing furniture models. These decorative details have no independent floor
 footprint, keeping routes and chair collisions unchanged.
+
+## Loose furniture
+
+Task chairs, plants and coffee tables use `RigidBody2D` roots with the same
+`OfficeProp` authoring script. Desks, shelving and large fixtures keep static
+roots. `PropMotion` connects to the owning stage's local round lifecycle signals,
+keeps the native 3D `AnimatableBody3D` presentation aligned, and transfers it to an
+unscaled `RigidBody3D` when floor support is lost. The 2D obstacle is then removed.
+
+Task chair footprints are circles to avoid catching players on square corners.
+Loose props use low friction and modest mass; impacts and extinguisher spray can
+move them. Do not scale a live rigid body node. Call `resize_for_stage()` so its
+unique collision shape and rendered children resize together. Clipped pieces
+remain fixed to the authored cut edge.

@@ -24,7 +24,10 @@ var _input_ready: bool = false
 var _pilots: Dictionary = {}
 var _input := LocalInput.new()
 var _spray := SpraySystem.new()
+var _hint: Label
 var _title: Label
+var _indicators: RoundRoster
+var _spectator: SpectatorSpeed
 var _intro_background: ColorRect
 
 
@@ -50,10 +53,13 @@ func _ready() -> void:
 	add_child(bodies)
 	for participant in _roster:
 		var chair := CHAIR_SCENE.instantiate() as Chair
+		chair.skin = participant.get("skin", SkinCatalog.default_definition())
+		chair.resize_for_stage(stage.content_scale)
 		var pose := stage.spawn_pose(participant.id, _roster.size())
 		chair.configure(participant.id, participant.colour, Vector2.from_angle(pose.get_rotation()))
 		chair.prepare_round()
-		chair.get_node("Visuals").configure_world(presentation.viewport, presentation.world)
+		chair.fall_confirmed.connect(_on_fall_confirmed)
+		chair.get_node("Visuals").configure_world(presentation.viewport, presentation.world, stage)
 		bodies.add_child(chair)
 		chair.global_transform = pose
 		chairs.append(chair)
@@ -68,19 +74,36 @@ func _ready() -> void:
 	layer.add_child(_intro_background)
 	_title = Label.new()
 	_title.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_title.offset_top = -48
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_title.add_theme_font_size_override("font_size", 84)
+	_title.add_theme_font_size_override("font_size", 68)
 	_title.add_theme_color_override("font_shadow_color", Color.BLACK)
 	_title.add_theme_constant_override("shadow_offset_y", 4)
 	_title.text = _definition.display_name
 	_intro_background.add_child(_title)
+	_hint = Label.new()
+	_hint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_hint.offset_top = 84
+	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_hint.add_theme_font_size_override("font_size", 24)
+	_hint.text = _definition.hint
+	_intro_background.add_child(_hint)
+	_indicators = RoundRoster.new()
+	_indicators.participants = _roster.duplicate(true)
+	layer.add_child(_indicators)
+	_indicators.hide()
+	_spectator = SpectatorSpeed.new()
+	_spectator.can_fast_forward = _can_fast_forward
+	add_child(_spectator)
 
 
 func _physics_process(delta: float) -> void:
 	_elapsed += delta
 	if phase == Phase.INTRO:
 		_title.modulate.a = 1.0 - smoothstep(intro_duration * 0.75, intro_duration, _elapsed)
+		_hint.modulate.a = _title.modulate.a
 		if _elapsed >= intro_duration:
 			begin_live()
 	elif phase == Phase.LIVE:
@@ -96,16 +119,24 @@ func _physics_process(delta: float) -> void:
 			_spray.apply(chair, chairs, delta)
 		stage.tick_hazards(delta)
 		for chair in chairs:
-			if chair.active:
+			if chair.active and not chair.falling:
 				var reason := stage.elimination_reason(chair.global_position)
-				if reason != &"":
+				if reason == &"fall":
+					# Tiny rim tolerance preserves partial wheel overhang. Once the center
+					# loses support, native gravity/contact physics decides tipping or landing.
+					var radius := 0.15 * RenderStyle.PIXELS_PER_UNIT * chair.size_scale
+					if not stage.has_support_near(chair.global_position, radius):
+						chair.begin_fall()
+				elif reason != &"":
 					request_elimination(chair.seat, reason)
 		_commit_eliminations()
+		_spectator.refresh()
 	elif phase == Phase.RESOLVING and _elapsed >= resolve_duration:
 		phase = Phase.FINISHED
 		for chair in chairs:
 			chair.get_node("Visuals").freeze_visuals()
 		presentation.world.hide()
+		_indicators.hide()
 		completed.emit(round_id, _winner)
 
 
@@ -115,6 +146,7 @@ func begin_live() -> void:
 	phase = Phase.LIVE
 	_elapsed = 0.0
 	_intro_background.hide()
+	_indicators.show()
 	presentation.world.show()
 	stage.start_round()
 	for chair in chairs:
@@ -132,6 +164,7 @@ func _commit_eliminations() -> void:
 		return
 	for seat in _pending:
 		chairs[seat].eliminate(_pending[seat])
+		_indicators.mark_eliminated(seat)
 	_pending.clear()
 	var survivors: Array[Chair] = []
 	for chair in chairs:
@@ -159,3 +192,17 @@ func _steering_held() -> bool:
 func _exit_tree() -> void:
 	if is_instance_valid(stage):
 		stage.stop_round()
+
+
+func _can_fast_forward() -> bool:
+	if phase != Phase.LIVE or chairs.is_empty() or chairs[0].active:
+		return false
+	var surviving_ai := 0
+	for chair in chairs:
+		if chair.active and _pilots.has(chair.seat):
+			surviving_ai += 1
+	return surviving_ai > 1
+
+
+func _on_fall_confirmed(seat: int) -> void:
+	request_elimination(seat, &"fall")

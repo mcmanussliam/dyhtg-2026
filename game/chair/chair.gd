@@ -3,10 +3,13 @@ extends RigidBody2D
 ## Real linear/angular inertia; one steering command, unlimited continuous thrust.
 
 signal bumped(impulse: Vector2)
+signal fall_confirmed(seat: int)
 
 @export var tuning: ChairTuning
 
+var size_scale: float = 1.0
 var seat: int = 0
+var skin: CharacterSkin
 var colour := Color("f4d782")
 var active: bool = true
 var spraying: bool = true
@@ -21,6 +24,25 @@ var aim_angle: float:
 	get:
 		return global_rotation
 
+var _fall_reported := false
+
+
+func resize_for_stage(factor: float) -> void:
+	var ratio := factor / size_scale
+	if is_equal_approx(ratio, 1.0):
+		return
+	var collision := get_node("CollisionShape2D") as CollisionShape2D
+	var shape := collision.shape.duplicate() as CapsuleShape2D
+	shape.radius *= ratio
+	shape.height *= ratio
+	collision.shape = shape
+	# Resize the shape rather than scaling a live rigid body. Keep its steering
+	# acceleration consistent as the larger footprint increases angular inertia.
+	tuning = tuning.duplicate() as ChairTuning
+	tuning.steering_torque *= ratio * ratio
+	tuning.spray_range *= ratio
+	size_scale = factor
+
 
 func configure(index: int, tint: Color, heading: Vector2) -> void:
 	seat = index
@@ -34,6 +56,9 @@ func step(delta: float) -> void:
 	spraying = active and drive_enabled
 	if not spraying:
 		return
+	# Turning scrubs momentum through drag; straight travel retains its drift.
+	var turn_ratio := clampf(absf(angular_velocity) / maxf(tuning.maximum_spin, 0.01), 0.0, 1.0)
+	linear_damp = tuning.coast_drag + tuning.turning_drag * turn_ratio
 	apply_central_impulse(-Vector2.from_angle(aim_angle) * tuning.thrust * delta)
 	var steering := clampf(command.turn, -1.0, 1.0)
 	apply_torque_impulse(steering * tuning.steering_torque * delta)
@@ -68,6 +93,8 @@ func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 
 func prepare_round() -> void:
 	active = true
+	falling = false
+	_fall_reported = false
 	drive_enabled = false
 	spraying = false
 	freeze = true
@@ -92,12 +119,41 @@ func stop_drive() -> void:
 	freeze = true
 
 
-func eliminate(reason: StringName) -> void:
-	if not active:
+func begin_fall() -> void:
+	if not active or falling:
 		return
 	fall_velocity = linear_velocity
 	fall_spin = angular_velocity
-	falling = reason == &"fall"
+	falling = true
+	stop_drive()
+	collision_layer = 0
+	collision_mask = 0
+
+
+func land_from_fall(point: Vector2, heading: float, velocity: Vector2, spin: float) -> void:
+	if not active or not falling or _fall_reported:
+		return
+	falling = false
+	global_position = point
+	global_rotation = heading
+	collision_layer = 2
+	collision_mask = 3
+	begin_round()
+	linear_velocity = velocity.limit_length(tuning.maximum_speed)
+	angular_velocity = clampf(spin, -tuning.maximum_spin, tuning.maximum_spin)
+
+
+func confirm_fall() -> void:
+	if active and falling and not _fall_reported:
+		_fall_reported = true
+		fall_confirmed.emit(seat)
+
+
+func eliminate(reason: StringName) -> void:
+	if not active:
+		return
+	if reason == &"fall":
+		begin_fall()
 	active = false
 	stop_drive()
 	collision_layer = 0

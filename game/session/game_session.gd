@@ -30,7 +30,7 @@ func _physics_process(delta: float) -> void:
 	for index in chairs.size():
 		var chair := chairs[index]
 		if bindings[index].device == LocalInput.CPU:
-			chair.command = pilots[index].sample(chair, chairs, stage.play_bounds)
+			chair.command = pilots[index].sample(chair, chairs, stage.world_bounds)
 		else:
 			chair.command = bindings[index].sample()
 		chair.step(delta)
@@ -88,7 +88,7 @@ func _reset_session() -> void:
 	for index in bindings.size():
 		var chair := CHAIR_SCENE.instantiate() as Chair
 		chair.configure(index, COLOURS[index], Vector2.LEFT if index % 2 == 0 else Vector2.RIGHT)
-		chair.position = stage.spawn_position(index)
+		chair.position = $Chairs.to_local(stage.spawn_position(index))
 		$Chairs.add_child(chair)
 		chairs.append(chair)
 		pilots.append(PracticePilot.new())

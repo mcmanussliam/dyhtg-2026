@@ -4,6 +4,10 @@ extends Node2D
 
 @export var play_bounds := Rect2(28, 112, 1224, 620)
 
+var world_bounds: Rect2:
+	get:
+		return global_transform * play_bounds
+
 
 func _ready() -> void:
 	var boundaries := Node2D.new()
@@ -35,7 +39,7 @@ func _ready() -> void:
 func spawn_position(index: int) -> Vector2:
 	var markers := $SpawnPoints.get_children()
 	var marker := markers[index % markers.size()] as Marker2D
-	return marker.position
+	return marker.global_position
 
 
 func _add_edge(parent: Node2D, area: Rect2) -> void:

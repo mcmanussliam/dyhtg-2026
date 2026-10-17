@@ -1,6 +1,6 @@
 @tool
 class_name OfficeProp
-extends StaticBody2D
+extends PhysicsBody2D
 ## Authored 2D gameplay footprint with a reusable, depth-tested 3D presentation.
 
 const AUTHORING_PIXELS_PER_UNIT := RenderStyle.PIXELS_PER_UNIT
@@ -8,9 +8,37 @@ const AUTHORING_PIXELS_PER_UNIT := RenderStyle.PIXELS_PER_UNIT
 @export var visual_scene: PackedScene
 @export var baked_visual_mesh: Mesh
 
+var _motion: PropMotion
+var _presentation_scale := 1.0
 var _clip_configured := false
 var _clip_boundary := PackedVector2Array()
 var _clip_collisions: Array[CollisionPolygon2D] = []
+
+
+func _ready() -> void:
+	if not Engine.is_editor_hint() and is_class("RigidBody2D"):
+		_motion = PropMotion.new()
+		add_child(_motion)
+
+
+func resize_for_stage(factor: float) -> void:
+	if not is_class("RigidBody2D"):
+		scale *= factor
+		return
+	# Keep simulated bodies unscaled; resize their unique shape and visual instead.
+	var collision := get_node("CollisionShape2D") as CollisionShape2D
+	var shape := collision.shape.duplicate() as Shape2D
+	if shape is CircleShape2D:
+		shape.radius *= factor
+	elif shape is RectangleShape2D:
+		shape.size *= factor
+	collision.shape = shape
+	_presentation_scale *= factor
+
+
+func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
+	state.linear_velocity = state.linear_velocity.limit_length(500.0)
+	state.angular_velocity = clampf(state.angular_velocity, -5.0, 5.0)
 
 
 func clip_to_circle(center: Vector2, radius: float) -> void:
@@ -59,7 +87,7 @@ func create_presentation(parent: Node3D, units_per_pixel: float) -> Node3D:
 	var model := visual_scene.instantiate() as Node3D
 	model.name = name
 	parent.add_child(model)
-	var unit_scale := AUTHORING_PIXELS_PER_UNIT * units_per_pixel
+	var unit_scale := AUTHORING_PIXELS_PER_UNIT * units_per_pixel * _presentation_scale
 	var horizontal := Vector3(global_transform.x.x, 0.0, global_transform.x.y) * unit_scale
 	var depth := Vector3(global_transform.y.x, 0.0, global_transform.y.y) * unit_scale
 	var basis := Basis(horizontal, Vector3.UP * unit_scale, depth)
@@ -74,6 +102,8 @@ func create_presentation(parent: Node3D, units_per_pixel: float) -> Node3D:
 		visual.name = "BakedVisual"
 		visual.mesh = baked_visual_mesh
 		model.add_child(visual)
+	if is_instance_valid(_motion):
+		model = _motion.bind_presentation(model, units_per_pixel)
 	return model
 
 
@@ -126,3 +156,17 @@ func _shape_vertices(shape: Shape3D) -> PackedVector3Array:
 		for index in 8:
 			vertices.append(bounds.get_endpoint(index))
 	return vertices
+
+
+func is_movable() -> bool:
+	return is_instance_valid(_motion)
+
+
+func push(impulse: Vector2, offset: Vector2) -> void:
+	if is_movable():
+		_motion.push(impulse, offset)
+
+
+func set_simulation_active(enabled: bool) -> void:
+	if is_movable():
+		_motion.set_active(enabled)

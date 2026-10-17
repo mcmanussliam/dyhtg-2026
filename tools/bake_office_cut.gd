@@ -5,22 +5,23 @@ extends SceneTree
 const SCALE := 43.0
 const CENTRE := Vector2(640, 422)
 const RADIUS := 480.0 / SCALE
+const CONTENT_SCALE := 1.18
 const PRESETS := [
 	{
 		"source": "res://game/props/bookshelf_visual.tscn",
-		"position": Vector2(925, 60),
+		"position": Vector2(945, 90),
 		"rotation": 0.0,
 		"output": "res://game/stage/art/cut_bookshelf.res",
 	},
 	{
 		"source": "res://game/props/desk_visual.tscn",
-		"position": Vector2(175, 270),
+		"position": Vector2(170, 270),
 		"rotation": 0.0,
 		"output": "res://game/stage/art/cut_desk.res",
 	},
 	{
 		"source": "res://game/props/desk_visual.tscn",
-		"position": Vector2(190, 210),
+		"position": Vector2(170, 210),
 		"rotation": PI,
 		"output": "res://game/stage/art/cut_rear_desk.res",
 	},
@@ -43,10 +44,10 @@ func _bake(preset: Dictionary) -> void:
 	root.add_child(source)
 	var meshes := source.find_children("*", "MeshInstance3D", true, false)
 	var pose := Transform3D(
-		Basis(Vector3.UP, -float(preset.rotation)),
+		Basis(Vector3.UP, -float(preset.rotation)).scaled(Vector3.ONE * CONTENT_SCALE),
 		Vector3(preset.position.x / SCALE, 0, preset.position.y / SCALE)
 	)
-	var clip_centre := pose.affine_inverse() * Vector3(CENTRE.x / SCALE, 0, CENTRE.y / SCALE)
+	var clip_centre := pose.affine_inverse() * Vector3(CENTRE.x / SCALE, 3, CENTRE.y / SCALE)
 	var boolean := CSGCombiner3D.new()
 	boolean.calculate_tangents = false
 	root.add_child(boolean)
@@ -61,7 +62,7 @@ func _bake(preset: Dictionary) -> void:
 	var clip := CSGMesh3D.new()
 	clip.operation = CSGShape3D.OPERATION_INTERSECTION
 	clip.mesh = ColumnGeometry.build(RADIUS, 8.0)
-	clip.transform = Transform3D(pose.basis.inverse(), clip_centre + Vector3(0, 3, 0))
+	clip.transform = Transform3D(pose.basis.inverse(), clip_centre)
 	clip.material = (meshes[0] as MeshInstance3D).get_active_material(0)
 	boolean.add_child(clip)
 	await process_frame
@@ -79,6 +80,7 @@ func _bake(preset: Dictionary) -> void:
 	result.set_meta("map_rotation", preset.rotation)
 	result.set_meta("stage_center", CENTRE)
 	result.set_meta("stage_radius", RADIUS * SCALE)
+	result.set_meta("content_scale", CONTENT_SCALE)
 	result.set_meta("stage_outline", ColumnGeometry.outline(RADIUS * SCALE))
 	var status := ResourceSaver.save(result, preset.output)
 	print(

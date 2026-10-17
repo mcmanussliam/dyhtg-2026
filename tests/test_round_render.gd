@@ -41,8 +41,8 @@ func run(tree: SceneTree, check: Callable) -> void:
 	var clear_spawns := true
 	for index in 4:
 		var footprint := CapsuleShape2D.new()
-		footprint.radius = 23.0
-		footprint.height = 60.0
+		footprint.radius = 23.0 * round_scene.stage.content_scale
+		footprint.height = 60.0 * round_scene.stage.content_scale
 		var query := PhysicsShapeQueryParameters2D.new()
 		query.shape = footprint
 		query.transform = (
@@ -78,6 +78,22 @@ func run(tree: SceneTree, check: Callable) -> void:
 	check.call(view.viewport == tree.root, "Gameplay uses the native main 3D viewport")
 	check.call(shared, "Round chairs and platform share one depth-tested 3D world")
 	check.call(aligned, "Chair ground positions match the orthographic stage projection")
+	var chair_shape := round_scene.chairs[0].get_node("CollisionShape2D").shape as CapsuleShape2D
+	var chair_model := round_scene.chairs[0].get_node("Visuals").get("_model") as ChairModel
+	check.call(
+		(
+			is_equal_approx(chair_shape.radius, 23.0 * round_scene.stage.content_scale)
+			and chair_model.scale.is_equal_approx(Vector3.ONE * round_scene.stage.content_scale)
+		),
+		"Larger stage characters keep rendered models and collision footprints aligned"
+	)
+	check.call(
+		(
+			is_equal_approx(round_scene.stage.get("radius"), 480.0)
+			and is_equal_approx(round_scene.stage.view_width, 1380.0)
+		),
+		"Closer camera retains the same physical cutout size"
+	)
 	var collider := platform.get_node("ColumnCollision") as CollisionShape3D
 	var column := platform.get_node("ColumnSurface") as MeshInstance3D
 	check.call(

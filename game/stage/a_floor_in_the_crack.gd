@@ -26,8 +26,10 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	for prop in $Furniture.get_children():
-		if prop is OfficeProp and prop.get_meta("cut_at_edge", false):
-			prop.clip_to_polygon(global_transform * floor_outline())
+		if prop is OfficeProp:
+			prop.resize_for_stage(content_scale)
+			if prop.get_meta("cut_at_edge", false):
+				prop.clip_to_polygon(global_transform * floor_outline())
 
 
 func has_support(world_point: Vector2) -> bool:
@@ -110,6 +112,7 @@ func create_presentation(parent: Node3D, units_per_pixel: float) -> void:
 	var world_radius := radius * units_per_pixel
 	var platform := StaticBody3D.new()
 	platform.name = "CirclePlatform"
+	platform.add_to_group("stage_floor")
 	platform.position = Vector3(centre.x, -12.0, centre.y)
 	parent.add_child(platform)
 	var mesh := ColumnGeometry.build(world_radius, 24.0)

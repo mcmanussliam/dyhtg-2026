@@ -1,15 +1,7 @@
-shader_type spatial;
-render_mode diffuse_burley, specular_schlick_ggx;
-
 uniform vec4 skin_colour : source_color = vec4(0.92, 0.88, 0.82, 1.0);
 uniform vec4 face_colour : source_color = vec4(0.96, 0.94, 0.90, 1.0);
-varying vec3 model_position;
 
-void vertex() {
-	model_position = VERTEX;
-}
-
-void fragment() {
+vec3 character_surface(vec3 model_position) {
 	// Colour on the head surface itself: no raised panel or intersecting shells.
 	float front = smoothstep(0.10, 0.15, model_position.z);
 	vec2 face_uv = vec2(model_position.x / 0.17, (model_position.y - 0.98) / 0.18);
@@ -18,7 +10,5 @@ void fragment() {
 	float left_eye = 1.0 - smoothstep(0.020, 0.026, length(eye_uv - vec2(-0.065, 0.0)));
 	float right_eye = 1.0 - smoothstep(0.020, 0.026, length(eye_uv - vec2(0.065, 0.0)));
 	float eyes = max(left_eye, right_eye) * front;
-	ALBEDO = mix(mix(skin_colour.rgb, face_colour.rgb, panel), vec3(0.002), eyes);
-	ROUGHNESS = 0.90;
-	SPECULAR = 0.17;
+	return mix(mix(skin_colour.rgb, face_colour.rgb, panel), vec3(0.002), eyes);
 }

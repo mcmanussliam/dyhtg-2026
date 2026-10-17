@@ -178,7 +178,9 @@ func _test_physics(game: GameSession) -> void:
 	for property in chair.get_property_list():
 		stale_resource = stale_resource or property.name in ["fuel", "heat", "braking", "refilling"]
 	_expect(not stale_resource, "Removed fuel and heat systems must not remain on the chair")
-	chair.position = Vector2(game.stage.play_bounds.end.x - 32, 420)
+	chair.position = Vector2(
+		game.stage.world_bounds.end.x - 32, game.stage.world_bounds.get_center().y
+	)
 	chair.rotation = PI
 	chair.angular_velocity = 0.0
 	chair.linear_velocity = Vector2(400, 0)
@@ -186,7 +188,7 @@ func _test_physics(game: GameSession) -> void:
 		chair.step(1.0 / 60.0)
 		await physics_frame
 	_expect(
-		game.stage.play_bounds.has_point(chair.position), "Invisible edges must retain the chair"
+		game.stage.world_bounds.has_point(chair.position), "Invisible edges must retain the chair"
 	)
 
 
@@ -313,7 +315,9 @@ func _test_collisions() -> void:
 	_expect(compression > 0.005, "A physical impact must compress the visual seat suspension")
 	second.freeze = true
 	second.position = Vector2(500, 300)
-	first.position = Vector2(1200, 420)
+	first.position = Vector2(
+		game.stage.world_bounds.end.x - 52, game.stage.world_bounds.get_center().y
+	)
 	first.rotation = 0
 	first.angular_velocity = 0
 	first.linear_velocity = Vector2(300, 0)
@@ -349,7 +353,7 @@ func _test_endurance() -> void:
 		await physics_frame
 		for chair in game.chairs:
 			always_spraying = always_spraying and chair.spraying
-			contained = contained and game.stage.play_bounds.grow(2.0).has_point(chair.position)
+			contained = contained and game.stage.world_bounds.grow(2.0).has_point(chair.position)
 			saw_motion = saw_motion or chair.linear_velocity.length() > 80.0
 			saw_turning = saw_turning or absf(chair.angular_velocity) > 0.5
 	_expect(always_spraying, "Both extinguishers must remain on throughout 40 simulated seconds")

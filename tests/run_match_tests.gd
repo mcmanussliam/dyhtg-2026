@@ -2,7 +2,17 @@ extends SceneTree
 ## Match, stage and two-key menu regression runner.
 
 const SUITES = [
+	preload("res://tests/test_gap_physics.gd"),
+	preload("res://tests/test_pit_stage.gd"),
+	preload("res://tests/test_loose_props.gd"),
+	preload("res://tests/test_edge_survival.gd"),
+	preload("res://tests/test_content_definitions.gd"),
+	preload("res://tests/test_result_progression.gd"),
+	preload("res://tests/test_spectator_speed.gd"),
+	preload("res://tests/test_settings.gd"),
+	preload("res://tests/test_movement_dynamics.gd"),
 	preload("res://tests/test_match_state.gd"),
+	preload("res://tests/test_character_appearance.gd"),
 	preload("res://tests/test_stage.gd"),
 	preload("res://tests/test_props.gd"),
 	preload("res://tests/test_render_resources.gd"),

@@ -22,6 +22,7 @@ var _turn_arc: float = 0.0
 var _escape_left: float = 0.0
 var _escape_jet := Vector2.RIGHT
 var _uncontested_time: float = 0.0
+var _round_age: float = 0.0
 var _alive_count: int = 0
 var _stall_time: float = 0.0
 var _ignored: Dictionary = {}
@@ -41,7 +42,7 @@ func sample(chair: Chair, chairs: Array[Chair], bounds: Rect2) -> ChairCommand:
 	var target: Chair
 	var closest: float = INF
 	for candidate in chairs:
-		if candidate == chair or not candidate.active:
+		if candidate == chair or not candidate.active or candidate.falling:
 			continue
 		var distance := chair.position.distance_to(candidate.position)
 		if distance < closest:
@@ -66,21 +67,26 @@ func sample_on_stage(
 	chair: Chair, chairs: Array[Chair], stage: ArenaStage, delta: float = 1.0 / 60.0
 ) -> ChairCommand:
 	var command := ChairCommand.new()
-	if not chair.active:
+	if not chair.active or chair.falling:
 		return command
 	_update_engagement(chair, chairs, delta)
 	_target_left -= maxf(delta, 0.0)
 	_blast_left -= maxf(delta, 0.0)
 	if _target_left <= 0.0 or not is_instance_valid(_target) or not _target.active:
 		_choose_target(chair, chairs)
-	var pressure := clampf((_uncontested_time - 8.0) / 18.0, 0.0, 1.0)
-	var predicted := chair.global_position + chair.linear_velocity * lerpf(1.0, 0.72, pressure)
-	if not _recovering and not stage.is_safe(predicted, lerpf(_risk_margin, 45.0, pressure)):
+	# Eliminations ease immediate pressure, but never reset the round's urgency.
+	var pressure := 0.0
+	if _alive_count > 1:
+		pressure = clampf(
+			maxf((_uncontested_time - 2.0) / 16.0, (_round_age - 10.0) / 20.0), 0.0, 1.0
+		)
+	var predicted := chair.global_position + chair.linear_velocity * lerpf(1.0, 0.40, pressure)
+	if not _recovering and not stage.is_safe(predicted, lerpf(_risk_margin, 10.0, pressure)):
 		_recovering = true
 	elif (
 		_recovering
-		and stage.is_safe(predicted, 145.0)
-		and stage.is_safe(chair.global_position, 140.0)
+		and stage.is_safe(predicted, lerpf(145.0, 65.0, pressure))
+		and stage.is_safe(chair.global_position, lerpf(140.0, 60.0, pressure))
 	):
 		_recovering = false
 	if absf(_turn_arc) > PI * 1.65 and _escape_left <= 0.0:
@@ -103,15 +109,18 @@ func sample_on_stage(
 	else:
 		var separation := _target.global_position - chair.global_position
 		var retreat := (
-			chair.global_position - separation.normalized() * lerpf(230.0, 155.0, pressure)
+			chair.global_position - separation.normalized() * lerpf(230.0, 90.0, pressure)
 		)
-		var can_attack := stage.is_safe(retreat, 70.0) and stage.is_safe(predicted, 135.0)
+		var can_attack := (
+			stage.is_safe(retreat, lerpf(70.0, 0.0, pressure))
+			and stage.is_safe(predicted, lerpf(135.0, 15.0, pressure))
+		)
 		if (
 			separation.length() < chair.tuning.spray_range * 0.90
 			and _blast_left <= 0.0
 			and can_attack
 		):
-			_blast_left = _random.randf_range(0.55, 0.95)
+			_blast_left = _random.randf_range(1.2, 1.9)
 			_intent = Intent.BLAST
 		if _intent == Intent.BLAST and _blast_left > 0.0 and can_attack:
 			# Hold the attack long enough to actually turn and deliver a sustained shove.
@@ -124,7 +133,9 @@ func sample_on_stage(
 				goal += separation.normalized().orthogonal() * _side * _offset
 				if separation.length() < 210.0:
 					_intent = Intent.PURSUE
-			goal = stage.safe_target(goal, 155.0)
+			goal = stage.navigation_target(
+				chair.global_position, goal, lerpf(155.0, 30.0, pressure)
+			)
 			desired_jet = -(goal - chair.global_position - chair.linear_velocity * 0.25)
 	desired_jet = _avoid_obstacles(chair, stage, desired_jet)
 	if desired_jet.length_squared() < 1.0:
@@ -137,6 +148,8 @@ func sample_on_stage(
 	command.turn = clampf(
 		(desired_spin - chair.angular_velocity) * 0.40 + desired_spin * 0.10, -1.0, 1.0
 	)
+	if _escape_left > 0.0 and absf(chair.angular_velocity) > 1.5:
+		command.turn = -signf(chair.angular_velocity)
 	return command
 
 
@@ -155,7 +168,7 @@ func _choose_target(chair: Chair, chairs: Array[Chair]) -> void:
 	var weights := PackedFloat32Array()
 	var total := 0.0
 	for candidate in chairs:
-		if candidate == chair or not candidate.active:
+		if candidate == chair or not candidate.active or candidate.falling:
 			continue
 		# All opponents are eligible, including other AIs. Distance is only a mild
 		# preference, so the nearest seat or human does not monopolise every bot.
@@ -178,6 +191,7 @@ func _choose_target(chair: Chair, chairs: Array[Chair]) -> void:
 
 
 func _update_engagement(chair: Chair, chairs: Array[Chair], delta: float) -> void:
+	_round_age += maxf(delta, 0.0)
 	var alive := 0
 	for other in chairs:
 		if not other.active:
@@ -227,6 +241,8 @@ func _avoid_obstacles(chair: Chair, stage: ArenaStage, desired_jet: Vector2) -> 
 		var origin: Vector2 = chair.global_position + motion.orthogonal() * offset
 		var query := PhysicsRayQueryParameters2D.create(origin, origin + motion * reach, 1)
 		var hit := chair.get_world_2d().direct_space_state.intersect_ray(query)
+		if not hit.is_empty() and hit.collider is OfficeProp and hit.collider.is_movable():
+			continue
 		if not hit.is_empty() and origin.distance_to(hit.position) < closest:
 			closest = origin.distance_to(hit.position)
 			normal = hit.normal

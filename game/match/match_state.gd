@@ -12,20 +12,32 @@ var _recorded_round: int = 0
 
 
 func configure(config: MatchConfig) -> void:
-	var setup := config.validated_copy()
-	wins_needed = setup.wins_needed
+	# Bookkeeping validates its own values without instantiating map scenes.
+	var appearance := (
+		config.appearance.validated_copy()
+		if config.appearance != null
+		else CharacterAppearance.new()
+	)
+	var human_colour := appearance.resolved_colour()
+	wins_needed = clampi(config.wins_needed, 1, 5)
 	round_number = 0
 	winner_id = -1
 	_recorded_round = 0
 	participants.clear()
-	for index in setup.ai_count + 1:
+	var ai_colours: Array[Color] = [COLOURS[1], COLOURS[2], COLOURS[3], COLOURS[0]]
+	ai_colours.erase(human_colour)
+	var default_skin := SkinCatalog.default_definition()
+	for index in clampi(config.ai_count, 1, 3) + 1:
+		var skin := appearance.resolved_skin() if index == 0 else default_skin
+		var colour := human_colour if index == 0 else ai_colours[(index - 1) % ai_colours.size()]
 		(
 			participants
 			. append(
 				{
 					"id": index,
+					"skin": skin.duplicate(),
 					"name": "You" if index == 0 else "AI %d" % index,
-					"colour": COLOURS[index],
+					"colour": colour,
 					"wins": 0,
 				}
 			)

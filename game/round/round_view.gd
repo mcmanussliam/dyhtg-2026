@@ -15,7 +15,7 @@ func configure(stage: ArenaStage) -> void:
 
 func _ready() -> void:
 	viewport = get_viewport()
-	viewport.msaa_3d = Viewport.MSAA_4X
+	viewport.msaa_3d = RenderStyle.msaa_mode
 	viewport.mesh_lod_threshold = 0.0
 	world = Node3D.new()
 	world.name = "ArenaWorld"

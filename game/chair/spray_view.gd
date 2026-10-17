@@ -74,7 +74,9 @@ func update_plume(
 		)
 		var t := fposmod(phase, 1.0)
 		var life_seed := fposmod(sin(seed * 91.7 + floorf(phase) * 37.1) * 17453.37, 1.0)
-		var radius := minf(lerpf(0.050, 0.215, t) * lerpf(0.72, 1.18, seed), length * 0.24)
+		var radius := minf(
+			lerpf(0.050, 0.215, t) * lerpf(0.72, 1.18, seed) * chair.size_scale, length * 0.24
+		)
 		var travel := lerpf(radius, maxf(radius, length - radius), t)
 		var spread := cone * travel * (0.74 + sin(clock * 1.7 + chair.seat * 2.1) * 0.04)
 		var scatter := (

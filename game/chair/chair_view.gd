@@ -6,12 +6,14 @@ const PIXELS_PER_UNIT := RenderStyle.PIXELS_PER_UNIT
 const VIEW_SIZE := 10.0
 const RENDER_SIZE := 1024
 
+var _stage: ArenaStage
 var _shared: bool = false
 var _world: Node3D
 var _rig: Node3D
 var _shadow: MeshInstance3D
 var _time := 0.0
 var _fall_body: RigidBody3D
+var _recovery_contact_time := 0.0
 var _camera: Camera3D
 var _camera_home := Vector3.ZERO
 var _lean := Vector2.ZERO
@@ -23,10 +25,11 @@ var _sprite: Sprite2D
 var _spray: SprayView
 
 
-func configure_world(viewport: Viewport, world: Node3D) -> void:
+func configure_world(viewport: Viewport, world: Node3D, stage: ArenaStage = null) -> void:
 	_shared = true
 	_viewport = viewport
 	_world = world
+	_stage = stage
 
 
 func _ready() -> void:
@@ -40,7 +43,8 @@ func _ready() -> void:
 	add_child(_viewport)
 	_model = MODEL_SCRIPT.new()
 	_viewport.add_child(_model)
-	_model.build(chair.colour)
+	_model.build(chair.colour, chair.skin)
+	_model.scale = Vector3.ONE * chair.size_scale
 	RenderStyle.setup_world(_viewport, true)
 	var target := Vector3(0, 0.85, 0)
 	_camera = RenderStyle.orthographic_camera(
@@ -68,8 +72,7 @@ func _process(delta: float) -> void:
 	var chair := get_parent() as Chair
 	if chair.falling:
 		if not is_instance_valid(_fall_body):
-			_sync_heading(chair)
-			_start_fall(chair)
+			return
 		if not _shared:
 			var planar := Vector2(_fall_body.position.x, _fall_body.position.z)
 			position = (planar * PIXELS_PER_UNIT).rotated(-chair.rotation)
@@ -93,6 +96,22 @@ func _process(delta: float) -> void:
 		Vector2(-local_velocity.y, local_velocity.x)
 	)
 	_update_plume(chair)
+
+
+func _physics_process(delta: float) -> void:
+	var chair := get_parent() as Chair
+	if not chair.falling:
+		return
+	if not is_instance_valid(_fall_body):
+		_sync_heading(chair)
+		_start_fall(chair)
+	if _shared and chair.active:
+		_recover_on_floor(chair, delta)
+		if _try_land(chair):
+			return
+	# A wheel over the rim is not a loss: the native body must actually drop.
+	if _fall_body.global_position.y < -0.5 * chair.size_scale:
+		chair.confirm_fall()
 
 
 func _sync_heading(chair: Chair) -> void:
@@ -129,21 +148,27 @@ func freeze_visuals() -> void:
 	if is_instance_valid(_fall_body):
 		_fall_body.freeze = true
 	set_process(false)
+	set_physics_process(false)
 	if not _shared:
 		(_viewport as SubViewport).render_target_update_mode = SubViewport.UPDATE_ONCE
 
 
 func _start_fall(chair: Chair) -> void:
 	# Transfer the unsupported assembly into native 3D physics. The arena body
-	# stops colliding after elimination; this body retains its exact momentum.
+	# stops colliding at handoff; this body retains its exact momentum.
+	_recovery_contact_time = 0.0
 	_fall_body = RigidBody3D.new()
 	_fall_body.name = "FallingChair"
 	_fall_body.mass = chair.mass
+	_fall_body.continuous_cd = true
+	_fall_body.contact_monitor = true
+	_fall_body.max_contacts_reported = 8
+	_fall_body.rotation.y = _model.global_rotation.y
 	_fall_body.linear_damp_mode = RigidBody3D.DAMP_MODE_REPLACE
 	_fall_body.angular_damp_mode = RigidBody3D.DAMP_MODE_REPLACE
 	_fall_body.linear_damp = 0.0
 	_fall_body.angular_damp = 0.0
-	_fall_body.position = _model.global_position + Vector3(0, 0.8, 0)
+	_fall_body.position = _model.global_position + Vector3(0, 0.8 * chair.size_scale, 0)
 	if _shared:
 		_world.add_child(_fall_body)
 		_shadow.hide()
@@ -151,16 +176,16 @@ func _start_fall(chair: Chair) -> void:
 		_viewport.add_child(_fall_body)
 	var collision := CollisionShape3D.new()
 	var shape := CapsuleShape3D.new()
-	shape.radius = 0.35
-	shape.height = 1.4
-	collision.position.y = 0.2
+	shape.radius = 0.35 * chair.size_scale
+	shape.height = 1.4 * chair.size_scale
+	collision.position.y = 0.2 * chair.size_scale
 	collision.shape = shape
 	_fall_body.add_child(collision)
 	var base := CollisionShape3D.new()
 	var base_shape := BoxShape3D.new()
-	base_shape.size = Vector3(1.3, 0.15, 1.2)
+	base_shape.size = Vector3(1.3, 0.15, 1.2) * chair.size_scale
 	base.shape = base_shape
-	base.position.y = -0.7
+	base.position.y = -0.7 * chair.size_scale
 	_fall_body.add_child(base)
 	_model.reparent(_fall_body, true)
 	_fall_body.linear_velocity = (
@@ -172,6 +197,74 @@ func _start_fall(chair: Chair) -> void:
 		queue_redraw()
 
 
+func _recover_on_floor(chair: Chair, delta: float) -> void:
+	# Assist a grounded tumble with damped torque, never lift a chair over a void.
+	if _stage == null or not _stage.round_running:
+		return
+	var grounded := false
+	for contact in _fall_body.get_colliding_bodies():
+		if contact.is_in_group("stage_floor"):
+			grounded = true
+	if not grounded:
+		_recovery_contact_time = 0.0
+		return
+	_recovery_contact_time += delta
+	if _recovery_contact_time < 0.35:
+		return
+	var up := _fall_body.global_basis.y.normalized()
+	var axis := up.cross(Vector3.UP)
+	var angle := acos(clampf(up.dot(Vector3.UP), -1.0, 1.0))
+	if angle < 0.02:
+		return
+	# Exactly inverted orientations have a zero cross product; choose a roll axis.
+	if axis.length_squared() < 0.0001:
+		axis = _fall_body.global_basis.x
+		axis.y = 0
+	axis = axis.normalized()
+	var tumble := _fall_body.angular_velocity
+	tumble.y = 0
+	_fall_body.sleeping = false
+	_fall_body.apply_torque((axis * angle * 18.0 - tumble * 6.0) * chair.mass)
+
+
+func _try_land(chair: Chair) -> bool:
+	# A real upright floor contact can return a fast gap crossing to planar play.
+	# No minimum speed, hover timer or position snap carries a chair over empty space.
+	if _stage == null or not _stage.round_running:
+		return false
+	if _fall_body.global_basis.y.dot(Vector3.UP) < 0.96:
+		return false
+	if absf(_fall_body.global_position.y - 0.8 * chair.size_scale) > 0.12 * chair.size_scale:
+		return false
+	var landed := false
+	for contact in _fall_body.get_colliding_bodies():
+		if contact.is_in_group("stage_floor"):
+			landed = true
+	if not landed:
+		return false
+	var point := (
+		Vector2(_fall_body.global_position.x, _fall_body.global_position.z) * PIXELS_PER_UNIT
+	)
+	if not _stage.has_support(point):
+		return false
+	var velocity := (
+		Vector2(_fall_body.linear_velocity.x, _fall_body.linear_velocity.z) * PIXELS_PER_UNIT
+	)
+	var heading := PI / 2.0 - _fall_body.global_rotation.y
+	var spin := -_fall_body.angular_velocity.y
+	_model.reparent(_rig, true)
+	_model.position = Vector3.ZERO
+	_model.rotation = Vector3.ZERO
+	_fall_body.queue_free()
+	_fall_body = null
+	chair.land_from_fall(point, heading, velocity, spin)
+	_shadow.show()
+	_spray.show()
+	_previous_velocity = velocity
+	_sync_heading(chair)
+	return true
+
+
 func _ready_shared() -> void:
 	var chair := get_parent() as Chair
 	_rig = Node3D.new()
@@ -179,12 +272,13 @@ func _ready_shared() -> void:
 	_world.add_child(_rig)
 	_model = MODEL_SCRIPT.new()
 	_rig.add_child(_model)
-	_model.build(chair.colour)
+	_model.build(chair.colour, chair.skin)
+	_model.scale = Vector3.ONE * chair.size_scale
 	_spray = SprayView.new()
 	_world.add_child(_spray)
 	_shadow = MeshInstance3D.new()
 	var plane := PlaneMesh.new()
-	plane.size = Vector2(1.6, 1.3)
+	plane.size = Vector2(1.6, 1.3) * chair.size_scale
 	_shadow.mesh = plane
 	_shadow.position.y = 0.012
 	_shadow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

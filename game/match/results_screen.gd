@@ -4,6 +4,11 @@ extends Control
 
 signal action_requested(action: StringName)
 
+const ROUND_DISPLAY_SECONDS := 3.0
+const FINAL_DISPLAY_SECONDS := 5.0
+
+var _elapsed := 0.0
+var _action_sent := false
 var _content: Control
 var _participants: Array[Dictionary] = []
 var _winner_id := -1
@@ -23,6 +28,9 @@ func present(
 	final_result: bool,
 	_round_number: int
 ) -> void:
+	_elapsed = 0.0
+	_action_sent = false
+	set_process(true)
 	_participants = participants.duplicate(true)
 	_winner_id = winner_id
 	_final_result = final_result
@@ -53,6 +61,7 @@ func _build() -> void:
 		column.add_child(row)
 		var character := ScoreCharacter.new()
 		character.colour = participant.colour
+		character.skin = participant.get("skin", SkinCatalog.default_definition())
 		row.add_child(character)
 		var tokens := WinTokens.new()
 		tokens.token_count = participant.wins
@@ -64,11 +73,28 @@ func _build() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not is_visible_in_tree() or event.is_echo():
+	if _action_sent or not is_visible_in_tree() or event.is_echo():
 		return
 	if event.is_action_pressed("menu_next"):
 		get_viewport().set_input_as_handled()
-		action_requested.emit(&"home")
+		_request_action(&"home")
 	elif event.is_action_pressed("menu_activate"):
 		get_viewport().set_input_as_handled()
-		action_requested.emit(&"rematch" if _final_result else &"continue")
+		_request_action(&"home" if _final_result else &"continue")
+
+
+func _process(delta: float) -> void:
+	if _participants.is_empty() or _action_sent:
+		return
+	_elapsed += delta
+	var duration := FINAL_DISPLAY_SECONDS if _final_result else ROUND_DISPLAY_SECONDS
+	if _elapsed >= duration:
+		_request_action(&"home" if _final_result else &"continue")
+
+
+func _request_action(action: StringName) -> void:
+	if _action_sent:
+		return
+	_action_sent = true
+	set_process(false)
+	action_requested.emit(action)

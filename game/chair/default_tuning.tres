@@ -4,9 +4,10 @@
 
 [resource]
 script = ExtResource("1")
-thrust = 900.0
-maximum_speed = 520.0
-coast_drag = 0.60
+thrust = 1150.0
+maximum_speed = 650.0
+coast_drag = 0.45
+turning_drag = 1.8
 steering_torque = 36000.0
 steering_drag = 9.0
 maximum_spin = 7.5

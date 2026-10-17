@@ -15,9 +15,14 @@ func apply(source: Chair, chairs: Array[Chair], delta: float) -> void:
 	var reach := source.tuning.spray_range
 	if not hit.is_empty():
 		reach = origin.distance_to(hit.position)
+		if hit.collider is OfficeProp:
+			hit.collider.push(
+				forward * source.tuning.push_force * 0.25 * delta,
+				hit.position - hit.collider.global_position
+			)
 	source.spray_reach = reach
 	for other in chairs:
-		if other == source or not other.active:
+		if other == source or not other.active or other.falling:
 			continue
 		var offset := other.global_position - origin
 		var distance := offset.length()

@@ -2,18 +2,26 @@ class_name GameApp
 extends Node
 ## Owns screen lifetime and translates menu intentions into match operations.
 
-var config := MatchConfig.new()
+@export var config: MatchConfig = MatchConfig.new()
+var settings := GameSettings.new()
+var settings_path := "user://settings.cfg"
+var appearance_path := "user://character_appearance.cfg"
 var match_controller: MatchController
 var current_menu: TwoKeyMenu
 var screen: Control
 var _ui: CanvasLayer
 var _guard := false
 var _pending_action: Callable
-var _setup := false
+var _backdrop: HomeBackdrop
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	if not appearance_path.is_empty():
+		config.appearance = CharacterAppearance.load_profile(appearance_path)
+	if not settings_path.is_empty():
+		settings = GameSettings.load_profile(settings_path)
+		settings.apply(get_tree().root)
 	_ui = CanvasLayer.new()
 	_ui.layer = 20
 	add_child(_ui)
@@ -60,7 +68,10 @@ func _guard_transition(action: Callable = Callable()) -> void:
 
 
 func _clear_screen() -> void:
+	_pending_action = Callable()
+	_guard = false
 	current_menu = null
+	_backdrop = null
 	if is_instance_valid(screen):
 		_ui.remove_child(screen)
 		screen.queue_free()
@@ -78,54 +89,95 @@ func _clear_match() -> void:
 func show_home() -> void:
 	_clear_screen()
 	_clear_match()
-	_setup = false
 	_build_office_page()
-	current_menu.set_items(PackedStringArray(["Play", "Quit"]))
+	current_menu.set_items(PackedStringArray(["Play", "Customise", "Settings", "Quit"]))
 	current_menu.activated.connect(_home_action)
 	_guard_transition()
 
 
 func show_setup() -> void:
 	_clear_screen()
-	_setup = true
 	_build_office_page()
 	_setup_labels()
 	current_menu.activated.connect(_setup_action)
 	_guard_transition()
 
 
-func _build_office_page() -> void:
+func _build_office_page(menu: TwoKeyMenu = null, menu_height: int = 292) -> void:
 	screen = Control.new()
 	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_ui.add_child(screen)
-	screen.add_child(HomeBackdrop.new())
-	current_menu = TwoKeyMenu.new()
-	current_menu.position = Vector2(90, 270 if _setup else 330)
-	current_menu.size = Vector2(440, 292 if _setup else 140)
+	_backdrop = HomeBackdrop.new()
+	_backdrop.character_colour = config.player_colour
+	_backdrop.skin = config.appearance.resolved_skin()
+	screen.add_child(_backdrop)
+	current_menu = menu if menu != null else TwoKeyMenu.new()
 	screen.add_child(current_menu)
+	current_menu.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	current_menu.offset_left = 32
+	current_menu.offset_right = 472
+	current_menu.offset_top = -menu_height - 32
+	current_menu.offset_bottom = -32
 
 
-func _setup_labels() -> void:
-	(
-		current_menu
-		. set_items(
-			PackedStringArray(
-				[
-					"AI opponents: %d" % config.ai_count,
-					"First to: %d wins" % config.wins_needed,
-					"Start match",
-					"Back",
-				]
-			)
+func show_customisation() -> void:
+	_clear_screen()
+	_build_office_page(null, 280)
+	_customisation_labels()
+	current_menu.activated.connect(_customisation_action)
+	_guard_transition()
+
+
+func _customisation_labels() -> void:
+	current_menu.set_items(
+		PackedStringArray(["Hat", "Body", "Chair", "Colour", "Back"]),
+		PackedStringArray(
+			["None", config.appearance.body_label(), "None", config.appearance.colour_label(), ""]
 		)
 	)
 
 
-func _home_action(index: int) -> void:
-	if index == 0:
-		show_setup.call_deferred()
+func _customisation_action(index: int) -> void:
+	if index == 4:
+		show_home.call_deferred()
+		return
+	if index == 1:
+		config.appearance.cycle_body()
+		_backdrop.set_skin(config.appearance.resolved_skin())
+	elif index == 3:
+		config.appearance.cycle_colour()
+		_backdrop.set_colour(config.player_colour)
 	else:
-		get_tree().quit()
+		return
+	_customisation_labels()
+	if not appearance_path.is_empty():
+		var error := config.appearance.save_profile(appearance_path)
+		if error != OK:
+			push_warning("Could not save character appearance: %s" % error_string(error))
+
+
+func _setup_labels() -> void:
+	var labels := PackedStringArray(
+		[
+			"Opponents %d" % config.ai_count,
+			"First to %d wins" % config.wins_needed,
+			"Start match",
+			"Back",
+		]
+	)
+	current_menu.set_items(labels)
+
+
+func _home_action(index: int) -> void:
+	match index:
+		0:
+			show_setup.call_deferred()
+		1:
+			show_customisation.call_deferred()
+		2:
+			show_settings.call_deferred()
+		3:
+			get_tree().quit()
 
 
 func _setup_action(index: int) -> void:
@@ -171,9 +223,7 @@ func _show_results(
 func _result_action(action: StringName) -> void:
 	match action:
 		&"continue":
-			_guard_transition(_continue_round)
-		&"rematch":
-			_guard_transition(_start_match)
+			_continue_round.call_deferred()
 		&"home":
 			show_home.call_deferred()
 
@@ -181,3 +231,15 @@ func _result_action(action: StringName) -> void:
 func _continue_round() -> void:
 	_clear_screen()
 	match_controller.continue_round()
+
+
+func show_settings() -> void:
+	_clear_screen()
+	var menu := SettingsMenu.new()
+	menu.settings = settings
+	menu.profile_path = settings_path
+	menu.apply_changes = not settings_path.is_empty()
+	menu.back_requested.connect(func(): show_home.call_deferred())
+	_build_office_page(menu, 128)
+	current_menu.offset_right = 582
+	_guard_transition()

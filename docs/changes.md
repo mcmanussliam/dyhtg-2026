@@ -1,5 +1,19 @@
 # Match flow 0.4
 
+- Home now includes Customise. Colour defaults to Random and updates the live
+  preview, match roster and score portrait; Hat, Body and Chair show None and
+  have no options yet. Appearance uses a separate validated Resource and a local
+  atomic profile save. Random remains stable through a match.
+- The office preview is closer, with a deeper room, a more distant seating area,
+  wall clock, outlets and a small bin. The gameplay cutout retains its dimensions
+  and framing while chairs, furniture and their colliders increase by 18%.
+
+- Home and setup use a full office interior with continuous navy flooring, light-yellow
+  walls, a framed window, skirting, a door and the map's reusable furniture and lounge carpet. Room
+  surfaces fill the view without exposed void or a cutout slab; softer menu
+  lighting remains. A close, near-front camera shows the full character and chair
+  clearly for future customisation; white options sit over the darker floor.
+
 - The floor has an irregular chipped outline: hand-shaped fractures and clustered small chips continue vertically down the foundation. Floor support, carpets, baked
   furniture cuts and native 3D collision all share that outline. Grey shading and
   the long foundation fade remain unchanged.

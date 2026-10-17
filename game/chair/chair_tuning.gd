@@ -6,6 +6,7 @@ extends Resource
 @export var thrust: float = 700.0
 @export var maximum_speed: float = 420.0
 @export var coast_drag: float = 0.80
+@export var turning_drag: float = 0.0
 
 @export_group("Steering")
 @export var steering_torque: float = 3200.0

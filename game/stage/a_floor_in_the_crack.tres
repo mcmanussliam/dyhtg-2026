@@ -7,4 +7,5 @@
 script = ExtResource("1")
 id = &"a_floor_in_the_crack"
 display_name = "A Floor in the Crack"
+hint = "Don’t fall"
 scene = ExtResource("2")

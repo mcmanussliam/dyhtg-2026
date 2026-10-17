@@ -12,8 +12,10 @@ var _tilt := Vector2.ZERO
 var _tilt_velocity := Vector2.ZERO
 
 
-func build(tint: Color) -> void:
-	face_colour = tint.lightened(0.42)
+func build(tint: Color, skin: CharacterSkin = null) -> void:
+	if skin == null or not skin.is_valid():
+		skin = SkinCatalog.default_definition()
+	face_colour = tint.lightened(skin.face_lightening)
 	office_chair = OfficeChairModel.new()
 	add_child(office_chair)
 	office_chair.build(tint)
@@ -23,11 +25,13 @@ func build(tint: Color) -> void:
 	office_chair.seat_rig.add_child(body)
 	var torso := MeshInstance3D.new()
 	torso.name = "ContinuousBody"
-	torso.mesh = load("res://game/chair/art/character.obj")
+	torso.mesh = skin.body_mesh
 	var skin_shader := ShaderMaterial.new()
-	skin_shader.shader = load("res://game/chair/art/character.gdshader")
+	skin_shader.shader = skin.body_shader
 	skin_shader.set_shader_parameter("skin_colour", tint)
 	skin_shader.set_shader_parameter("face_colour", face_colour)
+	if skin.chest_logo != null:
+		skin_shader.set_shader_parameter("chest_logo", skin.chest_logo)
 	torso.material_override = skin_shader
 	body.add_child(torso)
 	extinguisher = ExtinguisherModel.new()

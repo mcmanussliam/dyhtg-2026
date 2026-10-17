@@ -8,6 +8,9 @@ const AMBIENT_ENERGY := 0.35
 const KEY_ENERGY := 0.9
 const FILL_ENERGY := 0.18
 
+static var msaa_mode: Viewport.MSAA = Viewport.MSAA_4X
+static var shadow_quality := 2
+
 
 static func configure_viewport(
 	viewport: Viewport, render_size: Vector2i, transparent: bool
@@ -17,7 +20,7 @@ static func configure_viewport(
 		viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	viewport.transparent_bg = transparent
 	viewport.own_world_3d = true
-	viewport.msaa_3d = Viewport.MSAA_4X
+	viewport.msaa_3d = msaa_mode
 	viewport.mesh_lod_threshold = 0.0
 
 
@@ -39,7 +42,8 @@ static func setup_world(
 	key.rotation_degrees = Vector3(-45, -35, 0)
 	key.light_color = Color.WHITE
 	key.light_energy = KEY_ENERGY
-	key.shadow_enabled = shadows
+	key.set_meta("shadows_allowed", shadows)
+	key.shadow_enabled = shadows and shadow_quality != 0
 	key.shadow_bias = 0.2
 	key.shadow_normal_bias = 2.0
 	key.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL

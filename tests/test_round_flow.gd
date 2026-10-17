@@ -28,6 +28,9 @@ func run(tree: SceneTree, check: Callable) -> void:
 	check.call(
 		round_scene.get("_title").text == STAGE.display_name, "Round intro shows only the map name"
 	)
+	var indicators := round_scene.get("_indicators") as RoundRoster
+	check.call(not indicators.visible, "Round introduction hides the character roster")
+	check.call(indicators.get_child_count() == 3, "Roster contains every participant model")
 	var intro_ready := true
 	for chair in round_scene.chairs:
 		intro_ready = intro_ready and chair.freeze and not chair.spraying
@@ -39,6 +42,7 @@ func run(tree: SceneTree, check: Callable) -> void:
 		not round_scene.get("_intro_background").visible,
 		"Black introduction reveals stage only when live"
 	)
+	check.call(indicators.visible, "Live play shows the bottom character roster")
 	var live_ready := true
 	for chair in round_scene.chairs:
 		live_ready = live_ready and not chair.freeze and chair.spraying and chair.active
@@ -53,6 +57,8 @@ func run(tree: SceneTree, check: Callable) -> void:
 	round_scene.request_elimination(1, &"fire")
 	round_scene._physics_process(0.016)
 	check.call(not round_scene.chairs[1].active, "Stage hazard eliminates its requested seat")
+	check.call(indicators.is_eliminated(1), "Eliminated player portrait is greyed out")
+	check.call(not indicators.is_eliminated(0), "Surviving player portrait retains its colour")
 	check.call(round_scene.chairs[0].active, "Invalid and duplicate requests preserve other seats")
 	check.call(round_scene.phase == RoundController.Phase.LIVE, "Two survivors keep round live")
 	# Both remaining chairs leave the platform in the same physics batch.
@@ -60,13 +66,25 @@ func run(tree: SceneTree, check: Callable) -> void:
 	round_scene.chairs[2].global_position = Vector2(-1000, -1000)
 	round_scene._physics_process(0.016)
 	check.call(
+		round_scene.chairs[0].active and round_scene.chairs[2].active,
+		"Unsupported chairs remain alive while native falling starts"
+	)
+	round_scene.chairs[0].confirm_fall()
+	round_scene.chairs[2].confirm_fall()
+	round_scene._physics_process(0.016)
+	check.call(
 		round_scene.phase == RoundController.Phase.RESOLVING,
-		"Simultaneous ring-outs enter one resolving phase"
+		"Confirmed simultaneous falls enter one resolving phase"
 	)
 	check.call(not round_scene.stage.round_running, "Resolution stops stage hazards")
+	check.call(
+		indicators.is_eliminated(0) and indicators.is_eliminated(2),
+		"Simultaneous deaths update every affected portrait"
+	)
 	round_scene._physics_process(round_scene.resolve_duration)
 	round_scene._physics_process(round_scene.resolve_duration)
 	check.call(completions == [Vector2i(7, -1)], "Simultaneous final falls emit exactly one draw")
+	check.call(not indicators.visible, "Finished round hides the roster before scores")
 	round_scene.begin_live()
 	check.call(round_scene.phase == RoundController.Phase.FINISHED, "Finished round cannot restart")
 	round_scene.queue_free()

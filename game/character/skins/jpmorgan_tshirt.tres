@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CharacterSkin" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://game/character/character_skin.gd" id="1"]
+[ext_resource type="ArrayMesh" path="res://game/character/art/character.obj" id="2"]
+[ext_resource type="Shader" path="res://game/character/art/tshirt.gdshader" id="3"]
+[ext_resource type="Texture2D" path="res://game/character/art/jpmorgan_logo_white.svg" id="4"]
+
+[resource]
+script = ExtResource("1")
+id = &"jpmorgan_tshirt"
+display_name = "JPMorgan"
+body_mesh = ExtResource("2")
+body_shader = ExtResource("3")
+chest_logo = ExtResource("4")

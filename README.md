@@ -1,13 +1,20 @@
 # Please Remain Seated
 
 A native Godot party game about soft characters on swivel office chairs, propelled
-by continuously firing extinguishers. Steer, drift and push everyone else off the
+by continuously firing extinguishers. Straight travel builds speed quickly;
+hard turns scrub momentum before accelerating again. Steer, drift and push everyone else off the
 platform.
 
 Open `project.godot` in **Godot 4.7.2 Standard** and press F5. The game starts at an
-office home screen with plain white menu options. Choose Play, set 1–3 AI opponents and a first-to-1–5 win target,
-then start. The default is one AI and first to five wins. Customisation and
-multiplayer are deferred.
+office home screen with plain white menu options. Choose Play, set 1–3 opponents and a first-to-1–5 win target,
+then start. The default is one AI and first to five wins. Customise opens Hat,
+Body, Chair and Colour. Body offers None or JPMorgan, a black T-shirt with a white chest logo. Colour
+defaults to Random, with a small named palette available. Hat and Chair remain
+None. Choices are saved
+locally; Random chooses a colour for the preview and keeps it through the match.
+Settings uses the same two-key option/value menu and saved-profile system:
+anti-aliasing and shadow quality apply
+immediately and persist between launches. Multiplayer is deferred.
 
 ## Controls
 
@@ -16,19 +23,25 @@ multiplayer are deferred.
 | All menus | Select the next item, wrapping | Change a value or confirm |
 | Gameplay | Steer left | Steer right |
 
-A/D also steer during gameplay. Esc pauses or resumes without a menu. Extinguishers start automatically after each map
+After you are eliminated, hold Right to fast-forward remaining AI combat at 3×
+speed. Release to return to normal speed. A/D also steer during gameplay. Esc pauses or resumes without a menu. Extinguishers start automatically after each map
 introduction and never run out. Introductions and score screens use plain black
 backgrounds. A held menu key must be released before the next
 screen accepts input or a round begins.
 
-Each round currently uses **A Floor in the Crack**, a circular navy office floor
+Each round randomly selects **A Floor in the Crack** or **A Crack in the Floor**. The second
+is a walled office with a smaller central pit and bouncing perimeter walls. Both
+introductions show “Don’t fall” below the map name. The first is a circular navy office floor
 above a grey cylindrical foundation descending into black void. A four-station
 desk island, printer alcove, aligned storage and seating nook furnish the floor. A desk and
-bookshelf are sliced through by the circular edge. Crossing its edge eliminates a participant. The last survivor wins a point;
+bookshelf are sliced through by the circular edge. Centered circular close-ups along the bottom show each character, greying out eliminated players. Crossing
+its edge starts a native fall once the chair loses floor support. Elimination
+is confirmed after the body drops below the floor, allowing partial wheel overhang. The last survivor wins a point;
 a simultaneous fall is a draw. Results show one 3D gold star per win. The first
 participant to reach the selected target wins the match, with confetti on the
-final results. Score pages show only characters and stars: Right continues to the
-next round, or starts a fresh match after the final win; Left returns home.
+final results. Score pages show only characters and stars. They advance after
+three seconds between rounds; the final celebration returns home after five.
+Right advances early, and Left returns home.
 
 ## Development
 
@@ -58,6 +71,8 @@ locally.
 - `game/round/`: map introduction, synchronised start and elimination resolution.
 - `game/stage/`: stage definitions, floor support, arena rules and hazard lifecycle.
 - `game/chair/`: rigid-body movement, contact feedback, 3D models and foam.
+- `game/character/`: skin definitions, character art, validated cosmetics and profiles.
+- `game/settings/`: graphics preferences and shared atomic profile storage.
 - `game/input/`: common steering commands for human and AI controllers.
 - `game/combat/`: extinguisher forces and obstruction.
 - `game/ui/`: two-key menus, 3D score tokens and victory confetti.
@@ -73,7 +88,8 @@ The former sandbox remains a development fixture at
 `game/session/gameplay.tscn`; it is not the normal boot scene. Its reset, takeover
 and controller-join shortcuts do not control normal matches.
 
-See [the match flow plan](docs/match-flow-plan.md) for design decisions and future
+See [adding maps and skins](docs/adding-content.md) for the content workflow and
+[the match flow plan](docs/match-flow-plan.md) for design decisions and future
 map requirements. Only A Floor in the Crack is implemented; the planned office maps are
 future work.
 

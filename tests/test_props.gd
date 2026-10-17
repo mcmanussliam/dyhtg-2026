@@ -33,7 +33,7 @@ func run(tree: SceneTree, check: Callable) -> void:
 		var model := prop.create_presentation(world, 1.0 / SCALE) as StaticBody3D
 		_check_footprint(prop, model, check)
 		check.call(
-			prop.collision_layer == 1 and prop.collision_mask == 2,
+			prop.collision_layer == 1 and prop.collision_mask == (3 if prop.is_movable() else 2),
 			"Furniture blocks gameplay chairs and spray (%s)" % prop.name
 		)
 		check.call(

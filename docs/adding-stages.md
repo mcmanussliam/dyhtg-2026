@@ -16,9 +16,9 @@ projects the circular surface into an ellipse; geometry stays in world space.
 1. Create a scene whose root extends `ArenaStage`. Keep physics coordinates in an
    unscaled `Node2D`; the camera supplies the viewing angle.
 2. Create a `StageDefinition` resource with a stable `id`, readable `display_name`
-   and the scene. Validate the resource using `validation_errors()`.
-3. Register that resource with the match's stage selection. Initially the match
-   repeats only the circle. A map picker and map rotation are not implemented.
+   an optional `hint`, and the scene. Validate the resource using `validation_errors()`.
+3. Register that resource with the match's stage selection. Each round randomly selects from A Floor in the Crack and A Crack in the Floor.
+   Add its definition to `MatchConfig.stages`; each round draws independently from the list.
 4. Add geometry, support, spawn, navigation and lifecycle tests before shipping.
    Keep stage-specific settings exported in its script or an authored Resource.
 
@@ -32,6 +32,7 @@ All point arguments and returned poses use global world coordinates.
 | `elimination_reason(point)` | Empty `StringName` when legal; otherwise an explicit cause, e.g. `&"fall"`. The base implementation checks support. |
 | `is_safe(point, margin)` | Whether a predicted position is safe, including current arena rules and danger. A positive margin requests additional clearance. |
 | `safe_target(point, margin)` | Return a reachable safer steering target, accounting for holes, arena boundaries and current hazards. |
+| `navigation_target(from, destination, margin)` | Route a steering waypoint around map-specific holes; the base implementation uses `safe_target`. |
 | `spawn_pose(index, count)` | A safe, symmetric global `Transform2D`. Chair thrust points opposite its rotation, so point the nozzle away from the interior. |
 | `start_round()` | Enable hazard state when the map title has completely faded. |
 | `stop_round()` | Stop attacks and danger progression for results or teardown. Must be safe to call repeatedly. |
@@ -39,8 +40,8 @@ All point arguments and returned poses use global world coordinates.
 
 The circle validates computed spawns through editor configuration warnings. A map
 using authored spawn markers should warn about missing markers and unsupported
-or dangerous spawn poses. Test two, three and four participants. Chair centre
-support is intentional: a small partial overhang is allowed before falling.
+or dangerous spawn poses. Test two, three and four participants. Chair centre support triggers native 3D physics after a small rim tolerance;
+wheel contacts, carried momentum and gravity then determine tipping or landing.
 
 A stage can emit `elimination_requested(seat, reason)` for an actor-specific
 hazard hit. The round validates and batches those requests with support/rule
@@ -66,7 +67,10 @@ Never store mutable round progress in the shared `StageDefinition` resource.
 Chair elimination immediately disables drive, spray forces and collisions. A
 `&"fall"` cause plays the current falling presentation. Other causes currently
 hide the eliminated chair; add a specific burn/impact presentation when that map
-is actually built. Presentation must not delay authoritative elimination.
+is actually built. A native fall confirms elimination after dropping below the floor. A chair that
+physically lands upright before that point resumes planar play with its remaining momentum.
+A grounded tumble receives damped righting torque after a short contact delay;
+this never applies lift or prevents gravity over a void.
 
 ## Planned office maps
 
@@ -106,3 +110,14 @@ Author `view_width` and `view_focus` on the stage scene to frame its 3D geometry
 The focus is a point in the stage's 2D coordinate system; RoundView applies the
 same world transform and scale as the support geometry. These settings affect
 presentation only, leaving input, spawn points and elimination queries unchanged.
+
+## A Crack in the Floor
+
+The second map is an office surrounding a smaller central pit. Its chipped rim
+feeds both support queries and native 3D floor/shaft collision. Solid perimeter
+walls bounce live chairs; falling into the opening uses the shared physical fall
+and delayed elimination. Furniture uses the same reusable prefabs as the island, grouped into workstations,
+printer/storage and a carpeted lounge. `OfficeWallDetails` supplies reusable
+texture-free windows, closed doors and clocks mounted on solid wall geometry.
+AI navigation returns intermediate waypoints around the pit instead of steering
+through its center. Introductions show each definition’s name and smaller hint.

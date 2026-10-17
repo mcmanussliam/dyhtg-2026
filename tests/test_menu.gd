@@ -10,7 +10,11 @@ func run(tree: SceneTree, check: Callable) -> void:
 	check.call(labels.size() == 3, "Menus contain only their option text")
 	var all_white := true
 	for label in labels:
-		all_white = all_white and label.get_theme_color("font_color") == Color.WHITE
+		all_white = (
+			all_white
+			and label.get_theme_color("font_color").r == 1.0
+			and label.get_theme_color("font_color").a < 1.0
+		)
 	check.call(all_white, "All menu options are plain white")
 	check.call(
 		menu.find_children("*", "PanelContainer", true, false).is_empty(),

@@ -11,7 +11,6 @@ signal results_ready(
 )
 
 const ROUND_SCENE = preload("res://game/round/round.tscn")
-const DEFAULT_STAGE = preload("res://game/stage/a_floor_in_the_crack.tres")
 
 var config: MatchConfig
 var state := MatchState.new()
@@ -50,7 +49,8 @@ func _replace_round() -> void:
 		remove_child(round)
 		round.queue_free()
 	round = ROUND_SCENE.instantiate() as RoundController
-	round.configure(state.participants, DEFAULT_STAGE, state.begin_round(), state.wins_needed)
+	var number := state.begin_round()
+	round.configure(state.participants, config.stage_for_round(number), number, state.wins_needed)
 	round.completed.connect(_on_completed)
 	add_child(round)
 	_transition_pending = false

@@ -3,17 +3,26 @@ extends RefCounted
 
 const CHAIR = preload("res://game/chair/chair.tscn")
 const CIRCLE = preload("res://game/stage/a_floor_in_the_crack.tscn")
+const SCALE = RenderStyle.PIXELS_PER_UNIT
 const STEP = 1.0 / 60.0
-const FRAMES = 1200
+const FRAMES = 5400
 
 
 func run(tree: SceneTree, check: Callable) -> void:
 	await _simulate(tree, check, 4107, 1)
-	for scenario in [{"seed": 71431, "count": 3}, {"seed": 9827, "count": 4}]:
+	for scenario in [
+		{"seed": 49212, "count": 2},
+		{"seed": 92104, "count": 2},
+		{"seed": 71431, "count": 3},
+		{"seed": 28309, "count": 3},
+		{"seed": 9827, "count": 4},
+		{"seed": 61742, "count": 4}
+	]:
 		await _simulate(tree, check, scenario.seed, scenario.count)
 
 
 func _simulate(tree: SceneTree, check: Callable, random_seed: int, count: int) -> void:
+	var frames := 1200 if count == 1 else FRAMES
 	var arena := Node2D.new()
 	tree.root.add_child(arena)
 	var stage := CIRCLE.instantiate() as ArenaStage
@@ -32,6 +41,7 @@ func _simulate(tree: SceneTree, check: Callable, random_seed: int, count: int) -
 		"impact_impulse": 0.0,
 	}
 	var round_start_frame := 0
+	var simulated_frames := 0
 	var completed_round_frames := 0
 	var travel: Array[float] = []
 	var displacement: Array[float] = []
@@ -42,6 +52,7 @@ func _simulate(tree: SceneTree, check: Callable, random_seed: int, count: int) -
 	for index in count:
 		var chair := CHAIR.instantiate() as Chair
 		chair.get_node("Visuals").free()
+		chair.resize_for_stage(stage.content_scale)
 		chair.configure(index, Color.WHITE, Vector2.RIGHT)
 		arena.add_child(chair)
 		chairs.append(chair)
@@ -61,7 +72,8 @@ func _simulate(tree: SceneTree, check: Callable, random_seed: int, count: int) -
 	_reset_poses(chairs, stage)
 	await tree.physics_frame
 	var spray := SpraySystem.new()
-	for frame in FRAMES:
+	for frame in frames:
+		simulated_frames = frame + 1
 		var previous_positions: Array[Vector2] = []
 		var previous_angles: Array[float] = []
 		for index in count:
@@ -108,7 +120,7 @@ func _simulate(tree: SceneTree, check: Callable, random_seed: int, count: int) -
 			max_spin[index] = maxf(max_spin[index], absf(spin_arc[index]))
 			bounded = bounded and chair.linear_velocity.length() <= chair.tuning.maximum_speed + 1.0
 			bounded = bounded and absf(chair.angular_velocity) <= chair.tuning.maximum_spin + 0.1
-			if not stage.has_support(chair.global_position):
+			if not stage.has_support_near(chair.global_position, 0.6 * SCALE * chair.size_scale):
 				chair.eliminate(&"fall")
 				metrics.ringouts += 1
 				if metrics.first_ringout_seconds < 0.0:
@@ -122,17 +134,16 @@ func _simulate(tree: SceneTree, check: Callable, random_seed: int, count: int) -
 			completed_round_frames += frame + 1 - round_start_frame
 			round_start_frame = frame + 1
 			metrics.rounds += 1
-			_reset_poses(chairs, stage)
-			for index in count:
-				pilots[index] = PracticePilot.new(random_seed + index * 31 + metrics.rounds * 1009)
-			spin_arc.fill(0.0)
+			# A real next round creates fresh furniture. End this scenario at its winner
+			# rather than resetting players into a previously rearranged office.
+			break
 	metrics.mean_round_seconds = (
 		float(completed_round_frames) * STEP / float(metrics.rounds - 1)
 		if metrics.rounds > 1
-		else FRAMES * STEP
+		else simulated_frames * STEP
 	)
 	metrics.longest_round_seconds = maxf(
-		metrics.longest_round_seconds, (FRAMES - round_start_frame) * STEP
+		metrics.longest_round_seconds, (simulated_frames - round_start_frame) * STEP
 	)
 	print(
 		(
@@ -165,6 +176,10 @@ func _simulate(tree: SceneTree, check: Callable, random_seed: int, count: int) -
 	if count == 1:
 		check.call(metrics.ringouts == 0, "Unopposed AI survives twenty seconds on stage")
 	else:
+		check.call(
+			metrics.rounds > 1 and metrics.longest_round_seconds < 45.0,
+			"AI fights resolve through physics without a prolonged stalemate (%d)" % random_seed
+		)
 		check.call(
 			metrics.first_ringout_seconds < 0.0 or metrics.first_ringout_seconds >= 3.0,
 			"AI combat avoids immediate opening ring-outs (%d)" % random_seed
