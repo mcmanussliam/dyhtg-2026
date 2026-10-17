@@ -1,0 +1,42 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Please Remain Seated"
+config/version="0.3.0"
+run/main_scene="res://game/session/gameplay.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=800
+window/size/window_width_override=1280
+window/size/window_height_override=800
+window/stretch/mode="canvas_items"
+
+[layer_names]
+
+2d_physics/layer_1="Environment"
+2d_physics/layer_2="Chairs"
+
+[physics]
+
+2d/default_gravity=0.0
+2d/default_linear_damp=0.0
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
+anti_aliasing/quality/msaa_2d=2
+environment/defaults/default_clear_color=Color(0.16, 0.19, 0.22, 1)

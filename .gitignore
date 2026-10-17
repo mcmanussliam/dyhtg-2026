@@ -1,0 +1,11 @@
+.godot/
+*.translation
+.DS_Store
+export_credentials.cfg
+builds/
+.venv/
+__pycache__/
+*.pyc
+*.log
+.idea/
+.vscode/

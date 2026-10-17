@@ -1,0 +1,29 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://game/chair/chair.gd" id="1"]
+[ext_resource type="Resource" path="res://game/chair/default_tuning.tres" id="2"]
+[ext_resource type="Script" path="res://game/chair/chair_view.gd" id="3"]
+
+[sub_resource type="CircleShape2D" id="ChairShape"]
+radius = 25.0
+
+[sub_resource type="PhysicsMaterial" id="ChairMaterial"]
+friction = 0.15
+bounce = 0.28
+
+[node name="Chair" type="RigidBody2D" groups=["chairs"]]
+collision_layer = 2
+collision_mask = 3
+gravity_scale = 0.0
+continuous_cd = 1
+contact_monitor = true
+max_contacts_reported = 4
+physics_material_override = SubResource("ChairMaterial")
+script = ExtResource("1")
+tuning = ExtResource("2")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("ChairShape")
+
+[node name="Visuals" type="Node2D" parent="."]
+script = ExtResource("3")
