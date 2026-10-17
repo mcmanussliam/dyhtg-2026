@@ -9,12 +9,18 @@ const AUTHORING_PIXELS_PER_UNIT := RenderStyle.PIXELS_PER_UNIT
 @export var baked_visual_mesh: Mesh
 
 var _clip_configured := false
-var _clipped_global := PackedVector2Array()
 var _clip_boundary := PackedVector2Array()
-var _clip_collision: CollisionPolygon2D
+var _clip_collisions: Array[CollisionPolygon2D] = []
 
 
 func clip_to_circle(center: Vector2, radius: float) -> void:
+	var boundary := PackedVector2Array()
+	for index in 256:
+		boundary.append(center + Vector2.from_angle(index * TAU / 256.0) * radius)
+	clip_to_polygon(boundary)
+
+
+func clip_to_polygon(boundary: PackedVector2Array) -> void:
 	var source := get_node("CollisionShape2D") as CollisionShape2D
 	var footprint := PackedVector2Array()
 	if source.shape is RectangleShape2D:
@@ -29,23 +35,22 @@ func clip_to_circle(center: Vector2, radius: float) -> void:
 	else:
 		push_error("OfficeProp clipping needs a rectangle or circle footprint.")
 		return
-	var boundary := PackedVector2Array()
-	for index in 256:
-		boundary.append(center + Vector2.from_angle(index * TAU / 256.0) * radius)
 	_clip_boundary = boundary
 	var intersections := Geometry2D.intersect_polygons(footprint, boundary)
-	_clipped_global = intersections[0] if not intersections.is_empty() else PackedVector2Array()
 	_clip_configured = true
 	source.set_deferred("disabled", true)
-	if is_instance_valid(_clip_collision):
-		_clip_collision.free()
-	_clip_collision = CollisionPolygon2D.new()
-	_clip_collision.name = "ClippedFootprint"
-	var local_polygon := PackedVector2Array()
-	for point in _clipped_global:
-		local_polygon.append(to_local(point))
-	_clip_collision.polygon = local_polygon
-	add_child(_clip_collision)
+	for collision in _clip_collisions:
+		collision.free()
+	_clip_collisions.clear()
+	for polygon in intersections:
+		var collision := CollisionPolygon2D.new()
+		collision.name = "ClippedFootprint"
+		var local_polygon := PackedVector2Array()
+		for point in polygon:
+			local_polygon.append(to_local(point))
+		collision.polygon = local_polygon
+		add_child(collision)
+		_clip_collisions.append(collision)
 
 
 func create_presentation(parent: Node3D, units_per_pixel: float) -> Node3D:
@@ -91,21 +96,22 @@ func _build_clipped_collider(model: Node3D, units_per_pixel: float) -> void:
 		var intersections := Geometry2D.intersect_polygons(footprint, _clip_boundary)
 		var collision_name := source.name
 		source.free()
-		if intersections.is_empty():
-			continue
-		var points := PackedVector3Array()
-		for point in intersections[0]:
-			for elevation in [bottom, top]:
-				var world := Vector3(
-					point.x * units_per_pixel, elevation, point.y * units_per_pixel
-				)
-				points.append(model.to_local(world))
-		var shape := ConvexPolygonShape3D.new()
-		shape.points = points
-		var collision := CollisionShape3D.new()
-		collision.name = collision_name
-		collision.shape = shape
-		model.add_child(collision)
+		for polygon in intersections:
+			# Chips can make this intersection concave or split it into islands.
+			for piece in Geometry2D.decompose_polygon_in_convex(polygon):
+				var points := PackedVector3Array()
+				for point in piece:
+					for elevation in [bottom, top]:
+						var world := Vector3(
+							point.x * units_per_pixel, elevation, point.y * units_per_pixel
+						)
+						points.append(model.to_local(world))
+				var shape := ConvexPolygonShape3D.new()
+				shape.points = points
+				var collision := CollisionShape3D.new()
+				collision.name = collision_name
+				collision.shape = shape
+				model.add_child(collision)
 
 
 func _shape_vertices(shape: Shape3D) -> PackedVector3Array:

@@ -24,9 +24,9 @@ A Floor in the Crack uses three map-specific, capped ArrayMesh resources in
 godot --headless --path . --script tools/bake_office_cut.gd
 ```
 
-The bake presets contain the source prop poses and stage circle. Update them and
+The bake presets contain the source prop poses and stage outline. Update them and
 rebake when changing those cut pieces or the radius. Assign the result through
-`baked_visual_mesh`; the stage calls `clip_to_circle()` for props tagged
+`baked_visual_mesh`; the stage calls `clip_to_polygon()` for props tagged
 `cut_at_edge`. This clips both live 2D footprints and each compound 3D collider,
 preserving their individual heights. Ordinary props retain their reusable models.
 CSG runs only during this offline bake, never during gameplay.

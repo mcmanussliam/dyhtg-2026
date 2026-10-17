@@ -35,7 +35,7 @@ the desktop renderer; this change does not require Forward+ or a new graphics AP
 
 Home renders its office diorama in a 2560×1600 SubViewport. Score portraits render
 at 560×528 for a 140×132 display; stars use one 1400×256 viewport per row for a
-350×64 display, regardless of how many tokens that row contains.
+350×64 display, for nonempty rows. Empty rows allocate no render viewport.
 
 These viewports own separate World3D instances so preview objects cannot collide
 with the arena. TextureRect displays preserve the independent render resolution:
@@ -56,3 +56,8 @@ Relevant Godot documentation:
 - [Viewports, isolated worlds and render targets](https://docs.godotengine.org/en/stable/tutorials/rendering/viewports.html)
 - [3D lighting and shadow bias](https://docs.godotengine.org/en/stable/tutorials/3d/lights_and_shadows.html)
 - [StandardMaterial3D surface properties](https://docs.godotengine.org/en/stable/tutorials/3d/standard_material_3d.html)
+
+The stage rim is a hand-authored polygon shared by floor rendering, support rules,
+carpet clipping and offline furniture bakes. Flat faces extrude that exact outline
+to the column bottom. Its static triangle collider shares the rendered mesh;
+clipped prop colliders are decomposed into convex pieces to retain small notches.

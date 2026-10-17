@@ -8,7 +8,7 @@ const RADIUS := 480.0 / SCALE
 const PRESETS := [
 	{
 		"source": "res://game/props/bookshelf_visual.tscn",
-		"position": Vector2(940, 28),
+		"position": Vector2(925, 60),
 		"rotation": 0.0,
 		"output": "res://game/stage/art/cut_bookshelf.res",
 	},
@@ -20,7 +20,7 @@ const PRESETS := [
 	},
 	{
 		"source": "res://game/props/desk_visual.tscn",
-		"position": Vector2(175, 210),
+		"position": Vector2(190, 210),
 		"rotation": PI,
 		"output": "res://game/stage/art/cut_rear_desk.res",
 	},
@@ -58,15 +58,12 @@ func _bake(preset: Dictionary) -> void:
 		original.transform = source.global_transform.affine_inverse() * instance.global_transform
 		original.material = instance.get_active_material(0)
 		source_union.add_child(original)
-	var cylinder := CSGCylinder3D.new()
-	cylinder.operation = CSGShape3D.OPERATION_INTERSECTION
-	cylinder.radius = RADIUS
-	cylinder.height = 8.0
-	cylinder.sides = 256
-	cylinder.smooth_faces = true
-	cylinder.position = clip_centre + Vector3(0, 3, 0)
-	cylinder.material = (meshes[0] as MeshInstance3D).get_active_material(0)
-	boolean.add_child(cylinder)
+	var clip := CSGMesh3D.new()
+	clip.operation = CSGShape3D.OPERATION_INTERSECTION
+	clip.mesh = ColumnGeometry.build(RADIUS, 8.0)
+	clip.transform = Transform3D(pose.basis.inverse(), clip_centre + Vector3(0, 3, 0))
+	clip.material = (meshes[0] as MeshInstance3D).get_active_material(0)
+	boolean.add_child(clip)
 	await process_frame
 	await process_frame
 	var generated := boolean.get_meshes()
@@ -82,6 +79,7 @@ func _bake(preset: Dictionary) -> void:
 	result.set_meta("map_rotation", preset.rotation)
 	result.set_meta("stage_center", CENTRE)
 	result.set_meta("stage_radius", RADIUS * SCALE)
+	result.set_meta("stage_outline", ColumnGeometry.outline(RADIUS * SCALE))
 	var status := ResourceSaver.save(result, preset.output)
 	print(
 		"BAKED ",

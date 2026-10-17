@@ -5,6 +5,7 @@ const SUITES = [
 	preload("res://tests/test_match_state.gd"),
 	preload("res://tests/test_stage.gd"),
 	preload("res://tests/test_props.gd"),
+	preload("res://tests/test_render_resources.gd"),
 	preload("res://tests/test_pilot.gd"),
 	preload("res://tests/test_menu.gd"),
 	preload("res://tests/test_fall.gd"),

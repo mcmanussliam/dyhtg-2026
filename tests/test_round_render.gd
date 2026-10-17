@@ -16,6 +16,7 @@ func run(tree: SceneTree, check: Callable) -> void:
 	await tree.process_frame
 	await tree.process_frame
 	var view := round_scene.presentation
+	check.call(not view.world.visible, "Black introduction omits hidden arena rendering")
 	var platform := view.world.get_node("CirclePlatform") as StaticBody3D
 	var camera := view.world.get_node("ArenaCamera") as Camera3D
 	var floor_surface := platform.get_node("FloorSurface") as MeshInstance3D
@@ -77,15 +78,18 @@ func run(tree: SceneTree, check: Callable) -> void:
 	check.call(view.viewport == tree.root, "Gameplay uses the native main 3D viewport")
 	check.call(shared, "Round chairs and platform share one depth-tested 3D world")
 	check.call(aligned, "Chair ground positions match the orthographic stage projection")
-	var collider := platform.get_child(1) as CollisionShape3D
-	var cylinder := collider.shape as CylinderShape3D
+	var collider := platform.get_node("ColumnCollision") as CollisionShape3D
+	var column := platform.get_node("ColumnSurface") as MeshInstance3D
 	check.call(
-		is_equal_approx(platform.position.y + cylinder.height * 0.5, 0.0),
-		"Platform collider top and grounded chair origins share zero height"
+		is_zero_approx(platform.position.y + column.mesh.get_aabb().end.y),
+		"Angular platform top and grounded chair origins share zero height"
 	)
 	check.call(
-		is_equal_approx(cylinder.radius * SCALE, round_scene.stage.get("radius")),
-		"3D stage support radius matches 2D elimination radius"
+		(
+			collider.shape is ConcavePolygonShape3D
+			and collider.shape.get_faces() == column.mesh.get_faces()
+		),
+		"Angular stage physics follows the rendered foundation exactly"
 	)
 	await tree.physics_frame
 	var surface := Vector3(platform.position.x, 0.0, platform.position.z)
@@ -115,10 +119,19 @@ func _test_fall(
 	tree: SceneTree, check: Callable, round_scene: RoundController, platform: StaticBody3D
 ) -> void:
 	var chair := round_scene.chairs[0]
-	var center: Vector2 = round_scene.stage.get("center")
-	var radius: float = round_scene.stage.get("radius")
-	chair.global_position = round_scene.stage.to_global(center + Vector2(0, -radius - 12))
-	chair.linear_velocity = Vector2(0, -100)
+	var polygon: PackedVector2Array = round_scene.stage.floor_outline()
+	var far_edge := Vector2.INF
+	var outward := Vector2.UP
+	for index in polygon.size():
+		var first := polygon[index]
+		var next := polygon[(index + 1) % polygon.size()]
+		var midpoint := (first + next) * 0.5
+		if first.distance_to(next) > 40 and midpoint.y < far_edge.y:
+			far_edge = midpoint
+			var direction := next - first
+			outward = Vector2(direction.y, -direction.x).normalized()
+	chair.global_position = round_scene.stage.to_global(far_edge + outward * 12)
+	chair.linear_velocity = outward * 100
 	chair.angular_velocity = 1.5
 	await tree.process_frame
 	await tree.process_frame

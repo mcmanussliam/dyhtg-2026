@@ -43,6 +43,7 @@ func _ready() -> void:
 	presentation = RoundView.new()
 	presentation.configure(stage)
 	add_child(presentation)
+	presentation.world.hide()
 	var bodies := Node2D.new()
 	bodies.name = "Chairs"
 	bodies.y_sort_enabled = true
@@ -114,6 +115,7 @@ func begin_live() -> void:
 	phase = Phase.LIVE
 	_elapsed = 0.0
 	_intro_background.hide()
+	presentation.world.show()
 	stage.start_round()
 	for chair in chairs:
 		chair.begin_round()
@@ -126,6 +128,8 @@ func request_elimination(seat: int, reason: StringName) -> void:
 
 
 func _commit_eliminations() -> void:
+	if _pending.is_empty():
+		return
 	for seat in _pending:
 		chairs[seat].eliminate(_pending[seat])
 	_pending.clear()

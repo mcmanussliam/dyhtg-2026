@@ -13,6 +13,8 @@ var _opacity := PackedFloat32Array()
 var _scatter := PackedVector2Array()
 var _seeds := PackedFloat32Array()
 var _order: Array[int] = []
+var _depths := PackedFloat32Array()
+var _buffer := PackedFloat32Array()
 
 
 func _ready() -> void:
@@ -36,6 +38,11 @@ func _ready() -> void:
 	_positions.resize(BALL_COUNT)
 	_sizes.resize(BALL_COUNT)
 	_opacity.resize(BALL_COUNT)
+	_depths.resize(BALL_COUNT)
+	_buffer.resize(BALL_COUNT * 16)
+	for slot in BALL_COUNT:
+		for channel in [12, 13, 14]:
+			_buffer[slot * 16 + channel] = 1.0
 	for index in BALL_COUNT:
 		var seed := fposmod(sin(float(index) * 127.1 + 7.3) * 43758.5453, 1.0)
 		_seeds.append(seed)
@@ -83,6 +90,7 @@ func update_plume(
 				+ Vector3.UP * scatter.y * spread * 0.65
 			)
 		_positions[index] = nozzle + forward * travel + offset
+		_depths[index] = _positions[index].dot(VIEW_DIRECTION)
 		_sizes[index] = radius
 		var fade_end := lerpf(0.76, 1.0, life_seed)
 		var fade_start := fade_end - lerpf(0.20, 0.40, seed)
@@ -92,14 +100,20 @@ func update_plume(
 			fade = (1.0 - smoothstep(fade_start, fade_end, t)) * lerpf(0.35, 0.60, seed)
 		_opacity[index] = fade * smoothstep(0.0, 0.008, t)
 	# Transparency needs back-to-front instance order in the fixed camera view.
-	_order.sort_custom(
-		func(a: int, b: int) -> bool:
-			return _positions[a].dot(VIEW_DIRECTION) < _positions[b].dot(VIEW_DIRECTION)
-	)
+	_order.sort_custom(_farther_first)
 	for slot in BALL_COUNT:
 		var index := _order[slot]
-		var transform := Transform3D(
-			Basis.IDENTITY.scaled(Vector3.ONE * _sizes[index]), _positions[index]
-		)
-		_balls.set_instance_transform(slot, transform)
-		_balls.set_instance_color(slot, Color(1, 1, 1, _opacity[index]))
+		var base := slot * 16
+		# Three transform rows followed by RGBA, uploaded in one RenderingServer call.
+		_buffer[base] = _sizes[index]
+		_buffer[base + 5] = _sizes[index]
+		_buffer[base + 10] = _sizes[index]
+		_buffer[base + 3] = _positions[index].x
+		_buffer[base + 7] = _positions[index].y
+		_buffer[base + 11] = _positions[index].z
+		_buffer[base + 15] = _opacity[index]
+	_balls.buffer = _buffer
+
+
+func _farther_first(a: int, b: int) -> bool:
+	return _depths[a] < _depths[b]

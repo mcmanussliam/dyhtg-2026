@@ -12,10 +12,15 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def run(command):
-    result = subprocess.run(
-        command, cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-        timeout=120, env={**os.environ, "GODOT_SILENCE_ROOT_WARNING": "1"},
-    )
+    try:
+        result = subprocess.run(
+            command, cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            timeout=120, env={**os.environ, "GODOT_SILENCE_ROOT_WARNING": "1"},
+        )
+    except subprocess.TimeoutExpired as error:
+        output = error.stdout or b""
+        print(output.decode(errors="replace") if isinstance(output, bytes) else output, end="")
+        raise SystemExit(f"Check timed out after 120 seconds: {' '.join(command)}") from None
     print(result.stdout, end="", flush=True)
     errors = any(line.startswith(("ERROR:", "SCRIPT ERROR:"))
                  for line in result.stdout.splitlines())
@@ -39,6 +44,9 @@ def main():
     run([sys.executable, "-m", "gdtoolkit.linter", "game", "tests"])
     prefix = [binary, "--headless", "--path", str(ROOT)]
     run(prefix + ["--editor", "--import", "--quit"])
+    # Parse failures can leave an engine runner alive without executing its quit().
+    for script in ["res://tests/run_tests.gd", "res://tests/run_match_tests.gd"]:
+        run(prefix + ["--check-only", "--script", script])
     run(prefix + ["--fixed-fps", "60", "--script", "res://tests/run_tests.gd"])
     run(prefix + ["--fixed-fps", "60", "--script", "res://tests/run_match_tests.gd"])
     run(prefix + ["--quit-after", "5"])

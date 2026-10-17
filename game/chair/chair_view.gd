@@ -74,7 +74,6 @@ func _process(delta: float) -> void:
 			var planar := Vector2(_fall_body.position.x, _fall_body.position.z)
 			position = (planar * PIXELS_PER_UNIT).rotated(-chair.rotation)
 			_camera.position = _camera_home + Vector3(planar.x, 0, planar.y)
-		queue_redraw()
 		return
 	var acceleration := (chair.linear_velocity - _previous_velocity) / maxf(delta, 0.001)
 	_previous_velocity = chair.linear_velocity
@@ -94,7 +93,6 @@ func _process(delta: float) -> void:
 		Vector2(-local_velocity.y, local_velocity.x)
 	)
 	_update_plume(chair)
-	queue_redraw()
 
 
 func _sync_heading(chair: Chair) -> void:
@@ -170,6 +168,8 @@ func _start_fall(chair: Chair) -> void:
 	)
 	_fall_body.angular_velocity = Vector3(0, -chair.fall_spin, 0)
 	_spray.hide()
+	if not _shared:
+		queue_redraw()
 
 
 func _ready_shared() -> void:

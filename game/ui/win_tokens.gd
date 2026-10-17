@@ -14,6 +14,9 @@ func _ready() -> void:
 	stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	RenderStyle.configure_composite(self)
 	custom_minimum_size = Vector2(350, 64)
+	if token_count <= 0:
+		set_process(false)
+		return
 	var viewport := SubViewport.new()
 	RenderStyle.configure_viewport(viewport, Vector2i(1400, 256), true)
 	add_child(viewport)

@@ -1,6 +1,6 @@
 @tool
 extends ArenaStage
-## Circular office floor with aligned presentation, support and reusable furniture.
+## Angular office cutout with one shared boundary for support, rendering and collisions.
 
 const FLOOR_COLOUR := Color("2e4055")
 
@@ -14,7 +14,12 @@ const FLOOR_COLOUR := Color("2e4055")
 		radius = value
 		queue_redraw()
 		update_configuration_warnings()
-@export_range(0.15, 0.70, 0.01) var spawn_radius_ratio: float = 0.43
+@export_range(0.15, 0.70, 0.01) var spawn_radius_ratio: float = 0.40
+
+var _outline := PackedVector2Array()
+var _outline_radius := -1.0
+var _outline_center := Vector2.INF
+var _safe_radius := 0.0
 
 
 func _ready() -> void:
@@ -22,21 +27,58 @@ func _ready() -> void:
 		return
 	for prop in $Furniture.get_children():
 		if prop is OfficeProp and prop.get_meta("cut_at_edge", false):
-			prop.clip_to_circle(to_global(center), radius)
+			prop.clip_to_polygon(global_transform * floor_outline())
 
 
 func has_support(world_point: Vector2) -> bool:
-	return to_local(world_point).distance_squared_to(center) <= radius * radius
+	var polygon := floor_outline()
+	var point := to_local(world_point)
+	if point.distance_squared_to(center) < _safe_radius * _safe_radius:
+		return true
+	return Geometry2D.is_point_in_polygon(point, polygon)
 
 
 func is_safe(world_point: Vector2, margin: float = 0.0) -> bool:
-	var inset := maxf(radius - maxf(margin, 0.0), 0.0)
-	return to_local(world_point).distance_squared_to(center) <= inset * inset
+	var point := to_local(world_point)
+	var polygon := floor_outline()
+	var inner := maxf(_safe_radius - maxf(margin, 0.0), 0.0)
+	if point.distance_squared_to(center) < inner * inner:
+		return true
+	if not Geometry2D.is_point_in_polygon(point, polygon):
+		return false
+	for index in polygon.size():
+		var nearest := Geometry2D.get_closest_point_to_segment(
+			point, polygon[index], polygon[(index + 1) % polygon.size()]
+		)
+		if point.distance_squared_to(nearest) < margin * margin:
+			return false
+	return true
 
 
 func safe_target(world_point: Vector2, margin: float = 90.0) -> Vector2:
+	floor_outline()
 	var offset := to_local(world_point) - center
-	return to_global(center + offset.limit_length(maxf(radius - margin, 0.0)))
+	return to_global(center + offset.limit_length(maxf(_safe_radius - margin, 0.0)))
+
+
+func floor_outline() -> PackedVector2Array:
+	if _outline_radius != radius or _outline_center != center:
+		_outline = ColumnGeometry.outline(radius)
+		for index in _outline.size():
+			_outline[index] += center
+		_safe_radius = radius
+		for index in _outline.size():
+			_safe_radius = minf(
+				_safe_radius,
+				center.distance_to(
+					Geometry2D.get_closest_point_to_segment(
+						center, _outline[index], _outline[(index + 1) % _outline.size()]
+					)
+				)
+			)
+		_outline_radius = radius
+		_outline_center = center
+	return _outline
 
 
 func spawn_pose(index: int, count: int) -> Transform2D:
@@ -60,9 +102,7 @@ func _get_configuration_warnings() -> PackedStringArray:
 
 
 func _draw() -> void:
-	# Minimal editor preview; native 3D presentation uses the same flat floor colour.
-	draw_circle(center + Vector2(0, 13), radius, Color("45484d"), true, -1.0, true)
-	draw_circle(center, radius, FLOOR_COLOUR, true, -1.0, true)
+	draw_colored_polygon(floor_outline(), FLOOR_COLOUR)
 
 
 func create_presentation(parent: Node3D, units_per_pixel: float) -> void:
@@ -78,14 +118,12 @@ func create_presentation(parent: Node3D, units_per_pixel: float) -> void:
 	var column := ModelGeometry.instance(platform, mesh, Vector3.ZERO, wall_material)
 	column.name = "ColumnSurface"
 	var collider := CollisionShape3D.new()
-	var shape := CylinderShape3D.new()
-	shape.radius = world_radius
-	shape.height = 24.0
-	collider.shape = shape
+	collider.name = "ColumnCollision"
+	collider.shape = mesh.create_trimesh_shape()
 	platform.add_child(collider)
 	var floor_material := ModelGeometry.material(FLOOR_COLOUR, 0.0, 0.95)
 	var floor_surface := ModelGeometry.instance(
-		platform, _floor_disk(world_radius), Vector3(0, 12.0, 0), floor_material
+		platform, ColumnGeometry.floor_mesh(world_radius), Vector3(0, 12.002, 0), floor_material
 	)
 	floor_surface.name = "FloorSurface"
 	_create_carpet(
@@ -100,12 +138,13 @@ func create_presentation(parent: Node3D, units_per_pixel: float) -> void:
 		for prop in furniture.get_children():
 			if prop is OfficeProp:
 				if prop.get_meta("cut_at_edge", false):
-					prop.clip_to_circle(to_global(center), radius)
+					prop.clip_to_polygon(global_transform * floor_outline())
 				var model: Node3D = prop.create_presentation(parent, units_per_pixel)
 				if prop.name in [&"FrontDesk", &"RearDesk2", &"FrontDesk3"]:
 					OfficeAccessories.desk(model, Color("b2745f"))
 				elif prop.name in [&"Cabinet", &"PrintCabinet"]:
 					OfficeAccessories.archive_boxes(model, 1.25)
+				StaticModelBatcher.batch(model)
 
 
 func _create_carpet(
@@ -119,10 +158,7 @@ func _create_carpet(
 			Vector2(area.position.x, area.end.y)
 		]
 	)
-	var boundary := PackedVector2Array()
-	for index in 256:
-		boundary.append(center + Vector2.from_angle(index * TAU / 256.0) * radius)
-	var clipped := Geometry2D.intersect_polygons(outline, boundary)
+	var clipped := Geometry2D.intersect_polygons(outline, floor_outline())
 	if clipped.is_empty():
 		return
 	var polygon: PackedVector2Array = clipped[0]
@@ -140,16 +176,3 @@ func _create_carpet(
 	)
 	carpet.name = label
 	carpet.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-
-
-func _floor_disk(world_radius: float) -> ArrayMesh:
-	var surface := SurfaceTool.new()
-	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	surface.set_normal(Vector3.UP)
-	for index in 256:
-		var angle := float(index) * TAU / 256.0
-		var next_angle := float(index + 1) * TAU / 256.0
-		surface.add_vertex(Vector3.ZERO)
-		surface.add_vertex(Vector3(cos(angle), 0, sin(angle)) * world_radius)
-		surface.add_vertex(Vector3(cos(next_angle), 0, sin(next_angle)) * world_radius)
-	return surface.commit()

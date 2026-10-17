@@ -1,5 +1,13 @@
 # Match flow 0.4
 
+- The floor has an irregular chipped outline: hand-shaped fractures and clustered small chips continue vertically down the foundation. Floor support, carpets, baked
+  furniture cuts and native 3D collision all share that outline. Grey shading and
+  the long foundation fade remain unchanged.
+- Repeated meshes are shared and static furniture uses local MultiMesh batches.
+  Foam uploads use one packed buffer; empty star rows omit their render viewport.
+  Black introductions hide the arena, avoiding covered geometry/shadow draws.
+  See `performance.md` for reproducible before/after counters.
+
 - Stage radius reduces from 500 to 480 pixels, with cut furniture rebaked to the
   new boundary. Printer and adjacent cabinet share an aligned front edge on the
   upper carpet. The lounge task chair is replaced with an opposing sofa, keeping
