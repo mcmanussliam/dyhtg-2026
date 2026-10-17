@@ -36,15 +36,15 @@ position = Vector2(400, -35)
 rotation = 3.14159
 
 [node name="Shelf" parent="Furniture" instance=ExtResource("4")]
-position = Vector2(935, -160)
+position = Vector2(933.16, -143.545)
 rotation = 0
 
 [node name="Cabinet" parent="Furniture" instance=ExtResource("5")]
-position = Vector2(1170, -160)
+position = Vector2(1107.74, -154.08)
 rotation = 0
 
 [node name="Printer" parent="Furniture" instance=ExtResource("6")]
-position = Vector2(1115, -50)
+position = Vector2(1173.96, -160.1)
 rotation = 0
 
 [node name="SofaA" parent="Furniture" instance=ExtResource("7")]
@@ -92,15 +92,15 @@ position = Vector2(160, 610)
 rotation = 1.5708
 
 [node name="ShelfB" parent="Furniture" instance=ExtResource("4")]
-position = Vector2(1040, -160)
+position = Vector2(1029.48, -143.545)
 rotation = 0
 
 [node name="ArchiveCabinetA" parent="Furniture" instance=ExtResource("5")]
-position = Vector2(95, 950)
+position = Vector2(95, 1025.92)
 rotation = 3.14159
 
 [node name="ArchiveCabinetB" parent="Furniture" instance=ExtResource("5")]
-position = Vector2(165, 950)
+position = Vector2(155.2, 1025.92)
 rotation = 3.14159
 
 [node name="CornerPlant" parent="Furniture" instance=ExtResource("9")]
@@ -108,5 +108,5 @@ position = Vector2(120, 810)
 rotation = 0
 
 [node name="PrintCabinet" parent="Furniture" instance=ExtResource("5")]
-position = Vector2(1220, -50)
+position = Vector2(1240.18, -154.08)
 rotation = 0

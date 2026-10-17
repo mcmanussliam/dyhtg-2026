@@ -59,13 +59,13 @@ position = Vector2(420, 240)
 position = Vector2(545, 240)
 
 [node name="Bookshelf" parent="Furniture" instance=ExtResource("5")]
-position = Vector2(745, 28)
+position = Vector2(762.336, 90)
 
 [node name="Cabinet" parent="Furniture" instance=ExtResource("3")]
-position = Vector2(815, 39)
+position = Vector2(828.298, 81.1205)
 
 [node name="Copier" parent="Furniture" instance=ExtResource("9")]
-position = Vector2(925, 148.5)
+position = Vector2(925, 250)
 
 [node name="Sofa" parent="Furniture" instance=ExtResource("4")]
 position = Vector2(1000, 625)
@@ -93,13 +93,13 @@ baked_visual_mesh = ExtResource("12")
 metadata/cut_at_edge = true
 
 [node name="StorageBookshelf" parent="Furniture" instance=ExtResource("5")]
-position = Vector2(655, 28)
+position = Vector2(681.152, 90)
 
 [node name="StorageCabinet" parent="Furniture" instance=ExtResource("3")]
-position = Vector2(875, 60)
+position = Vector2(879.038, 81.1205)
 
 [node name="PrintCabinet" parent="Furniture" instance=ExtResource("3")]
-position = Vector2(985, 152.8)
+position = Vector2(980.814, 255.074)
 
 [node name="FrontDesk3" parent="Furniture" instance=ExtResource("2")]
 position = Vector2(295, 270)

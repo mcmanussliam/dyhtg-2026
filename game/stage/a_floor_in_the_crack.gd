@@ -146,7 +146,7 @@ func create_presentation(parent: Node3D, units_per_pixel: float) -> void:
 		parent, units_per_pixel, Rect2(800, 475, 320, 340), Color("637672"), "LoungeCarpet"
 	)
 	_create_carpet(
-		parent, units_per_pixel, Rect2(640, -30, 380, 215), Color("526979"), "StorageCarpet"
+		parent, units_per_pixel, Rect2(640, -30, 380, 330), Color("526979"), "StorageCarpet"
 	)
 
 	var furniture := get_node_or_null("Furniture")
@@ -190,7 +190,7 @@ func tick_hazards(delta: float) -> void:
 				_world, _units, Rect2(800, 475, 320, 340), Color("637672"), "LoungeCarpet"
 			)
 			_create_carpet(
-				_world, _units, Rect2(640, -30, 380, 215), Color("526979"), "StorageCarpet"
+				_world, _units, Rect2(640, -30, 380, 330), Color("526979"), "StorageCarpet"
 			)
 		for prop in $Furniture.get_children():
 			if prop is OfficeProp:
