@@ -1,0 +1,179 @@
+extends RefCounted
+## Deterministic round lifecycle checks using real stage and chair scenes.
+
+const ROUND = preload("res://game/round/round.tscn")
+const STAGE = preload("res://game/stage/a_floor_in_the_crack.tres")
+
+
+func run(tree: SceneTree, check: Callable) -> void:
+	var config := MatchConfig.new()
+	config.ai_count = 2
+	var state := MatchState.new()
+	state.configure(config)
+	var round_scene := ROUND.instantiate() as RoundController
+	round_scene.configure(state.participants, STAGE, 7, 5)
+	tree.root.add_child(round_scene)
+	round_scene.set_physics_process(false)
+	var completions: Array[Vector2i] = []
+	round_scene.completed.connect(
+		func(id: int, winner: int) -> void: completions.append(Vector2i(id, winner))
+	)
+	check.call(
+		(
+			round_scene.get("_intro_background").color == Color.BLACK
+			and round_scene.get("_intro_background").visible
+		),
+		"Introduction is opaque plain black behind text"
+	)
+	check.call(
+		round_scene.get("_title").text == STAGE.display_name, "Round intro shows only the map name"
+	)
+	var intro_ready := true
+	for chair in round_scene.chairs:
+		intro_ready = intro_ready and chair.freeze and not chair.spraying
+	check.call(intro_ready, "Intro freezes every chair and disables every extinguisher")
+	check.call(not round_scene.stage.round_running, "Stage hazards are stopped during intro")
+	round_scene.stage.elimination_requested.emit(0, &"fire")
+	round_scene.begin_live()
+	check.call(
+		not round_scene.get("_intro_background").visible,
+		"Black introduction reveals stage only when live"
+	)
+	var live_ready := true
+	for chair in round_scene.chairs:
+		live_ready = live_ready and not chair.freeze and chair.spraying and chair.active
+	check.call(live_ready, "Round begins all chairs and extinguishers together")
+	check.call(round_scene.stage.round_running, "Round starts stage hazards")
+	round_scene.begin_live()
+	round_scene._physics_process(0.016)
+	check.call(round_scene.chairs[0].active, "Intro hazard requests cannot leak into live play")
+	round_scene.request_elimination(-1, &"fall")
+	round_scene.request_elimination(9, &"fall")
+	round_scene.stage.elimination_requested.emit(1, &"fire")
+	round_scene.request_elimination(1, &"fire")
+	round_scene._physics_process(0.016)
+	check.call(not round_scene.chairs[1].active, "Stage hazard eliminates its requested seat")
+	check.call(round_scene.chairs[0].active, "Invalid and duplicate requests preserve other seats")
+	check.call(round_scene.phase == RoundController.Phase.LIVE, "Two survivors keep round live")
+	# Both remaining chairs leave the platform in the same physics batch.
+	round_scene.chairs[0].global_position = Vector2(-1000, -1000)
+	round_scene.chairs[2].global_position = Vector2(-1000, -1000)
+	round_scene._physics_process(0.016)
+	check.call(
+		round_scene.phase == RoundController.Phase.RESOLVING,
+		"Simultaneous ring-outs enter one resolving phase"
+	)
+	check.call(not round_scene.stage.round_running, "Resolution stops stage hazards")
+	round_scene._physics_process(round_scene.resolve_duration)
+	round_scene._physics_process(round_scene.resolve_duration)
+	check.call(completions == [Vector2i(7, -1)], "Simultaneous final falls emit exactly one draw")
+	round_scene.begin_live()
+	check.call(round_scene.phase == RoundController.Phase.FINISHED, "Finished round cannot restart")
+	round_scene.queue_free()
+	await tree.process_frame
+	await _test_match_lifetime(tree, check)
+	await _test_cancelled_transitions(tree, check)
+	await _test_paused_intro(tree, check)
+
+
+func _test_match_lifetime(tree: SceneTree, check: Callable) -> void:
+	var match_controller := MatchController.new()
+	tree.root.add_child(match_controller)
+	var config := MatchConfig.new()
+	config.wins_needed = 2
+	match_controller.start(config)
+	var first := match_controller.round
+	first.set_physics_process(false)
+	var result_count: Array[int] = [0]
+	match_controller.results_ready.connect(
+		func(_roster, _winner, _target, _final, _number) -> void: result_count[0] += 1
+	)
+	first.begin_live()
+	first.request_elimination(1, &"fall")
+	first._physics_process(0.016)
+	first.request_elimination(0, &"fall")
+	first._physics_process(first.resolve_duration)
+	check.call(
+		match_controller.state.participants[0].wins == 1, "Sole survivor earns one round win"
+	)
+	check.call(first.chairs[0].active, "Late hazard cannot eliminate winner during resolution")
+	first.completed.emit(first.round_id, 0)
+	check.call(result_count[0] == 1, "Repeated completion cannot emit duplicate results")
+	match_controller.continue_round()
+	match_controller.continue_round()
+	await tree.process_frame
+	var next := match_controller.round
+	next.set_physics_process(false)
+	check.call(next != first, "Continue replaces the completed round")
+	check.call(
+		match_controller.state.round_number == 2, "Repeated continue advances only one round"
+	)
+	check.call(match_controller.state.participants[0].wins == 1, "Fresh round preserves scores")
+	check.call(next.phase == RoundController.Phase.INTRO, "Fresh round returns to disabled intro")
+	next.begin_live()
+	next.request_elimination(1, &"fall")
+	next._physics_process(0.016)
+	next._physics_process(next.resolve_duration)
+	check.call(match_controller.state.winner_id == 0, "Target round win finishes first-to-N match")
+	match_controller.continue_round()
+	await tree.process_frame
+	check.call(match_controller.round == next, "Final match cannot continue another round")
+	match_controller.start(config)
+	match_controller.round.set_physics_process(false)
+	check.call(match_controller.state.winner_id == -1, "Rematch clears match winner")
+	check.call(match_controller.state.participants[0].wins == 0, "Rematch clears scores")
+	check.call(match_controller.state.round_number == 1, "Rematch starts at round one")
+	match_controller.queue_free()
+	await tree.process_frame
+
+
+func _test_cancelled_transitions(tree: SceneTree, check: Callable) -> void:
+	var controller := MatchController.new()
+	tree.root.add_child(controller)
+	var config := MatchConfig.new()
+	controller.start(config)
+	_finish_round(controller.round)
+	controller.continue_round()
+	controller.start(config)
+	var restarted := controller.round
+	restarted.set_physics_process(false)
+	await tree.process_frame
+	check.call(controller.round == restarted, "Restart cancels queued round replacement")
+	check.call(controller.state.round_number == 1, "Cancelled continue cannot advance rematch")
+	check.call(
+		controller.state.participants[0].wins == 0, "Cancelled continue preserves reset scores"
+	)
+	_finish_round(restarted)
+	controller.continue_round()
+	tree.root.remove_child(controller)
+	await tree.process_frame
+	check.call(controller.round == restarted, "Removed match cannot execute queued continuation")
+	check.call(controller.state.round_number == 1, "Removed match cannot advance its round counter")
+	controller.free()
+	await tree.process_frame
+
+
+func _test_paused_intro(tree: SceneTree, check: Callable) -> void:
+	var controller := MatchController.new()
+	tree.root.add_child(controller)
+	controller.start(MatchConfig.new())
+	controller.round.intro_duration = 0.01
+	tree.paused = true
+	await tree.create_timer(0.05, true).timeout
+	check.call(controller.round.phase == RoundController.Phase.INTRO, "Pause stops intro countdown")
+	check.call(not controller.round.stage.round_running, "Paused intro cannot start map hazards")
+	check.call(not controller.round.chairs[0].spraying, "Paused intro cannot activate extinguisher")
+	tree.paused = false
+	await tree.physics_frame
+	await tree.physics_frame
+	check.call(controller.round.phase == RoundController.Phase.LIVE, "Resume continues intro clock")
+	controller.queue_free()
+	await tree.process_frame
+
+
+func _finish_round(round_scene: RoundController) -> void:
+	round_scene.set_physics_process(false)
+	round_scene.begin_live()
+	round_scene.request_elimination(1, &"fall")
+	round_scene._physics_process(0.016)
+	round_scene._physics_process(round_scene.resolve_duration)

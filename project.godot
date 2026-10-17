@@ -11,8 +11,8 @@ config_version=5
 [application]
 
 config/name="Please Remain Seated"
-config/version="0.3.0"
-run/main_scene="res://game/session/gameplay.tscn"
+config/version="0.4.0"
+run/main_scene="res://game/app/main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [display]
@@ -22,6 +22,19 @@ window/size/viewport_height=800
 window/size/window_width_override=1280
 window/size/window_height_override=800
 window/stretch/mode="canvas_items"
+
+[input]
+
+menu_next={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":16,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194319,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+]
+}
+menu_activate={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":16,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194321,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+]
+}
 
 [layer_names]
 
@@ -38,5 +51,7 @@ window/stretch/mode="canvas_items"
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
-anti_aliasing/quality/msaa_2d=2
-environment/defaults/default_clear_color=Color(0.16, 0.19, 0.22, 1)
+environment/defaults/default_clear_color=Color(0, 0, 0, 1)
+
+anti_aliasing/quality/msaa_3d=2
+lights_and_shadows/directional_shadow/size=4096

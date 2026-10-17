@@ -3,7 +3,7 @@ extends Node2D
 ## A physics sandbox. Stage geometry is separate from future round rules.
 
 const CHAIR_SCENE: PackedScene = preload("res://game/chair/chair.tscn")
-const COLOURS: Array[Color] = [Color("ece2d0"), Color("d0e2dc"), Color("ead5df"), Color("dfdbed")]
+const COLOURS: Array[Color] = [Color("f4d782"), Color("72d9ae"), Color("f498b0"), Color("94b9f4")]
 
 var chairs: Array[Chair] = []
 var bindings: Array[LocalInput] = []

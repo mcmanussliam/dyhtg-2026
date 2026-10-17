@@ -12,6 +12,11 @@ extends Resource
 @export var steering_drag: float = 3.5
 @export var maximum_spin: float = 3.2
 
+@export_group("Collision feedback")
+@export var impact_threshold: float = 55.0
+@export var impact_reference_speed: float = 260.0
+@export var impact_decay: float = 2.5
+
 @export_group("Spray")
 @export var spray_range: float = 176.0
 @export var half_angle_degrees: float = 24.0

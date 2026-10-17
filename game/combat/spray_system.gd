@@ -4,7 +4,7 @@ extends RefCounted
 
 
 func apply(source: Chair, chairs: Array[Chair], delta: float) -> void:
-	if not source.active or delta <= 0.0:
+	if not source.active or not source.spraying or delta <= 0.0:
 		return
 	var forward := Vector2.from_angle(source.aim_angle)
 	var origin := source.global_position

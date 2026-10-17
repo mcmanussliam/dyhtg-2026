@@ -40,6 +40,7 @@ def main():
     prefix = [binary, "--headless", "--path", str(ROOT)]
     run(prefix + ["--editor", "--import", "--quit"])
     run(prefix + ["--fixed-fps", "60", "--script", "res://tests/run_tests.gd"])
+    run(prefix + ["--fixed-fps", "60", "--script", "res://tests/run_match_tests.gd"])
     run(prefix + ["--quit-after", "5"])
     print("All checks passed.")
 

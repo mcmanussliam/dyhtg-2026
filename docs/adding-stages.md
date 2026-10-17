@@ -1,0 +1,108 @@
+# Adding a stage
+
+The match owns scores and creates a fresh round for each attempt. A round owns
+one `ArenaStage`, its chairs, introduction and elimination resolution. A stage
+owns floor support, legal arena regions, navigation guidance, hazards and art.
+It never chooses winners or increments scores.
+
+The shipped stage is `game/stage/a_floor_in_the_crack.tscn`, registered through
+`game/stage/a_floor_in_the_crack.tres`. Its editable centre and radius are the common
+source for drawing, support tests, safe spawns and AI guidance. It deliberately
+contains no collision boundary: crossing the edge causes a fall. The camera
+projects the circular surface into an ellipse; geometry stays in world space.
+
+## Create and register a map
+
+1. Create a scene whose root extends `ArenaStage`. Keep physics coordinates in an
+   unscaled `Node2D`; the camera supplies the viewing angle.
+2. Create a `StageDefinition` resource with a stable `id`, readable `display_name`
+   and the scene. Validate the resource using `validation_errors()`.
+3. Register that resource with the match's stage selection. Initially the match
+   repeats only the circle. A map picker and map rotation are not implemented.
+4. Add geometry, support, spawn, navigation and lifecycle tests before shipping.
+   Keep stage-specific settings exported in its script or an authored Resource.
+
+## Required contract
+
+All point arguments and returned poses use global world coordinates.
+
+| Method | Responsibility |
+| --- | --- |
+| `has_support(point)` | Whether solid supporting surface exists beneath a chair's centre. |
+| `elimination_reason(point)` | Empty `StringName` when legal; otherwise an explicit cause, e.g. `&"fall"`. The base implementation checks support. |
+| `is_safe(point, margin)` | Whether a predicted position is safe, including current arena rules and danger. A positive margin requests additional clearance. |
+| `safe_target(point, margin)` | Return a reachable safer steering target, accounting for holes, arena boundaries and current hazards. |
+| `spawn_pose(index, count)` | A safe, symmetric global `Transform2D`. Chair thrust points opposite its rotation, so point the nozzle away from the interior. |
+| `start_round()` | Enable hazard state when the map title has completely faded. |
+| `stop_round()` | Stop attacks and danger progression for results or teardown. Must be safe to call repeatedly. |
+| `tick_hazards(delta)` | Advance active hazards on the round's physics clock. |
+
+The circle validates computed spawns through editor configuration warnings. A map
+using authored spawn markers should warn about missing markers and unsupported
+or dangerous spawn poses. Test two, three and four participants. Chair centre
+support is intentional: a small partial overhang is allowed before falling.
+
+A stage can emit `elimination_requested(seat, reason)` for an actor-specific
+hazard hit. The round validates and batches those requests with support/rule
+losses before deciding survivors. Do not eliminate chair nodes, resolve draws or
+award points inside a hazard callback. Multiple losses in one physics tick must
+remain a draw when nobody survives.
+
+## Lifecycle, pause and reset
+
+New stage instances start with `round_running == false`. Intro chairs are frozen
+and their extinguishers are off. `start_round()` and chair activation occur on
+the same physics tick. `tick_hazards()` is called only during live play, and the
+stage's own logic must also honour `round_running` when it has actor callbacks.
+Override lifecycle methods with `super.start_round()` / `super.stop_round()`.
+
+Stages inherit the match's pausable process mode. Use the supplied physics delta;
+avoid wall-clock deadlines, external autoload timers and `PROCESS_MODE_ALWAYS`
+for hazard gameplay. Node-owned timers must stop outside live play. On results,
+the round calls `stop_round()`; teardown calls it again. A fresh round replaces
+the complete scene, so counters, hazards, colliders and signals reset together.
+Never store mutable round progress in the shared `StageDefinition` resource.
+
+Chair elimination immediately disables drive, spray forces and collisions. A
+`&"fall"` cause plays the current falling presentation. Other causes currently
+hide the eliminated chair; add a specific burn/impact presentation when that map
+is actually built. Presentation must not delay authoritative elimination.
+
+## Planned office maps
+
+These are adaptation notes, not implemented maps.
+
+- **You're Fired!**: keep office floor support separate from a slowly shrinking
+  safe region. Export delay, shrink speed and minimum radius. Both elimination
+  and AI guidance must use the same current fire boundary; stop shrinkage during
+  intro, pause and results. Extinguishers do not implicitly suppress fire.
+- **Office sumo**: floor support can continue outside the ring, while
+  `elimination_reason()` reports leaving the legal arena. AI uses that legal
+  boundary rather than the surrounding room's floor.
+- **Pit of Death**: subtract the hole from support. Navigation must route around
+  it instead of returning a nearest point across the pit. Mask falling visuals
+  behind the pit rim when that presentation is added.
+- **Bull**: stage-owned physical hazard with readable wind-up, charge, impact and
+  recovery. Contact can report elimination or impart bounded physical impulses,
+  according to the approved map rule. The bull is not a scoring participant and
+  must stop attacking outside live play.
+
+For each map, test edge equality, holes, safe spawns, AI prediction, intro/pause
+inactivity, fresh-round reset and simultaneous elimination. `tests/test_stage.gd`
+contains small rule fixtures demonstrating independent support, arena danger and
+hazard lifecycle without prematurely building these maps.
+
+## Shared 3D presentation
+
+Implement `create_presentation(parent: Node3D, units_per_pixel: float)` to build the
+visible stage and its 3D fall-support colliders into RoundView's world. Match the
+same support geometry used by `has_support`, with the walking surface at Y=0.
+Map Godot 2D world `(x,y)` into 3D `(x,0,z)` using the supplied scale. Collider
+surfaces support eliminated 3D falls only; they never change live 2D chair motion.
+A Floor in the Crack creates a 24-metre cylinder with its top at zero.
+Shared depth testing handles chairs falling behind the stage automatically.
+
+Author `view_width` and `view_focus` on the stage scene to frame its 3D geometry.
+The focus is a point in the stage's 2D coordinate system; RoundView applies the
+same world transform and scale as the support geometry. These settings affect
+presentation only, leaving input, spawn points and elimination queries unchanged.

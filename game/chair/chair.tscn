@@ -4,12 +4,13 @@
 [ext_resource type="Resource" path="res://game/chair/default_tuning.tres" id="2"]
 [ext_resource type="Script" path="res://game/chair/chair_view.gd" id="3"]
 
-[sub_resource type="CircleShape2D" id="ChairShape"]
-radius = 25.0
+[sub_resource type="CapsuleShape2D" id="ChairShape"]
+radius = 23.0
+height = 60.0
 
 [sub_resource type="PhysicsMaterial" id="ChairMaterial"]
-friction = 0.15
-bounce = 0.28
+friction = 0.22
+bounce = 0.58
 
 [node name="Chair" type="RigidBody2D" groups=["chairs"]]
 collision_layer = 2
@@ -23,6 +24,7 @@ script = ExtResource("1")
 tuning = ExtResource("2")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+rotation = 1.5707964
 shape = SubResource("ChairShape")
 
 [node name="Visuals" type="Node2D" parent="."]
