@@ -5,6 +5,8 @@ extends RefCounted
 func run(tree: SceneTree, check: Callable) -> void:
 	var definition := load("res://game/stage/bull_office/bull_office.tres") as StageDefinition
 	var config := MatchConfig.new()
+	config.player_count = 2
+	config.wins_needed = 5
 	var stage := definition.scene.instantiate() as OfficeStage
 	tree.root.add_child(stage)
 	var bull := stage.get("bull") as OfficeBull

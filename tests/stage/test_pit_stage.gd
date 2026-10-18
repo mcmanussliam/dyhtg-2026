@@ -7,6 +7,8 @@ func run(tree: SceneTree, check: Callable) -> void:
 		load("res://game/stage/a_crack_in_the_floor/a_crack_in_the_floor.tres") as StageDefinition
 	)
 	var config := MatchConfig.new()
+	config.player_count = 2
+	config.wins_needed = 5
 	var stage := definition.scene.instantiate() as ArenaStage
 	tree.root.add_child(stage)
 	check.call(not stage.has_support(Vector2(640, 422)), "Pit center has no floor")

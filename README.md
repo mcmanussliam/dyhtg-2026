@@ -7,8 +7,8 @@ floor. Open `project.godot` in **Godot 4.7.2 Standard** and press F5.
 ## Play
 
 Home offers Play, Customise, Settings and Quit. Matches have **2–10 total players**
-(default 2): one human and the remaining seats controlled by AI. Multiplayer is
-not implemented. Choose a **first-to-1–5 wins** target; the default is first to five.
+(default 6): one human and the remaining seats controlled by AI. Multiplayer is
+not implemented. Choose a **first-to-1–5 wins** target; the default is first to three.
 Setup’s Select maps page scrolls with Left and toggles maps with Right; all maps
 start selected. Start match is unavailable while the pool is empty. Each round
 independently picks a selected map, so repeats are possible:
@@ -51,7 +51,7 @@ physics and remains solid to players until it drops below chair height.
 | Gameplay | Turn left | Turn right |
 | Spectating after elimination | — | Hold for 3× fast-forward |
 
-A/D also steer. Esc pauses/resumes. Extinguishers are continuous and unlimited;
+A/D also steer. Extinguishers are continuous and unlimited;
 steering is the only gameplay action. After the black map title, controls start
 immediately while propulsion, spray force and foam build over two seconds.
 Wheel overhang alone does not eliminate a player: they must actually fall.
@@ -66,7 +66,9 @@ Crown, Party Hat, Wizard Hat, Chef Hat, Propeller Cap, Headphones, Bunny Ears, H
 Sunglasses. Tops include JPMorgan, Hoodie, JPMorgan Hoodie, T-shirt, Tank Top, High Vis
 Vest, Puffer Vest, Waistcoat, Fleece Vest, Tie, Bow Tie and Scarf. Tops stop above the
 lap and never cover the legs. Hats and tops default to None, colour to Random; choices
-persist locally. Settings contains only anti-aliasing and shadows.
+persist locally. Settings covers display mode (windowed or fullscreen), window size
+(16:10 sizes from 1280 × 800; fullscreen uses the native display), V-Sync,
+anti-aliasing and shadows.
 
 ## Repository layout
 

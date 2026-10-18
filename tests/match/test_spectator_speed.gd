@@ -120,17 +120,6 @@ func run(tree: SceneTree, check: Callable) -> void:
 	)
 	Input.action_press("spectator_fast_forward")
 	speed.refresh()
-	tree.paused = true
-	await tree.process_frame
-	await tree.process_frame
-	check.call(
-		Engine.time_scale == normal_scale, "Pause restores normal timing even under a paused parent"
-	)
-	tree.paused = false
-	Input.action_release("spectator_fast_forward")
-	speed.refresh()
-	Input.action_press("spectator_fast_forward")
-	speed.refresh()
 	speed.notification(Node.NOTIFICATION_APPLICATION_FOCUS_OUT)
 	check.call(Engine.time_scale == normal_scale, "Losing application focus stops fast-forward")
 	speed.notification(Node.NOTIFICATION_APPLICATION_FOCUS_IN)

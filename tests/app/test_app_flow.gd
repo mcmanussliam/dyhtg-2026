@@ -69,12 +69,14 @@ func run(tree: SceneTree, check: Callable) -> void:
 		_shown_text(app.screen).size() == 6, "Setup displays only its five options and a marker"
 	)
 	check.call(app.current_menu._items.size() == 5, "Right opens match setup")
-	check.call(app.current_menu._items[0] == "Players 2", "Setup counts all players")
-	for index in 9:
+	check.call(app.current_menu._items[0] == "Players 6", "Setup defaults to six players")
+	check.call(app.current_menu._items[1] == "First to 3 wins", "Setup defaults to first to three")
+	for index in 5:
 		await _tap(tree, &"menu_activate")
 	check.call(app.config.player_count == 2, "Player setup value wraps from ten to two")
 	await _tap(tree, &"menu_next")
-	await _tap(tree, &"menu_activate")
+	for index in 3:
+		await _tap(tree, &"menu_activate")
 	check.call(app.config.wins_needed == 1, "First-to target wraps from five to one")
 	await _tap(tree, &"menu_next")
 	await _tap(tree, &"menu_next")
@@ -107,15 +109,6 @@ func run(tree: SceneTree, check: Callable) -> void:
 		colours.size() == app.match_controller.state.participants.size(),
 		"AI colours avoid the selected player colour"
 	)
-	var pause := InputEventKey.new()
-	pause.physical_keycode = KEY_ESCAPE
-	pause.pressed = true
-	Input.parse_input_event(pause)
-	await tree.process_frame
-	check.call(tree.paused, "Escape pauses normal match")
-	Input.parse_input_event(pause.duplicate())
-	await tree.process_frame
-	check.call(not tree.paused, "Escape resumes normal match")
 	var previous_round := app.match_controller.round
 	previous_round.phase = RoundController.Phase.FINISHED
 	app.match_controller._on_completed(previous_round.round_id, -1)
@@ -148,7 +141,6 @@ func run(tree: SceneTree, check: Callable) -> void:
 	)
 	await tree.process_frame
 	check.call(not is_instance_valid(old_match), "Returning home frees the finished match")
-	check.call(not tree.paused, "Home clears pause state")
 	app.show_setup()
 	await tree.process_frame
 	app.current_menu.chosen = 4
@@ -160,14 +152,17 @@ func run(tree: SceneTree, check: Callable) -> void:
 	await tree.process_frame
 	check.call(app.current_menu is SettingsMenu, "Home opens Settings using two keys")
 	check.call(
-		app.current_menu._items == PackedStringArray(["Anti-aliasing", "Shadow quality", "Back"]),
-		"Settings contains only the two graphics options and Back"
+		(
+			app.current_menu._items == PackedStringArray(SettingsMenu.LABELS)
+			and SettingsMenu.LABELS[-1] == "Back"
+		),
+		"Settings lists display and graphics options, then Back"
 	)
 	var original_aa: int = app.settings.values.aa
-	app.current_menu.chosen = 0
+	app.current_menu.chosen = SettingsMenu.KEYS.find("aa")
 	await _tap(tree, &"menu_activate")
 	check.call(app.settings.values.aa != original_aa, "Right changes the selected setting")
-	app.current_menu.chosen = 2
+	app.current_menu.chosen = SettingsMenu.KEYS.size()
 	await _tap(tree, &"menu_activate")
 	await tree.process_frame
 	check.call(app.current_menu._items[2] == "Settings", "Settings Back returns home")

@@ -18,7 +18,6 @@ var _normal_max_steps := 8
 
 
 func _ready() -> void:
-	process_mode = Node.PROCESS_MODE_ALWAYS
 	_instruction = _panel("Hold the right arrow to fast forward")
 	_hint = _panel("Fast forwarding %d×" % MULTIPLIER)
 	for panel in [_instruction, _hint]:
@@ -77,12 +76,7 @@ func _process(_delta: float) -> void:
 
 
 func refresh() -> void:
-	var available: bool = (
-		_focused
-		and not get_tree().paused
-		and can_fast_forward.is_valid()
-		and can_fast_forward.call()
-	)
+	var available: bool = _focused and can_fast_forward.is_valid() and can_fast_forward.call()
 	var held := Input.is_action_pressed("spectator_fast_forward")
 	if not available:
 		_armed = false

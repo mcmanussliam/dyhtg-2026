@@ -4,8 +4,8 @@ extends TwoKeyMenu
 
 signal back_requested
 
-const KEYS := ["aa", "shadows"]
-const LABELS := ["Anti-aliasing", "Shadow quality", "Back"]
+const KEYS := ["display", "resolution", "vsync", "aa", "shadows"]
+const LABELS := ["Display", "Resolution", "V-Sync", "Anti-aliasing", "Shadow quality", "Back"]
 
 var settings: GameSettings
 var profile_path := ""
@@ -24,6 +24,8 @@ func _refresh_options() -> void:
 		option_values.append(settings.value_label(key))
 	option_values.append("")
 	set_items(PackedStringArray(LABELS), option_values)
+	# Fullscreen always uses the display's native size.
+	set_item_enabled(KEYS.find("resolution"), settings.values.display == 0)
 
 
 func _change(index: int) -> void:

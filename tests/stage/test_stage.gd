@@ -130,20 +130,11 @@ func run(tree: SceneTree, check: Callable) -> void:
 	rules.stop_round()
 	rules.tick_hazards(5.0)
 	check.call(is_equal_approx(rules.danger_radius, 95), "Hazards advance only during live round")
-	rules.process_mode = Node.PROCESS_MODE_PAUSABLE
 	rules.start_round()
-	var before_pause := rules.danger_radius
-	tree.paused = true
+	var before := rules.danger_radius
 	await tree.physics_frame
 	await tree.physics_frame
-	check.call(
-		is_equal_approx(rules.danger_radius, before_pause),
-		"Tree pause suspends stage hazard processing"
-	)
-	tree.paused = false
-	await tree.physics_frame
-	await tree.physics_frame
-	check.call(rules.danger_radius < before_pause, "Stage hazards resume after tree pause")
+	check.call(rules.danger_radius < before, "Stage hazards advance on the live physics clock")
 	rules.stop_round()
 	rules.queue_free()
 	await tree.process_frame

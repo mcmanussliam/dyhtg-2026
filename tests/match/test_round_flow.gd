@@ -8,6 +8,7 @@ const STAGE = preload("res://game/stage/a_floor_in_the_crack/a_floor_in_the_crac
 
 func run(tree: SceneTree, check: Callable) -> void:
 	var config := MatchConfig.new()
+	config.wins_needed = 5
 	config.player_count = 3
 	var state := MatchState.new()
 	state.configure(config)
@@ -92,7 +93,6 @@ func run(tree: SceneTree, check: Callable) -> void:
 	await tree.process_frame
 	await _test_match_lifetime(tree, check)
 	await _test_cancelled_transitions(tree, check)
-	await _test_paused_intro(tree, check)
 	await _test_startup_ramp(tree, check)
 	await _test_ramped_push(tree, check)
 
@@ -101,6 +101,7 @@ func _test_match_lifetime(tree: SceneTree, check: Callable) -> void:
 	var match_controller := MatchController.new()
 	tree.root.add_child(match_controller)
 	var config := MatchConfig.new()
+	config.player_count = 2
 	config.wins_needed = 2
 	match_controller.start(config)
 	var first := match_controller.round
@@ -152,6 +153,8 @@ func _test_cancelled_transitions(tree: SceneTree, check: Callable) -> void:
 	var controller := MatchController.new()
 	tree.root.add_child(controller)
 	var config := MatchConfig.new()
+	config.player_count = 2
+	config.wins_needed = 5
 	controller.start(config)
 	_finish_round(controller.round)
 	controller.continue_round()
@@ -174,28 +177,10 @@ func _test_cancelled_transitions(tree: SceneTree, check: Callable) -> void:
 	await tree.process_frame
 
 
-func _test_paused_intro(tree: SceneTree, check: Callable) -> void:
-	var controller := MatchController.new()
-	tree.root.add_child(controller)
-	controller.start(MatchConfig.new())
-	controller.round.intro_duration = 0.01
-	controller.round.startup_duration = 0.01
-	tree.paused = true
-	await tree.create_timer(0.05, true).timeout
-	check.call(controller.round.phase == RoundController.Phase.INTRO, "Pause stops intro countdown")
-	check.call(not controller.round.stage.round_running, "Paused intro cannot start map hazards")
-	check.call(not controller.round.chairs[0].spraying, "Paused intro cannot activate extinguisher")
-	tree.paused = false
-	await tree.physics_frame
-	await tree.physics_frame
-	await tree.physics_frame
-	check.call(controller.round.phase == RoundController.Phase.LIVE, "Resume continues intro clock")
-	controller.queue_free()
-	await tree.process_frame
-
-
 func _test_startup_ramp(tree: SceneTree, check: Callable) -> void:
 	var config := MatchConfig.new()
+	config.player_count = 2
+	config.wins_needed = 5
 	var state := MatchState.new()
 	state.configure(config)
 	for definition in config.stages:

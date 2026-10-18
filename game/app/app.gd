@@ -19,7 +19,6 @@ var _backdrop: HomeBackdrop
 
 
 func _ready() -> void:
-	process_mode = Node.PROCESS_MODE_ALWAYS
 	if not appearance_path.is_empty():
 		config.appearance = CharacterAppearance.load_profile(appearance_path)
 	if not settings_path.is_empty():
@@ -43,18 +42,6 @@ func _process(_delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if (
-		event is InputEventKey
-		and event.physical_keycode == KEY_ESCAPE
-		and event.pressed
-		and not event.echo
-		and is_instance_valid(match_controller)
-		and is_instance_valid(match_controller.round)
-		and match_controller.round.phase != RoundController.Phase.FINISHED
-	):
-		get_tree().paused = not get_tree().paused
-		get_viewport().set_input_as_handled()
-		return
 	if _guard and (event.is_action("menu_next") or event.is_action("menu_activate")):
 		get_viewport().set_input_as_handled()
 
@@ -82,7 +69,6 @@ func _clear_screen() -> void:
 
 
 func _clear_match() -> void:
-	get_tree().paused = false
 	if is_instance_valid(match_controller):
 		remove_child(match_controller)
 		match_controller.queue_free()
@@ -230,7 +216,6 @@ func _start_match() -> void:
 	_clear_screen()
 	_clear_match()
 	match_controller = MatchController.new()
-	match_controller.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(match_controller)
 	match_controller.results_ready.connect(_show_results)
 	match_controller.start(config)

@@ -56,6 +56,28 @@ Do not run editor imports concurrently with native captures. When scripting a
 capture, allow scene/render state to update before forcing a draw. Repair stale
 ignored editor tabs after resource moves instead of adding compatibility assets.
 
+## App icon and splash
+
+`game/app/art/icon.png` and `splash.png` are rendered from the real game models.
+After changing characters, the bull or the office, regenerate them natively:
+
+```sh
+godot --path . --script tools/render_branding.gd
+```
+
+## Export builds
+
+`export_presets.cfg` defines Windows, macOS and Linux (also Steam Deck) builds into
+the ignored `builds/` folder; tests, tools, docs and the sandbox are excluded. Install
+the 4.7.2 export templates once (Editor → Manage Export Templates), then:
+
+```sh
+godot --headless --path . --export-release "Windows Desktop" "builds/windows/Dilly Dallying.exe"
+```
+
+Replace the placeholder macOS bundle identifier (`com.dillydallying.game`) with your
+own before signing or publishing.
+
 ## Before committing
 
 Review resource paths, `.uid` sidecars and import descriptors after moves. Keep

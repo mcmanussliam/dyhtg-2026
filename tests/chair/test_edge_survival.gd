@@ -4,7 +4,9 @@ extends RefCounted
 
 func run(tree: SceneTree, check: Callable) -> void:
 	var state := MatchState.new()
-	state.configure(MatchConfig.new())
+	var duel := MatchConfig.new()
+	duel.player_count = 2
+	state.configure(duel)
 	var round_scene := preload("res://game/round/round.tscn").instantiate() as RoundController
 	round_scene.configure(state.participants, MatchConfig.default_stage(), 1, 5)
 	tree.root.add_child(round_scene)

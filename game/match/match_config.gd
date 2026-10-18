@@ -20,8 +20,8 @@ const STAGE_PATHS := [
 # The available registry stays complete while this array holds the chosen map pool.
 @export var stages: Array[StageDefinition] = available_stages()
 
-@export_range(2, 10, 1) var player_count: int = MIN_PLAYERS
-@export_range(1, 5, 1) var wins_needed: int = 5
+@export_range(2, 10, 1) var player_count: int = 6
+@export_range(1, 5, 1) var wins_needed: int = 3
 @export var appearance: CharacterAppearance = CharacterAppearance.new()
 
 var player_colour: Color:

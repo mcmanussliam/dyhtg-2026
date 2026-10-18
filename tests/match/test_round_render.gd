@@ -8,7 +8,9 @@ const SCALE = 43.0
 
 func run(tree: SceneTree, check: Callable) -> void:
 	var state := MatchState.new()
-	state.configure(MatchConfig.new())
+	var duel := MatchConfig.new()
+	duel.player_count = 2
+	state.configure(duel)
 	var round_scene := ROUND.instantiate() as RoundController
 	round_scene.configure(state.participants, STAGE, 1, 5)
 	tree.root.add_child(round_scene)
@@ -186,14 +188,6 @@ func _test_fall(
 			if other == platform:
 				touched[0] = true
 	)
-	var before_pause := body.global_transform
-	tree.paused = true
-	await tree.create_timer(0.05, true).timeout
-	check.call(
-		body.global_transform.is_equal_approx(before_pause),
-		"Pause stops native falling-body simulation"
-	)
-	tree.paused = false
 	var initial_height := body.position.y
 	var tipped := false
 	for frame in 90:

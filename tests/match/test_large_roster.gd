@@ -4,7 +4,10 @@ extends RefCounted
 
 func run(tree: SceneTree, check: Callable) -> void:
 	var config := MatchConfig.new()
-	check.call(config.player_count == 2, "Default roster is one human and one AI")
+	check.call(
+		config.player_count == 6 and config.wins_needed == 3,
+		"Default match is one human and five AI, first to three"
+	)
 	config.player_count = MatchConfig.MAX_PLAYERS
 	var state := MatchState.new()
 	state.configure(config)

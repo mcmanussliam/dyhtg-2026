@@ -33,7 +33,7 @@ func run(tree: SceneTree, check: Callable) -> void:
 	)
 	var migrated := ProfileStore.load_file(path)
 	check.call(
-		migrated.get_section_keys("settings").size() == 2,
+		migrated.get_section_keys("settings").size() == GameSettings.DEFAULTS.size(),
 		"Obsolete preferences are ignored and removed on save"
 	)
 	var preview := SubViewport.new()
@@ -52,6 +52,33 @@ func run(tree: SceneTree, check: Callable) -> void:
 	check.call(
 		not next_world.get_node("KeyLight").shadow_enabled, "New worlds inherit shadow preferences"
 	)
+	var display := GameSettings.new()
+	check.call(
+		(
+			display.value_label("display") == "Windowed"
+			and display.value_label("resolution") == "1280 × 800"
+			and display.value_label("vsync") == "On"
+		),
+		"Defaults are a 1280 × 800 window with V-Sync"
+	)
+	check.call(
+		GameSettings.RESOLUTIONS.all(
+			func(size: Vector2i) -> bool: return size.x * 10 == size.y * 16
+		),
+		"Every window size keeps the game's 16:10 layout"
+	)
+	var menu := SettingsMenu.new()
+	menu.settings = display
+	menu.apply_changes = false
+	tree.root.add_child(menu)
+	var resolution := SettingsMenu.KEYS.find("resolution")
+	check.call(not menu._disabled_items.has(resolution), "Resolution is adjustable when windowed")
+	menu._change(SettingsMenu.KEYS.find("display"))
+	check.call(
+		display.value_label("display") == "Fullscreen" and menu._disabled_items.has(resolution),
+		"Fullscreen uses the native display, so Resolution is greyed out"
+	)
+	menu.queue_free()
 	GameSettings.new().apply(tree.root)
 	preview.queue_free()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))

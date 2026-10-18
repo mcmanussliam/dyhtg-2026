@@ -114,7 +114,9 @@ func run(tree: SceneTree, check: Callable) -> void:
 
 func _test_knockout(tree: SceneTree, check: Callable) -> void:
 	var state := MatchState.new()
-	state.configure(MatchConfig.new())
+	var duel := MatchConfig.new()
+	duel.player_count = 2
+	state.configure(duel)
 	var round_scene := RoundController.new()
 	round_scene.configure(state.participants, DEFINITION, 1, 5)
 	tree.root.add_child(round_scene)

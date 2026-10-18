@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://game/stage/after_hours/after_hours.gd" id="1"]
 [ext_resource type="PackedScene" path="res://game/props/desk/office_desk.tscn" id="2"]
@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" path="res://game/props/copier/office_copier.tscn" id="5"]
 [ext_resource type="PackedScene" path="res://game/props/plant/office_plant.tscn" id="6"]
 [ext_resource type="PackedScene" path="res://game/props/task_chair/office_task_chair.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://game/props/desk_divider/office_desk_divider.tscn" id="8"]
 
 [node name="AfterHours" type="Node2D"]
 script = ExtResource("1")
@@ -157,3 +158,27 @@ rotation = 3.1415927
 [node name="PodDChairSE" parent="Furniture" instance=ExtResource("7")]
 position = Vector2(979.08, 805.54)
 rotation = 3.1415927
+
+[node name="PodADividerW" parent="Furniture" instance=ExtResource("8")]
+position = Vector2(299.92, 167)
+
+[node name="PodADividerE" parent="Furniture" instance=ExtResource("8")]
+position = Vector2(434.08, 167)
+
+[node name="PodBDividerW" parent="Furniture" instance=ExtResource("8")]
+position = Vector2(844.92, 167)
+
+[node name="PodBDividerE" parent="Furniture" instance=ExtResource("8")]
+position = Vector2(979.08, 167)
+
+[node name="PodCDividerW" parent="Furniture" instance=ExtResource("8")]
+position = Vector2(299.92, 687)
+
+[node name="PodCDividerE" parent="Furniture" instance=ExtResource("8")]
+position = Vector2(434.08, 687)
+
+[node name="PodDDividerW" parent="Furniture" instance=ExtResource("8")]
+position = Vector2(844.92, 687)
+
+[node name="PodDDividerE" parent="Furniture" instance=ExtResource("8")]
+position = Vector2(979.08, 687)

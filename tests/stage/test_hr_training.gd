@@ -308,7 +308,9 @@ func _check_concurrency(tree: SceneTree, check: Callable) -> void:
 
 func _check_round(tree: SceneTree, check: Callable) -> void:
 	var state := MatchState.new()
-	state.configure(MatchConfig.new())
+	var duel := MatchConfig.new()
+	duel.player_count = 2
+	state.configure(duel)
 	var round_scene := load("res://game/round/round.tscn").instantiate() as RoundController
 	round_scene.configure(state.participants, DEFINITION, 1, 5)
 	tree.root.add_child(round_scene)

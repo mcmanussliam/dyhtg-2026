@@ -152,6 +152,8 @@ func _check_spray(tree: SceneTree, check: Callable) -> void:
 
 func _check_warmup(tree: SceneTree, check: Callable) -> void:
 	var config := MatchConfig.new()
+	config.player_count = 2
+	config.wins_needed = 5
 	var state := MatchState.new()
 	state.configure(config)
 	var arena := RoundController.new()
