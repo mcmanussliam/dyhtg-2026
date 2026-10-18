@@ -7,7 +7,14 @@ func run(tree: SceneTree, check: Callable) -> void:
 	tree.root.add_child(menu)
 	menu.set_items(PackedStringArray(["One", "Two", "Three"]))
 	var labels := menu.find_children("*", "Label", true, false)
-	check.call(labels.size() == 3, "Menus contain only their option text")
+	var shown := labels.map(func(label: Label): return label.text)
+	check.call(
+		(
+			shown.filter(func(text: String): return not text.is_empty())
+			== [">", "One", "Two", "Three"]
+		),
+		"Menus contain only their option text and one selection marker"
+	)
 	var all_white := true
 	for label in labels:
 		all_white = (

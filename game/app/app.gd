@@ -2,6 +2,9 @@ class_name GameApp
 extends Node
 ## Owns screen lifetime and translates menu intentions into match operations.
 
+## Office-page menus sit this far in from the bottom-left corner.
+const MENU_INSET := Vector2(56, 56)
+
 @export var config: MatchConfig = MatchConfig.new()
 var settings := GameSettings.new()
 var settings_path := "user://settings.cfg"
@@ -89,7 +92,7 @@ func _clear_match() -> void:
 func show_home() -> void:
 	_clear_screen()
 	_clear_match()
-	_build_office_page()
+	_build_office_page(null, TwoKeyMenu.height_for(4))
 	current_menu.set_items(PackedStringArray(["Play", "Customise", "Settings", "Quit"]))
 	current_menu.activated.connect(_home_action)
 	_guard_transition()
@@ -97,7 +100,7 @@ func show_home() -> void:
 
 func show_setup() -> void:
 	_clear_screen()
-	_build_office_page(null, 368)
+	_build_office_page(null, TwoKeyMenu.height_for(5))
 	_setup_labels()
 	current_menu.activated.connect(_setup_action)
 	_guard_transition()
@@ -108,12 +111,12 @@ func show_map_selection() -> void:
 	var menu := MapSelectionMenu.new()
 	menu.config = config
 	menu.back_requested.connect(func(): show_setup.call_deferred())
-	_build_office_page(menu, 368)
-	current_menu.offset_right = 800
+	_build_office_page(menu, TwoKeyMenu.height_for(5))
+	current_menu.offset_right = MENU_INSET.x + 768
 	_guard_transition()
 
 
-func _build_office_page(menu: TwoKeyMenu = null, menu_height: int = 292) -> void:
+func _build_office_page(menu: TwoKeyMenu, menu_height: int) -> void:
 	screen = Control.new()
 	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_ui.add_child(screen)
@@ -125,15 +128,15 @@ func _build_office_page(menu: TwoKeyMenu = null, menu_height: int = 292) -> void
 	current_menu = menu if menu != null else TwoKeyMenu.new()
 	screen.add_child(current_menu)
 	current_menu.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	current_menu.offset_left = 32
-	current_menu.offset_right = 472
-	current_menu.offset_top = -menu_height - 32
-	current_menu.offset_bottom = -32
+	current_menu.offset_left = MENU_INSET.x
+	current_menu.offset_right = MENU_INSET.x + 440
+	current_menu.offset_top = -menu_height - MENU_INSET.y
+	current_menu.offset_bottom = -MENU_INSET.y
 
 
 func show_customisation() -> void:
 	_clear_screen()
-	_build_office_page(null, 222)
+	_build_office_page(null, TwoKeyMenu.height_for(4))
 	_customisation_labels()
 	current_menu.activated.connect(_customisation_action)
 	_guard_transition()
@@ -269,6 +272,6 @@ func show_settings() -> void:
 	menu.profile_path = settings_path
 	menu.apply_changes = not settings_path.is_empty()
 	menu.back_requested.connect(func(): show_home.call_deferred())
-	_build_office_page(menu, 128)
-	current_menu.offset_right = 582
+	_build_office_page(menu, TwoKeyMenu.height_for(SettingsMenu.LABELS.size()))
+	current_menu.offset_right = MENU_INSET.x + 550
 	_guard_transition()

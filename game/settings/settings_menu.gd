@@ -13,8 +13,6 @@ var apply_changes := true
 
 
 func _ready() -> void:
-	option_font_size = 24
-	option_row_height = 36
 	super._ready()
 	_refresh_options()
 	activated.connect(_change)

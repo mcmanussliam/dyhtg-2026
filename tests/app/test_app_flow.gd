@@ -13,7 +13,7 @@ func run(tree: SceneTree, check: Callable) -> void:
 		"App boots into focused home menu"
 	)
 	check.call(
-		app.screen.find_children("*", "Label", true, false).size() == 4,
+		_shown_text(app.screen) == [">", "Play", "Customise", "Settings", "Quit"],
 		"Home displays Play, Customise, Settings and Quit"
 	)
 	await _tap(tree, &"menu_next")
@@ -66,8 +66,7 @@ func run(tree: SceneTree, check: Callable) -> void:
 	await _tap(tree, &"menu_activate")
 	await tree.process_frame
 	check.call(
-		app.screen.find_children("*", "Label", true, false).size() == 5,
-		"Setup displays only its five options"
+		_shown_text(app.screen).size() == 6, "Setup displays only its five options and a marker"
 	)
 	check.call(app.current_menu._items.size() == 5, "Right opens match setup")
 	check.call(app.current_menu._items[0] == "Players 2", "Setup counts all players")
@@ -189,3 +188,13 @@ func _tap(tree: SceneTree, action: StringName) -> void:
 	release.physical_keycode = press.physical_keycode
 	Input.parse_input_event(release)
 	await tree.process_frame
+
+
+## Non-empty label text on screen, in tree order: each menu row's marker then its option.
+func _shown_text(screen: Control) -> Array:
+	return (
+		screen
+		. find_children("*", "Label", true, false)
+		. map(func(label: Label): return label.text)
+		. filter(func(text: String): return not text.is_empty())
+	)
