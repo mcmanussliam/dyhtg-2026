@@ -4,6 +4,8 @@ extends OfficeStage
 ## lit player is chased until hard furniture breaks the guard's sight. Guards arrive
 ## through the rear door on the live round clock, up to a nightly limit.
 
+const NET_STRIDE := 6
+
 @export_range(0.0, 30.0, 0.5) var first_arrival := 2.5
 @export_range(3.0, 60.0, 1.0) var arrival_interval := 16.0
 @export_range(1, 8, 1) var max_guards := 4
@@ -95,12 +97,35 @@ func is_spawn_safe(world_point: Vector2, clearance: float) -> bool:
 func tick_hazards(delta: float) -> void:
 	if not round_running:
 		return
+	if net_mirror:
+		for guard in guards:
+			guard.mirror_tick(delta)
+		return
 	_elapsed += delta
 	for guard in guards:
 		guard.tick(delta)
 	if _elapsed >= _next_arrival and guards.size() < max_guards and _entrance_clear():
 		_add_guard()
 		_next_arrival = _elapsed + arrival_interval
+
+
+## Host: six floats per guard, in arrival order. Clients add arrivals on demand.
+func net_state() -> Variant:
+	var state := PackedFloat32Array()
+	state.resize(guards.size() * NET_STRIDE)
+	for index in guards.size():
+		guards[index].write_net_state(state, index * NET_STRIDE)
+	return state
+
+
+func apply_net_state(state: Variant) -> void:
+	if not state is PackedFloat32Array:
+		return
+	var count := mini(state.size() / NET_STRIDE, max_guards)
+	while guards.size() < count:
+		_add_guard()
+	for index in count:
+		guards[index].apply_mirror(state, index * NET_STRIDE)
 
 
 func _entrance_clear() -> bool:

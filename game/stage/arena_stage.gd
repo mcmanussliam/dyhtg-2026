@@ -8,6 +8,8 @@ extends Node2D
 signal elimination_requested(seat: int, reason: StringName)
 signal round_started
 signal round_stopped
+## Host only: a discrete change clients must replay (see docs/multiplayer.md).
+signal net_event(payload: Variant)
 
 @export_group("Presentation")
 @export_range(640.0, 2560.0, 1.0) var view_width: float = 1280.0
@@ -18,6 +20,8 @@ signal round_stopped
 @export_range(0.0, 150.0, 1.0) var ai_edge_margin := 0.0
 
 var round_running: bool = false
+## Online clients only display hazards; the host decides everything.
+var net_mirror := false
 
 
 func has_support(_world_point: Vector2) -> bool:
@@ -74,6 +78,25 @@ func stop_round() -> void:
 
 
 func tick_hazards(_delta: float) -> void:
+	pass
+
+
+func set_net_mirror(enabled: bool) -> void:
+	net_mirror = enabled
+
+
+## Host: continuous hazard state sent every physics frame. Keep it small.
+func net_state() -> Variant:
+	return null
+
+
+## Client: show the host's continuous hazard state.
+func apply_net_state(_state: Variant) -> void:
+	pass
+
+
+## Client: replay a discrete change from the host's `net_event`.
+func apply_net_event(_payload: Variant) -> void:
 	pass
 
 

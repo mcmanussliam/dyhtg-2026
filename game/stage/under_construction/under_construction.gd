@@ -11,6 +11,7 @@ const OPENING := 170.0
 ## The wall is cut a little wider than the digger; ragged brick fills the difference.
 const WALL_CUT := OPENING + 36.0
 const MAX_VEHICLES := 12
+const NET_STRIDE := 5
 
 @export_range(1.0, 10.0, 0.5) var first_warning := 2.5
 @export_range(2.0, 30.0, 0.5) var arrival_interval := 4.0
@@ -61,7 +62,7 @@ func current_interval() -> float:
 
 
 func tick_hazards(delta: float) -> void:
-	if not round_running:
+	if not round_running or net_mirror:
 		return
 	_elapsed += maxf(delta, 0)
 	for actor in vehicles:
@@ -69,6 +70,35 @@ func tick_hazards(delta: float) -> void:
 	if _elapsed >= _next_arrival:
 		# A busy roster retries shortly rather than accumulating a backlog.
 		_next_arrival = (_elapsed + (current_interval() if _dispatch() else 0.25))
+
+
+func set_net_mirror(enabled: bool) -> void:
+	super.set_net_mirror(enabled)
+	for actor in vehicles:
+		actor.mirror = enabled
+
+
+## Host: the difficulty clock, then five floats per pooled digger.
+func net_state() -> Variant:
+	var state := PackedFloat32Array()
+	state.resize(1 + vehicles.size() * NET_STRIDE)
+	state[0] = _elapsed
+	for index in vehicles.size():
+		vehicles[index].write_net_state(state, 1 + index * NET_STRIDE)
+	return state
+
+
+func apply_net_state(state: Variant) -> void:
+	if not state is PackedFloat32Array or state.size() != 1 + vehicles.size() * NET_STRIDE:
+		return
+	_elapsed = state[0]
+	for index in vehicles.size():
+		vehicles[index].apply_mirror(state, 1 + index * NET_STRIDE)
+
+
+## Smashed furniture is replayed from the host's `prop_hit` events.
+func apply_net_event(payload: Variant) -> void:
+	_apply_prop_hit(payload)
 
 
 func _dispatch() -> bool:

@@ -19,6 +19,8 @@ var _next_at := 16.2
 var _step := 0
 var _pending := PackedVector2Array()
 var _limits := PackedFloat32Array()
+var _sent_revision := 0
+var _sent_warning := 0
 
 
 func configure(radius: float, final_radius: float, expanding: bool) -> void:
@@ -46,6 +48,42 @@ func advance(delta: float) -> bool:
 	revision += 1
 	_step += 1
 	_next_at = elapsed + lerpf(2.0, 1.5, clampf((elapsed - grace_seconds) / 65, 0, 1))
+	_rebuild_limits()
+	return true
+
+
+## Host: the latest unsent change as a plain payload for clients, else null.
+## A step carries the whole outline, so a client never depends on missed warnings.
+func take_net_event() -> Variant:
+	if revision != _sent_revision:
+		_sent_revision = revision
+		_sent_warning = warning_revision
+		return {"k": "crack", "r": revision, "o": outline, "f": Array(fallen)}
+	if warning_revision != _sent_warning:
+		_sent_warning = warning_revision
+		return {"k": "crack_warn", "r": revision, "w": Array(warning)}
+	return null
+
+
+## Client: replay one host payload. Returns true when the outline itself changed.
+## Stale or repeated payloads are ignored; `fallen` holds the new departures until cleared.
+func apply_net_event(payload: Dictionary) -> bool:
+	var at: int = payload.get("r") if payload.get("r") is int else -1
+	if payload.get("k") == "crack_warn" and at == revision:
+		warning.clear()
+		for polygon: PackedVector2Array in payload.get("w", []):
+			warning.append(polygon)
+		warning_revision += 1
+		return false
+	if payload.get("k") != "crack" or at <= revision or not payload.get("o") is PackedVector2Array:
+		return false
+	fallen.clear()
+	for polygon: PackedVector2Array in payload.get("f", []):
+		fallen.append(polygon)
+	outline = payload.o
+	warning.clear()
+	warning_revision += 1
+	revision = at
 	_rebuild_limits()
 	return true
 

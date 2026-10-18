@@ -3,6 +3,8 @@ extends OfficeStage
 ## First bull starts centrally; later bulls enter through the shared saloon doorway.
 ## Arrivals use the live round clock, with no spawn timers outliving the scene.
 
+const NET_STRIDE := 5
+
 @export_range(3.0, 60.0, 1.0) var arrival_interval := 14.0
 @export_range(1, 12, 1) var max_bulls := 6
 
@@ -50,6 +52,12 @@ func is_spawn_safe(world_point: Vector2, clearance: float) -> bool:
 func tick_hazards(delta: float) -> void:
 	if not round_running:
 		return
+	if net_mirror:
+		for actor in bulls:
+			actor.mirror_tick(delta)
+		if is_instance_valid(_door):
+			_door.tick(delta)
+		return
 	_elapsed += delta
 	for actor in bulls:
 		actor.tick(delta)
@@ -58,6 +66,40 @@ func tick_hazards(delta: float) -> void:
 		_next_arrival = _elapsed + arrival_interval
 	if is_instance_valid(_door):
 		_door.tick(delta)
+
+
+func set_net_mirror(enabled: bool) -> void:
+	super.set_net_mirror(enabled)
+	if enabled:
+		for actor in bulls:
+			actor.collision_layer = 0
+			actor.collision_mask = 0
+
+
+## Host: five floats per bull, in arrival order. Clients add arrivals on demand.
+func net_state() -> Variant:
+	# A fresh array: packed arrays are shared by reference with the snapshot.
+	var state := PackedFloat32Array()
+	state.resize(bulls.size() * NET_STRIDE)
+	for index in bulls.size():
+		bulls[index].write_net_state(state, index * NET_STRIDE)
+	return state
+
+
+func apply_net_state(state: Variant) -> void:
+	if not state is PackedFloat32Array:
+		return
+	var count := mini(state.size() / NET_STRIDE, max_bulls)
+	while bulls.size() < count:
+		_add_bull()
+	for index in count:
+		var offset := index * NET_STRIDE
+		bulls[index].apply_mirror(
+			Vector2(state[offset], state[offset + 1]),
+			state[offset + 2],
+			int(state[offset + 3]),
+			state[offset + 4]
+		)
 
 
 func _entrance_clear() -> bool:

@@ -167,36 +167,51 @@ func create_presentation(parent: Node3D, units_per_pixel: float) -> void:
 
 
 func tick_hazards(delta: float) -> void:
-	if not round_running or _erosion == null:
+	if not round_running or _erosion == null or net_mirror:
 		return
 	var changed := _erosion.advance(delta)
 	if changed:
-		floor_outline()
-		queue_redraw()
-		if is_instance_valid(_platform):
-			var points := _erosion.outline.duplicate()
-			for index in points.size():
-				points[index] *= _units
-			var mesh := ColumnGeometry.build_outline(points, 24)
-			_platform.get_node("ColumnSurface").mesh = mesh
-			_platform.get_node("ColumnCollision").shape = mesh.create_trimesh_shape()
-			_platform.get_node("FloorSurface").mesh = ColumnGeometry.floor_outline_mesh(points)
-			for label in ["LoungeCarpet", "StorageCarpet"]:
-				var carpet := _world.get_node_or_null(label)
-				if carpet != null:
-					_world.remove_child(carpet)
-					carpet.queue_free()
-			_create_carpet(
-				_world, _units, Rect2(800, 475, 320, 340), Color("637672"), "LoungeCarpet"
-			)
-			_create_carpet(
-				_world, _units, Rect2(640, -30, 380, 330), Color("526979"), "StorageCarpet"
-			)
-		for prop in $Furniture.get_children():
-			if prop is OfficeProp:
-				prop.release_for_fracture(self, _erosion.fallen, center)
+		_apply_erosion_step()
 	if _fracture_view != null:
 		_fracture_view.refresh(_erosion, false)
+	var payload: Variant = _erosion.take_net_event()
+	if payload != null:
+		net_event.emit(payload)
+
+
+func apply_net_event(payload: Variant) -> void:
+	if not payload is Dictionary or _erosion == null:
+		return
+	if _erosion.apply_net_event(payload):
+		_apply_erosion_step()
+	if _fracture_view != null:
+		_fracture_view.refresh(_erosion, false)
+	# The host clears departures on its next step; a mirror spawns their debris once.
+	_erosion.fallen.clear()
+
+
+## Rebuild support, the column, carpets and released furniture from the new outline.
+func _apply_erosion_step() -> void:
+	floor_outline()
+	queue_redraw()
+	if is_instance_valid(_platform):
+		var points := _erosion.outline.duplicate()
+		for index in points.size():
+			points[index] *= _units
+		var mesh := ColumnGeometry.build_outline(points, 24)
+		_platform.get_node("ColumnSurface").mesh = mesh
+		_platform.get_node("ColumnCollision").shape = mesh.create_trimesh_shape()
+		_platform.get_node("FloorSurface").mesh = ColumnGeometry.floor_outline_mesh(points)
+		for label in ["LoungeCarpet", "StorageCarpet"]:
+			var carpet := _world.get_node_or_null(label)
+			if carpet != null:
+				_world.remove_child(carpet)
+				carpet.queue_free()
+		_create_carpet(_world, _units, Rect2(800, 475, 320, 340), Color("637672"), "LoungeCarpet")
+		_create_carpet(_world, _units, Rect2(640, -30, 380, 330), Color("526979"), "StorageCarpet")
+	for prop in $Furniture.get_children():
+		if prop is OfficeProp:
+			prop.release_for_fracture(self, _erosion.fallen, center)
 
 
 func stop_round() -> void:
