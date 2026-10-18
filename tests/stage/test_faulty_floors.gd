@@ -5,17 +5,6 @@ const DEFINITION = preload("res://game/stage/faulty_floors/faulty_floors.tres")
 
 
 func run(tree: SceneTree, check: Callable) -> void:
-	check.call(DEFINITION.validation_errors().is_empty(), "Faulty Floors definition validates")
-	check.call(
-		DEFINITION.display_name == "Faulty Floors" and DEFINITION.hint == "Watch your step",
-		"Faulty Floors has its own title and hint"
-	)
-	check.call(
-		MatchConfig.available_stages().any(
-			func(item: StageDefinition) -> bool: return item.id == &"faulty_floors"
-		),
-		"Map registry includes Faulty Floors"
-	)
 	var stage := DEFINITION.scene.instantiate() as FaultyFloorsStage
 	tree.root.add_child(stage)
 	stage.position = Vector2(35, -24)

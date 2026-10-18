@@ -112,7 +112,7 @@ func _dispatch() -> bool:
 func _target_point() -> Vector2:
 	var living: Array[Chair] = []
 	for chair in _chairs:
-		if is_instance_valid(chair) and chair.active and not chair.falling:
+		if is_instance_valid(chair) and chair.is_in_play():
 			living.append(chair)
 	if living.is_empty():
 		return to_global(center)
@@ -209,35 +209,18 @@ func is_path_safe(from: Vector2, destination: Vector2, margin: float = 0.0) -> b
 
 
 func safe_target(world_point: Vector2, margin: float = 90.0) -> Vector2:
-	var point := super.safe_target(world_point, margin)
-	for actor in vehicles:
-		if not actor.threatens(point, margin):
-			continue
-		var candidate := super.safe_target(actor.avoidance_target(point, margin), margin)
-		# A lane beside a wall has no outer refuge: retry towards the room interior.
-		if actor.threatens(candidate, margin):
-			candidate = super.safe_target(actor.avoidance_target(point, margin, true), margin)
-		point = candidate
-	return point
+	return _clear_of_lanes(world_point, vehicles, margin)
 
 
 func _create_opening_thresholds() -> void:
 	# Chairs bounce at the openings like at any wall; only diggers pass through them.
 	for lane in LANE_OFFSETS.size():
 		for point in lane_endpoints(lane):
-			var body := StaticBody2D.new()
-			body.name = "OpeningBarrier"
-			body.position = to_local(point)
-			body.collision_layer = 1
-			body.collision_mask = 3
-			body.physics_material_override = PhysicsMaterial.new()
-			body.physics_material_override.bounce = 0.75
-			body.physics_material_override.friction = 0.05
-			var collision := CollisionShape2D.new()
-			collision.shape = RectangleShape2D.new()
-			collision.shape.size = Vector2(24, WALL_CUT) if lane < 2 else Vector2(WALL_CUT, 24)
-			body.add_child(collision)
-			add_child(body)
+			add_barrier(
+				"OpeningBarrier",
+				to_local(point),
+				Vector2(24, WALL_CUT) if lane < 2 else Vector2(WALL_CUT, 24)
+			)
 
 
 func _create_rubble(parent: Node3D, units: float) -> void:
@@ -262,7 +245,7 @@ func _create_rubble(parent: Node3D, units: float) -> void:
 			var back: Vector2 = (base - direction * 15) * units
 			ModelGeometry.instance(
 				openings,
-				_box(
+				ModelGeometry.box_mesh(
 					(
 						Vector3(0.05, height, WALL_CUT * units)
 						if along_x
@@ -289,7 +272,7 @@ func _create_rubble(parent: Node3D, units: float) -> void:
 					)
 					ModelGeometry.instance(
 						openings,
-						_box(size),
+						ModelGeometry.box_mesh(size),
 						Vector3(point.x, piece_height * (course + 0.5), point.y),
 						brick if (seed % 3 == 0) else plaster
 					)
@@ -313,9 +296,3 @@ func _create_rubble(parent: Node3D, units: float) -> void:
 				)
 				piece.rotation.y = seed * 0.9
 	StaticModelBatcher.batch(openings)
-
-
-func _box(size: Vector3) -> BoxMesh:
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	return mesh

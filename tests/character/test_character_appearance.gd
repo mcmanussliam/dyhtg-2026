@@ -16,13 +16,6 @@ func run(tree: SceneTree, check: Callable) -> void:
 		check.call(appearance.hat_id == hat, "Hat cycle includes %s" % hat)
 		var hat_copy := appearance.validated_copy()
 		check.call(hat_copy.hat_id == hat, "Hat choice survives appearance snapshots")
-		var model := ChairModel.new()
-		model.build(Color("72d9ae"), appearance.resolved_skin(), hat)
-		check.call(
-			model.body.has_node("Hat") == (hat != &"none"),
-			"Hat attachment matches the selected slot"
-		)
-		model.free()
 		appearance.cycle_hat()
 	check.call(appearance.hat_id == &"none", "Hat choices wrap back to None")
 	check.call(
@@ -54,50 +47,6 @@ func run(tree: SceneTree, check: Callable) -> void:
 			equipped.resolved_skin() == skin,
 			"Every registered top resolves by stable ID: %s" % skin.id
 		)
-		if skin.id != &"default":
-			check.call(
-				skin.is_valid() and skin.garment_mesh != null,
-				"Clothing provides a separate mesh: %s" % skin.id
-			)
-		var dressed := ChairModel.new()
-		dressed.build(Color("72d9ae"), skin, &"construction_helmet")
-		var surface := dressed.body.get_node("ContinuousBody") as MeshInstance3D
-		check.call(
-			surface.mesh == SkinCatalog.default_definition().body_mesh,
-			"Clothing keeps the shared seamless body mesh"
-		)
-		if skin.garment != CharacterSkin.Garment.NONE:
-			check.call(
-				(
-					dressed.body.get_node("Clothing").material_override.get_shader_parameter(
-						"garment_kind"
-					)
-					== skin.garment
-				),
-				"Material uses the selected clothing silhouette"
-			)
-			check.call(
-				dressed.body.get_node("Clothing").mesh == skin.garment_mesh,
-				"Clothing renders its separate shell over the unchanged body"
-			)
-		if skin.chest_logo != null:
-			check.call(
-				(
-					dressed.body.get_node("Clothing").material_override.get_shader_parameter(
-						"has_logo"
-					)
-					== true
-				),
-				"Branded tops enable their contrast-safe logo"
-			)
-		check.call(
-			(
-				dressed.body.has_node("GarmentDetails")
-				== (skin.garment in [CharacterSkin.Garment.HOODIE, CharacterSkin.Garment.BOW_TIE])
-			),
-			"Only hoodies and the bow tie add shared detail geometry: %s" % skin.id
-		)
-		dressed.free()
 	var colour := appearance.resolved_colour()
 	check.call(colour in CharacterAppearance.PALETTE, "Random resolves to a supported colour")
 	check.call(appearance.resolved_colour() == colour, "Random stays stable across preview updates")

@@ -3,6 +3,7 @@ extends RefCounted
 
 
 func run(tree: SceneTree, check: Callable) -> void:
+	_test_registry(check)
 	var first := MatchConfig.default_stage().duplicate() as StageDefinition
 	var second := first.duplicate() as StageDefinition
 	second.id = &"test_second"
@@ -153,4 +154,24 @@ func _test_map_bag(check: Callable) -> void:
 	check.call(
 		config.stage_for_round(1).id == &"bag_4" and config.stage_for_round(2).id == &"bag_4",
 		"A single selected map simply repeats"
+	)
+
+
+## Every registered map is complete and starts in the default random pool.
+func _test_registry(check: Callable) -> void:
+	var ids := {}
+	for definition in MatchConfig.available_stages():
+		check.call(
+			(
+				definition.validation_errors().is_empty()
+				and not definition.hint.strip_edges().is_empty()
+				and not ids.has(definition.id)
+			),
+			"Registered map validates with a unique ID, title and hint: %s" % definition.id
+		)
+		ids[definition.id] = true
+	var pool := MatchConfig.new().stages.map(func(item: StageDefinition): return item.id)
+	check.call(
+		pool == MatchConfig.available_stages().map(func(item: StageDefinition): return item.id),
+		"The default random pool holds every registered map"
 	)

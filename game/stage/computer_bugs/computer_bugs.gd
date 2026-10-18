@@ -43,7 +43,6 @@ var _units := 1.0 / RenderStyle.PIXELS_PER_UNIT
 var _blob_material: ShaderMaterial
 var _blob: MeshInstance3D
 var _coverables: Array[Dictionary] = []
-var _radii_dirty := false
 var _zone_tick := 0
 var _beetles: BugMassView
 var _next_block := 0
@@ -224,7 +223,7 @@ func _choose_target() -> Vector2:
 	elif roll < 0.82:
 		var living: Array[Chair] = []
 		for chair in _chairs:
-			if is_instance_valid(chair) and chair.active and not chair.falling:
+			if is_instance_valid(chair) and chair.is_in_play():
 				living.append(chair)
 		if not living.is_empty():
 			var chair := living[_random.randi_range(0, living.size() - 1)]
@@ -306,7 +305,7 @@ func coverage() -> float:
 
 func _strike_chairs() -> void:
 	for chair in _chairs:
-		if not is_instance_valid(chair) or not chair.active or chair.falling:
+		if not is_instance_valid(chair) or not chair.is_in_play():
 			continue
 		# A clump in flight never kills: it must splat first, then the mass reaches the chair.
 		if not in_mush(chair.global_position, 0.0, true):
@@ -415,9 +414,7 @@ func create_presentation(parent: Node3D, units_per_pixel: float) -> void:
 			continue
 		_add_cover(child)
 	# Red floor markers, in the same flat translucent style as the bull's charge lane.
-	var warning := ModelGeometry.material(Color(0.95, 0.32, 0.15, 0.30))
-	warning.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	warning.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var warning := ModelGeometry.warning_material()
 	var disc := CylinderMesh.new()
 	disc.top_radius = IMPACT_RADIUS * units_per_pixel
 	disc.bottom_radius = disc.top_radius

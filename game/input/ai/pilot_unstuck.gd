@@ -33,7 +33,7 @@ func update(chair: Chair, chairs: Array[Chair], stage: ArenaStage, delta: float)
 		_stalled += elapsed
 	var neighbours := 0
 	for other in chairs:
-		if other != chair and other.active and not other.falling:
+		if other != chair and other.is_in_play():
 			if (
 				(
 					chair.global_position.distance_squared_to(other.global_position)
@@ -134,7 +134,7 @@ func _choose_goal(chair: Chair, chairs: Array[Chair], stage: ArenaStage) -> Vect
 		# sideways manoeuvre can clear a desk corner before another long escape.
 		var score := available - maxf(0, direction.dot(_failed_direction)) * available * 1.8
 		for other in chairs:
-			if other != chair and other.active and not other.falling:
+			if other != chair and other.is_in_play():
 				score -= maxf(0, 220 - goal.distance_to(other.global_position)) * 2.5
 				var closest := Geometry2D.get_closest_point_to_segment(
 					other.global_position, origin, goal

@@ -17,6 +17,17 @@ var _scatter := PackedVector2Array()
 var _seeds := PackedFloat32Array()
 var _sort_keys := PackedInt64Array()
 var _buffer := PackedFloat32Array()
+# Per-ball terms fixed by the seat, kept in double precision like the inline maths.
+var _prepared_seat := -1
+var _ball_seed := PackedFloat64Array()
+var _phase_base := PackedFloat64Array()
+var _phase_rate := PackedFloat64Array()
+var _radius_scale := PackedFloat64Array()
+var _seed_turn := PackedFloat64Array()
+var _scatter_scale := PackedFloat64Array()
+var _fade_span := PackedFloat64Array()
+var _fringe_reach := PackedFloat64Array()
+var _fringe_opacity := PackedFloat64Array()
 
 
 func _ready() -> void:
@@ -76,42 +87,41 @@ func update_plume(
 	var side := Vector3(-forward.z, 0, forward.x)
 	var cone := tan(deg_to_rad(chair.tuning.half_angle_degrees))
 	var spread_scale := 0.74 + sin(clock * 1.7 + chair.seat * 2.1) * 0.04
+	if chair.seat != _prepared_seat:
+		_prepare_seat(chair.seat)
+	var phase_offset := chair.seat * 0.137
+	var turn := chair.seat * 1.719
 	var visible_count := 0
 	for index in BALL_COUNT:
-		var seed := fposmod(_seeds[index] + chair.seat * 0.381966, 1.0)
-		var phase := (
-			float(index) / BALL_COUNT
-			+ seed * 0.23
-			+ clock * lerpf(1.45, 1.85, seed)
-			+ chair.seat * 0.137
-		)
+		var seed := _ball_seed[index]
+		var phase := _phase_base[index] + clock * _phase_rate[index] + phase_offset
 		var t := fposmod(phase, 1.0)
 		var life_seed := fposmod(sin(seed * 91.7 + floorf(phase) * 37.1) * 17453.37, 1.0)
 		var radius := minf(
-			lerpf(0.050, 0.215, t) * lerpf(0.72, 1.18, seed) * chair.size_scale, length * 0.24
+			lerpf(0.050, 0.215, t) * _radius_scale[index] * chair.size_scale, length * 0.24
 		)
 		var travel := lerpf(radius, maxf(radius, length - radius), t)
 		var spread := cone * travel * spread_scale
 		var scatter := (
-			_scatter[index].rotated(chair.seat * 1.719 + sin(t * 5.0 + seed * TAU) * 0.25)
-			* lerpf(0.65, 0.95, seed)
+			_scatter[index].rotated(turn + sin(t * 5.0 + _seed_turn[index]) * 0.25)
+			* _scatter_scale[index]
 		)
 		var offset := side * scatter.x * spread + Vector3.UP * scatter.y * spread * 0.65
 		var fringe := index % 10 == 0
 		if fringe:
 			var outward := -1.0 if scatter.x < 0 else 1.0
 			offset = (
-				side * outward * cone * travel * lerpf(1.05, 1.45, seed)
+				side * outward * cone * travel * _fringe_reach[index]
 				+ Vector3.UP * scatter.y * spread * 0.65
 			)
 		_positions[index] = nozzle + forward * travel + offset
 		_sizes[index] = radius * lerpf(0.35, 1.0, chair.jet_strength)
 		var fade_end := lerpf(0.76, 1.0, life_seed)
-		var fade_start := fade_end - lerpf(0.20, 0.40, seed)
+		var fade_start := fade_end - _fade_span[index]
 		var fade := 1.0 - smoothstep(fade_start, fade_end, t)
 		fade *= 1.0 - smoothstep(0.45, 1.0, scatter.length())
 		if fringe:
-			fade = (1.0 - smoothstep(fade_start, fade_end, t)) * lerpf(0.35, 0.60, seed)
+			fade = (1.0 - smoothstep(fade_start, fade_end, t)) * _fringe_opacity[index]
 		_opacity[index] = fade * smoothstep(0.0, 0.008, t) * chair.jet_strength
 		# Native integer sorting avoids thousands of script comparator calls per jet.
 		# 0.00001-unit depth precision is below any visible ordering difference.
@@ -135,3 +145,27 @@ func update_plume(
 		_buffer[base + 11] = _positions[index].z
 		_buffer[base + 15] = _opacity[index]
 	_balls.buffer = _buffer
+
+
+func _prepare_seat(seat: int) -> void:
+	_prepared_seat = seat
+	_ball_seed.resize(BALL_COUNT)
+	_phase_base.resize(BALL_COUNT)
+	_phase_rate.resize(BALL_COUNT)
+	_radius_scale.resize(BALL_COUNT)
+	_seed_turn.resize(BALL_COUNT)
+	_scatter_scale.resize(BALL_COUNT)
+	_fade_span.resize(BALL_COUNT)
+	_fringe_reach.resize(BALL_COUNT)
+	_fringe_opacity.resize(BALL_COUNT)
+	for index in BALL_COUNT:
+		var seed := fposmod(_seeds[index] + seat * 0.381966, 1.0)
+		_ball_seed[index] = seed
+		_phase_base[index] = float(index) / BALL_COUNT + seed * 0.23
+		_phase_rate[index] = lerpf(1.45, 1.85, seed)
+		_radius_scale[index] = lerpf(0.72, 1.18, seed)
+		_seed_turn[index] = seed * TAU
+		_scatter_scale[index] = lerpf(0.65, 0.95, seed)
+		_fade_span[index] = lerpf(0.20, 0.40, seed)
+		_fringe_reach[index] = lerpf(1.05, 1.45, seed)
+		_fringe_opacity[index] = lerpf(0.35, 0.60, seed)

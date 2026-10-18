@@ -24,6 +24,29 @@ static func material(
 	return result
 
 
+## Flat translucent red for hazard paths and drop markers.
+static func warning_material() -> StandardMaterial3D:
+	var result := material(Color(0.95, 0.32, 0.15, 0.30))
+	result.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	result.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	return result
+
+
+static func box_mesh(size: Vector3) -> Mesh:
+	var key := [&"box", size]
+	if not _meshes.has(key):
+		var mesh := BoxMesh.new()
+		mesh.size = size
+		_remember(key, mesh)
+	return _meshes[key]
+
+
+static func box(
+	parent: Node3D, centre: Vector3, size: Vector3, surface: Material
+) -> MeshInstance3D:
+	return instance(parent, box_mesh(size), centre, surface)
+
+
 static func instance(
 	parent: Node3D, mesh: Mesh, centre: Vector3, surface: Material
 ) -> MeshInstance3D:

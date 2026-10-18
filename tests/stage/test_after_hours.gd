@@ -4,17 +4,6 @@ extends RefCounted
 
 func run(tree: SceneTree, check: Callable) -> void:
 	var definition := load("res://game/stage/after_hours/after_hours.tres") as StageDefinition
-	check.call(definition.validation_errors().is_empty(), "After Hours validates")
-	check.call(
-		definition.display_name == "After Hours" and definition.hint == "Five nights in the office",
-		"After Hours has its authored title and subheading"
-	)
-	check.call(
-		MatchConfig.new().stages.any(
-			func(item: StageDefinition) -> bool: return item.id == &"after_hours"
-		),
-		"Random map pool includes After Hours"
-	)
 	var stage := definition.scene.instantiate() as OfficeStage
 	tree.root.add_child(stage)
 	var chairs := 0

@@ -154,7 +154,7 @@ func _physics_process(delta: float) -> void:
 			_spray.apply(chair, chairs, delta)
 		stage.tick_hazards(delta)
 		for chair in chairs:
-			if chair.active and not chair.falling:
+			if chair.is_in_play():
 				var reason := stage.elimination_reason(chair.global_position)
 				if reason == &"fall":
 					# Tiny rim tolerance preserves partial wheel overhang. Once the center

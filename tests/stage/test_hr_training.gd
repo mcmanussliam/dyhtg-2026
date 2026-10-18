@@ -5,17 +5,6 @@ const DEFINITION = preload("res://game/stage/hr_training/hr_training.tres")
 
 
 func run(tree: SceneTree, check: Callable) -> void:
-	check.call(DEFINITION.validation_errors().is_empty(), "HR Training definition validates")
-	check.call(
-		DEFINITION.display_name == "HR Training" and DEFINITION.hint == "Mind the gap",
-		"HR Training uses the authored title and hint"
-	)
-	check.call(
-		MatchConfig.new().stages.any(
-			func(item: StageDefinition) -> bool: return item.id == &"hr_training"
-		),
-		"Random stage selection includes HR Training"
-	)
 	var stage := DEFINITION.scene.instantiate() as OfficeStage
 	tree.root.add_child(stage)
 	check.call(stage.has_support(stage.to_global(stage.center)), "HR Training has a solid floor")

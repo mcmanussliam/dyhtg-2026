@@ -6,20 +6,6 @@ const STEP := 1.0 / 60
 
 
 func run(tree: SceneTree, check: Callable) -> void:
-	check.call(DEFINITION.validation_errors().is_empty(), "Construction map validates")
-	check.call(
-		(
-			DEFINITION.display_name == "Under Construction"
-			and DEFINITION.hint == "Better wear a hard hat"
-		),
-		"Construction map has its authored title and hint"
-	)
-	check.call(
-		MatchConfig.available_stages().any(
-			func(item: StageDefinition) -> bool: return item.id == &"under_construction"
-		),
-		"Random pool and map selector include Under Construction"
-	)
 	var stage := DEFINITION.scene.instantiate() as UnderConstructionStage
 	tree.root.add_child(stage)
 	var world := Node3D.new()

@@ -178,15 +178,9 @@ func _create_wall_details(parent: Node3D, units: float) -> void:
 	var dark := ModelGeometry.material(Color("07090d"), 0, 1)
 	dark.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	for side in [-1.0, 1.0]:
-		_box(door, Vector3(side * 0.86, 1.27, 0.02), Vector3(0.13, 2.54, 0.18), frame)
-	_box(door, Vector3(0, 2.48, 0.02), Vector3(1.85, 0.12, 0.18), frame)
-	_box(door, Vector3(0, 1.21, 0.0), Vector3(1.6, 2.42, 0.1), dark)
-
-
-func _box(parent: Node3D, centre: Vector3, size: Vector3, material: Material) -> void:
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	ModelGeometry.instance(parent, mesh, centre, material)
+		ModelGeometry.box(door, Vector3(side * 0.86, 1.27, 0.02), Vector3(0.13, 2.54, 0.18), frame)
+	ModelGeometry.box(door, Vector3(0, 2.48, 0.02), Vector3(1.85, 0.12, 0.18), frame)
+	ModelGeometry.box(door, Vector3(0, 1.21, 0.0), Vector3(1.6, 2.42, 0.1), dark)
 
 
 func is_safe(world_point: Vector2, margin: float = 0.0) -> bool:

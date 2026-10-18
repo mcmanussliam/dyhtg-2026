@@ -149,7 +149,7 @@ func stop_drive() -> void:
 
 
 func begin_fall() -> void:
-	if not active or falling:
+	if not is_in_play():
 		return
 	fall_velocity = linear_velocity
 	fall_spin = angular_velocity
@@ -178,8 +178,21 @@ func confirm_fall() -> void:
 		fall_confirmed.emit(seat)
 
 
+## Still driving on the floor: neither eliminated nor falling.
+func is_in_play() -> bool:
+	return active and not falling
+
+
+## Throw the chair along `direction`, keeping a fifth of its own momentum, with a tumble.
+func knock_out(direction: Vector2, speed: float, lift: float, tumble: float) -> void:
+	var planar := (direction * speed + linear_velocity * 0.20) / RenderStyle.PIXELS_PER_UNIT
+	var roll := Vector3(direction.y, 0, -direction.x) * tumble
+	roll.y = 3.5
+	set_knockout_launch(Vector3(planar.x, lift, planar.y), roll)
+
+
 func set_knockout_launch(velocity: Vector3, spin: Vector3) -> void:
-	if active and not falling:
+	if is_in_play():
 		knockout_velocity = velocity
 		knockout_spin = spin
 

@@ -15,19 +15,24 @@ func _ready() -> void:
 		prop.resize_for_stage(content_scale)
 	for side in 4:
 		for section in wall_sections(side):
-			var body := StaticBody2D.new()
-			body.name = "Wall%d" % side
-			body.position = section.get_center()
-			body.collision_layer = 1
-			body.collision_mask = 3
-			body.physics_material_override = PhysicsMaterial.new()
-			body.physics_material_override.bounce = 0.75
-			body.physics_material_override.friction = 0.05
-			var collision := CollisionShape2D.new()
-			collision.shape = RectangleShape2D.new()
-			collision.shape.size = section.size
-			body.add_child(collision)
-			add_child(body)
+			add_barrier("Wall%d" % side, section.get_center(), section.size)
+
+
+## A bouncy, solid rectangle for chairs and props, in local coordinates.
+func add_barrier(label: String, local_center: Vector2, size: Vector2) -> void:
+	var body := StaticBody2D.new()
+	body.name = label
+	body.position = local_center
+	body.collision_layer = 1
+	body.collision_mask = 3
+	body.physics_material_override = PhysicsMaterial.new()
+	body.physics_material_override.bounce = 0.75
+	body.physics_material_override.friction = 0.05
+	var collision := CollisionShape2D.new()
+	collision.shape = RectangleShape2D.new()
+	collision.shape.size = size
+	body.add_child(collision)
+	add_child(body)
 
 
 ## Local footprints shared by planar collisions and native wall geometry.
@@ -67,6 +72,24 @@ func is_spawn_safe(world_point: Vector2, clearance: float) -> bool:
 
 
 func safe_target(world_point: Vector2, margin: float = 90.0) -> Vector2:
+	return _room_target(world_point, margin)
+
+
+## Step the room target clear of each lane vehicle's path, retrying inwards from walls.
+func _clear_of_lanes(world_point: Vector2, vehicles: Array, margin: float) -> Vector2:
+	var point := _room_target(world_point, margin)
+	for vehicle: LaneVehicle in vehicles:
+		if not vehicle.threatens(point, margin):
+			continue
+		var candidate := _room_target(vehicle.avoidance_target(point, margin), margin)
+		# A lane beside a wall has no outer refuge: retry towards the room interior.
+		if vehicle.threatens(candidate, margin):
+			candidate = _room_target(vehicle.avoidance_target(point, margin, true), margin)
+		point = candidate
+	return point
+
+
+func _room_target(world_point: Vector2, margin: float) -> Vector2:
 	var inset := clampf(margin, 0, minf(half_size.x, half_size.y) * 0.8)
 	return to_global(
 		(

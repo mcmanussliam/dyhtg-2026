@@ -4,16 +4,7 @@ extends RefCounted
 
 func run(tree: SceneTree, check: Callable) -> void:
 	var definition := load("res://game/stage/bull_office/bull_office.tres") as StageDefinition
-	check.call(definition.validation_errors().is_empty(), "Bull map validates")
-	check.call(
-		definition.hint == "Mess with the bull and you get the horns",
-		"Bull map has its authored hint"
-	)
 	var config := MatchConfig.new()
-	check.call(
-		config.stages.any(func(item: StageDefinition) -> bool: return item.id == definition.id),
-		"Random map pool includes the bull office"
-	)
 	var stage := definition.scene.instantiate() as OfficeStage
 	tree.root.add_child(stage)
 	var bull := stage.get("bull") as OfficeBull

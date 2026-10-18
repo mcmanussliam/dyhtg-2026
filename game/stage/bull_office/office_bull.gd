@@ -103,7 +103,7 @@ func _enter_room(delta: float) -> void:
 func _choose_target() -> void:
 	var alive: Array[Chair] = []
 	for chair in chairs:
-		if is_instance_valid(chair) and chair.active and not chair.falling:
+		if is_instance_valid(chair) and chair.is_in_play():
 			alive.append(chair)
 	if not alive.is_empty() and _random.randf() < 0.8:
 		var chosen := alive[_random.randi_range(0, alive.size() - 1)]
@@ -130,25 +130,14 @@ func _charge(delta: float) -> void:
 	# Sweep the horn/body envelope, bounded by the actual scenery collision travel.
 	# This prevents high-speed tunnelling and never hits through a desk or wall.
 	for chair in chairs:
-		if (
-			not is_instance_valid(chair)
-			or not chair.active
-			or chair.falling
-			or _hit_seats.has(chair.seat)
-		):
+		if not is_instance_valid(chair) or not chair.is_in_play() or _hit_seats.has(chair.seat):
 			continue
 		var nearest := Geometry2D.get_closest_point_to_segment(
 			chair.global_position, previous, global_position
 		)
 		if nearest.distance_to(chair.global_position) <= 66 + 23 * chair.size_scale:
 			_hit_seats[chair.seat] = true
-			var planar := (
-				(_direction * knockout_speed + chair.linear_velocity * 0.20)
-				/ RenderStyle.PIXELS_PER_UNIT
-			)
-			var roll := Vector3(_direction.y, 0, -_direction.x) * knockout_tumble
-			roll.y = 3.5
-			chair.set_knockout_launch(Vector3(planar.x, knockout_lift, planar.y), roll)
+			chair.knock_out(_direction, knockout_speed, knockout_lift, knockout_tumble)
 			_stage.elimination_requested.emit(chair.seat, &"bull")
 			hit_player = true
 	if collision != null:
@@ -173,12 +162,8 @@ func create_presentation(parent: Node3D, units: float) -> void:
 	parent.add_child(_model)
 	_model.build()
 	_model.scale = Vector3.ONE * 1.4
-	var warning := ModelGeometry.material(Color(0.95, 0.32, 0.15, 0.30))
-	warning.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	warning.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	var lane_mesh := BoxMesh.new()
-	lane_mesh.size = Vector3(0.32, 0.008, 1)
-	_lane = ModelGeometry.instance(parent, lane_mesh, Vector3.ZERO, warning)
+	var warning := ModelGeometry.warning_material()
+	_lane = ModelGeometry.box(parent, Vector3.ZERO, Vector3(0.32, 0.008, 1), warning)
 	_lane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_sync_presentation(0)
 

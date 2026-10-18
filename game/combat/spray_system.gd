@@ -22,7 +22,7 @@ func apply(source: Chair, chairs: Array[Chair], delta: float) -> void:
 			)
 	source.spray_reach = reach
 	for other in chairs:
-		if other == source or not other.active or other.falling:
+		if other == source or not other.is_in_play():
 			continue
 		var offset := other.global_position - origin
 		var distance := offset.length()

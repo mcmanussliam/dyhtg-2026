@@ -114,7 +114,7 @@ func tick_hazards(delta: float) -> void:
 			if prop is OfficeProp:
 				prop.release_for_fracture(self, chips, center)
 	for chair in _chairs:
-		if not is_instance_valid(chair) or not chair.active or chair.falling:
+		if not is_instance_valid(chair) or not chair.is_in_play():
 			continue
 		var point := to_local(chair.global_position)
 		var previous: Vector2 = _previous.get(chair.seat, point)

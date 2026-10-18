@@ -169,7 +169,7 @@ func _look_for_players() -> void:
 	var closest: Chair
 	var best := INF
 	for chair in chairs:
-		if not is_instance_valid(chair) or not chair.active or chair.falling:
+		if not is_instance_valid(chair) or not chair.is_in_play():
 			continue
 		var distance := chair.global_position.distance_to(global_position)
 		if distance < best and illuminates(chair.global_position):
@@ -208,7 +208,7 @@ func _chase(delta: float) -> void:
 
 func _check_catch(previous: Vector2) -> void:
 	for chair in chairs:
-		if not is_instance_valid(chair) or not chair.active or chair.falling:
+		if not is_instance_valid(chair) or not chair.is_in_play():
 			continue
 		var nearest := Geometry2D.get_closest_point_to_segment(
 			chair.global_position, previous, global_position
@@ -218,12 +218,7 @@ func _check_catch(previous: Vector2) -> void:
 		var direction := velocity.normalized()
 		if direction.is_zero_approx():
 			direction = (chair.global_position - global_position).normalized()
-		var planar := (
-			(direction * knockout_speed + chair.linear_velocity * 0.2) / RenderStyle.PIXELS_PER_UNIT
-		)
-		var roll := Vector3(direction.y, 0, -direction.x) * knockout_tumble
-		roll.y = 3.5
-		chair.set_knockout_launch(Vector3(planar.x, knockout_lift, planar.y), roll)
+		chair.knock_out(direction, knockout_speed, knockout_lift, knockout_tumble)
 		_stage.elimination_requested.emit(chair.seat, &"guard")
 		phase = Phase.CAUGHT
 		_remaining = caught_seconds
@@ -251,7 +246,7 @@ func _begin_return() -> void:
 
 
 func _target_valid() -> bool:
-	return is_instance_valid(target) and target.active and not target.falling
+	return is_instance_valid(target) and target.is_in_play()
 
 
 func _move_towards(goal: Vector2, speed: float, delta: float) -> void:

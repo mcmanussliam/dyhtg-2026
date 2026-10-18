@@ -45,7 +45,7 @@ func sample(chair: Chair, chairs: Array[Chair], bounds: Rect2) -> ChairCommand:
 	var target: Chair
 	var closest: float = INF
 	for candidate in chairs:
-		if candidate == chair or not candidate.active or candidate.falling:
+		if candidate == chair or not candidate.is_in_play():
 			continue
 		var distance := chair.position.distance_to(candidate.position)
 		if distance < closest:
@@ -70,7 +70,7 @@ func sample_on_stage(
 	chair: Chair, chairs: Array[Chair], stage: ArenaStage, delta: float = 1.0 / 60.0
 ) -> ChairCommand:
 	var command := ChairCommand.new()
-	if not chair.active or chair.falling:
+	if not chair.is_in_play():
 		return command
 	_update_engagement(chair, chairs, delta)
 	_target_left -= maxf(delta, 0.0)
@@ -258,7 +258,7 @@ func _choose_target(chair: Chair, chairs: Array[Chair]) -> void:
 	var weights := PackedFloat32Array()
 	var total := 0.0
 	for candidate in chairs:
-		if candidate == chair or not candidate.active or candidate.falling:
+		if candidate == chair or not candidate.is_in_play():
 			continue
 		# All opponents are eligible, including other AIs. Distance is only a mild
 		# preference, so the nearest seat or human does not monopolise every bot.
@@ -268,7 +268,7 @@ func _choose_target(chair: Chair, chairs: Array[Chair]) -> void:
 			weight *= 0.45
 		var crowd := 0
 		for rival in chairs:
-			if rival != chair and rival != candidate and rival.active and not rival.falling:
+			if rival != chair and rival != candidate and rival.is_in_play():
 				if rival.global_position.distance_squared_to(candidate.global_position) < 180 * 180:
 					crowd += 1
 		weight /= 1.0 + crowd * 0.7

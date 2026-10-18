@@ -1,5 +1,6 @@
 extends RefCounted
-## Every hat fits every top; cosmetics stay visual-only and IDs stay stable.
+## The cosmetic catalogue: stable registration, every hat with every top, shared
+## immutable assets with per-character materials, and no effect on movement.
 
 const HAT_PREFIX: Array[StringName] = [
 	&"none",
@@ -12,49 +13,27 @@ const HAT_PREFIX: Array[StringName] = [
 	&"hot_dog",
 	&"construction_helmet",
 ]
-const NEW_HATS: Array[StringName] = [
-	&"beanie",
-	&"bucket_hat",
-	&"crown",
-	&"party_hat",
-	&"wizard_hat",
-	&"chef_hat",
-	&"propeller_cap",
-	&"headphones",
-	&"bunny_ears",
-	&"halo",
-	&"sunglasses",
-]
-const NEW_TOPS := {
-	&"puffer_vest": CharacterSkin.Garment.PUFFER_VEST,
-	&"waistcoat": CharacterSkin.Garment.WAISTCOAT,
-	&"fleece_vest": CharacterSkin.Garment.FLEECE_VEST,
-	&"tie": CharacterSkin.Garment.TIE,
-	&"bow_tie": CharacterSkin.Garment.BOW_TIE,
-	&"scarf": CharacterSkin.Garment.SCARF,
-}
 
 
 func run(tree: SceneTree, check: Callable) -> void:
 	_check_registration(check)
 	_check_profiles(check)
 	_check_matrix(check)
+	_check_sharing(check)
 	await _check_visual_only(tree, check)
 
 
 func _check_registration(check: Callable) -> void:
 	check.call(
 		CharacterHats.IDS.slice(0, HAT_PREFIX.size()) == HAT_PREFIX,
-		"Existing hat IDs keep their order"
+		"Earlier hat IDs keep their order; new hats only append"
 	)
 	check.call(CharacterHats.NAMES.size() == CharacterHats.IDS.size(), "Every hat has a name")
-	var unique_hats := {}
+	var hats := {}
 	for hat in CharacterHats.IDS:
-		unique_hats[hat] = true
-	check.call(unique_hats.size() == CharacterHats.IDS.size(), "Hat IDs are unique")
+		hats[hat] = true
+	check.call(hats.size() == CharacterHats.IDS.size(), "Hat IDs are unique")
 	check.call(&"cowboy_hat" not in CharacterHats.IDS, "The rejected cowboy hat stays out")
-	for hat in NEW_HATS:
-		check.call(hat in CharacterHats.IDS, "New hat is registered: %s" % hat)
 	check.call(
 		(
 			CharacterSkin.Garment.TANK_TOP == 4
@@ -64,46 +43,36 @@ func _check_registration(check: Callable) -> void:
 		),
 		"Garment kinds keep their authored numbers"
 	)
-	var skins := {}
+	var tops := {}
 	for skin in SkinCatalog.definitions():
-		skins[skin.id] = skin
+		tops[skin.id] = true
 	check.call(
-		skins.size() == SkinCatalog.PATHS.size(), "Every registered top is valid with a unique ID"
+		tops.size() == SkinCatalog.PATHS.size(), "Every registered top is valid with a unique ID"
 	)
-	for id in NEW_TOPS:
-		var path := "res://game/character/skins/%s/%s.tres" % [id, id]
-		check.call(path in SkinCatalog.PATHS, "New top is registered explicitly: %s" % id)
-		check.call(
-			skins.has(id) and skins[id].garment == NEW_TOPS[id] and skins[id].garment_mesh != null,
-			"New top provides its own shell and garment kind: %s" % id
-		)
-		check.call(
-			skins.has(id) and skins[id].body_mesh == SkinCatalog.default_definition().body_mesh,
-			"New top keeps the shared body mesh: %s" % id
-		)
 
 
 func _check_profiles(check: Callable) -> void:
 	var path := "user://cosmetic_matrix_test_%d.cfg" % Time.get_ticks_usec()
 	var appearance := CharacterAppearance.new()
-	for hat in NEW_HATS:
+	var lost := PackedStringArray()
+	for hat in CharacterHats.IDS:
 		appearance.hat_id = hat
 		appearance.save_profile(path)
-		check.call(
-			CharacterAppearance.load_profile(path).hat_id == hat, "Hat survives reload: %s" % hat
-		)
-	for id in NEW_TOPS:
-		appearance.body_id = id
+		if CharacterAppearance.load_profile(path).hat_id != hat:
+			lost.append(hat)
+	for skin in SkinCatalog.definitions():
+		if skin.id == SkinCatalog.default_definition().id:
+			continue
+		appearance.body_id = skin.id
 		appearance.save_profile(path)
 		var loaded := CharacterAppearance.load_profile(path)
-		check.call(
-			loaded.body_id == id and loaded.body_label() == loaded.resolved_skin().display_name,
-			"Top survives reload: %s" % id
-		)
-	var removed := ConfigFile.new()
-	removed.set_value("appearance", "hat", 42)
-	removed.set_value("appearance", "body", ["puffer_vest"])
-	ProfileStore.save_file(removed, path)
+		if loaded.body_id != skin.id or loaded.body_label() != skin.display_name:
+			lost.append(skin.id)
+	check.call(lost.is_empty(), "Every hat and top survives a profile reload: %s" % lost)
+	var malformed := ConfigFile.new()
+	malformed.set_value("appearance", "hat", 42)
+	malformed.set_value("appearance", "body", ["puffer_vest"])
+	ProfileStore.save_file(malformed, path)
 	var fallback := CharacterAppearance.load_profile(path)
 	check.call(
 		(
@@ -116,29 +85,40 @@ func _check_profiles(check: Callable) -> void:
 
 
 func _check_matrix(check: Callable) -> void:
-	var tint := CharacterAppearance.PALETTE[3]
-	var built := 0
+	var body_mesh := SkinCatalog.default_definition().body_mesh
+	var detailed := [CharacterSkin.Garment.HOODIE, CharacterSkin.Garment.BOW_TIE]
 	var failures := PackedStringArray()
+	var built := 0
 	for skin in SkinCatalog.definitions():
 		for hat in CharacterHats.IDS:
 			var model := ChairModel.new()
-			model.build(tint, skin, hat)
+			model.build(CharacterAppearance.PALETTE[3], skin, hat)
+			var clothing := model.body.get_node_or_null("Clothing") as MeshInstance3D
+			var dressed := skin.garment != CharacterSkin.Garment.NONE
 			var ok := (
-				model.body.has_node("ContinuousBody")
+				(model.body.get_node("ContinuousBody") as MeshInstance3D).mesh == body_mesh
 				and model.body.has_node("Hat") == (hat != &"none")
-				and (
-					model.body.has_node("Clothing") == (skin.garment != CharacterSkin.Garment.NONE)
-				)
+				and (clothing != null) == dressed
+				and model.body.has_node("GarmentDetails") == (skin.garment in detailed)
 			)
+			if ok and dressed:
+				var fabric := clothing.material_override as ShaderMaterial
+				ok = (
+					clothing.mesh == skin.garment_mesh
+					and fabric.get_shader_parameter("garment_kind") == skin.garment
+					and fabric.get_shader_parameter("has_logo") == (skin.chest_logo != null)
+				)
 			if not ok:
 				failures.append("%s+%s" % [skin.id, hat])
 			built += 1
 			model.free()
 	check.call(
 		failures.is_empty() and built == SkinCatalog.PATHS.size() * CharacterHats.IDS.size(),
-		"Every hat builds with every top: %s" % ", ".join(failures)
+		"Every hat builds with every top over the shared body: %s" % ", ".join(failures)
 	)
-	# Shared immutable shells; per-character fabric materials.
+
+
+func _check_sharing(check: Callable) -> void:
 	var skin := load("res://game/character/skins/waistcoat/waistcoat.tres") as CharacterSkin
 	var first := ChairModel.new()
 	first.build(CharacterAppearance.PALETTE[0], skin, &"crown")
@@ -161,35 +141,46 @@ func _check_matrix(check: Callable) -> void:
 	second.free()
 
 
+## Identical steering with different cosmetics must trace identical paths.
 func _check_visual_only(tree: SceneTree, check: Callable) -> void:
-	var scene := load("res://game/chair/chair.tscn") as PackedScene
-	var reference := _physics_signature(tree, scene, SkinCatalog.default_definition(), &"none")
-	var matches := true
-	for skin in SkinCatalog.definitions():
-		for hat in [&"none", &"wizard_hat", &"headphones"]:
-			if _physics_signature(tree, scene, skin, hat) != reference:
-				matches = false
-	check.call(matches, "Cosmetics never change chair mass, collision or tuning")
-	await tree.process_frame
-
-
-func _physics_signature(
-	tree: SceneTree, scene: PackedScene, skin: CharacterSkin, hat: StringName
-) -> Array:
-	var chair := scene.instantiate() as Chair
-	chair.skin = skin
-	chair.hat_id = hat
-	tree.root.add_child(chair)
-	var shape := (chair.get_node("CollisionShape2D") as CollisionShape2D).shape as CapsuleShape2D
-	var signature := [
-		chair.mass,
-		chair.inertia,
-		chair.size_scale,
-		shape.radius,
-		shape.height,
-		chair.collision_layer,
-		chair.collision_mask,
-		chair.tuning,
+	var arena := Node2D.new()
+	tree.root.add_child(arena)
+	var outfits := [
+		[SkinCatalog.default_definition(), &"none"],
+		[load("res://game/character/skins/puffer_vest/puffer_vest.tres"), &"wizard_hat"],
+		[load("res://game/character/skins/scarf/scarf.tres"), &"headphones"],
 	]
-	chair.free()
-	return signature
+	var chairs: Array[Chair] = []
+	for index in outfits.size():
+		var chair := (load("res://game/chair/chair.tscn") as PackedScene).instantiate() as Chair
+		chair.skin = outfits[index][0]
+		chair.hat_id = outfits[index][1]
+		chair.position = Vector2(index * 4000, 0)
+		chair.configure(index, Color("94b9f4"), Vector2.RIGHT)
+		arena.add_child(chair)
+		chair.prepare_round()
+		chair.start_extinguisher_ramp(0.0)
+		chair.begin_round()
+		chairs.append(chair)
+	for frame in 120:
+		for chair in chairs:
+			chair.command.turn = 1.0 if frame % 60 < 30 else -0.4
+			chair.step(1.0 / 60.0)
+		await tree.physics_frame
+	var matches := true
+	for chair in chairs:
+		matches = (
+			matches
+			and (
+				(chair.position - Vector2(chair.seat * 4000, 0)).distance_to(chairs[0].position)
+				< 0.01
+			)
+			and is_equal_approx(chair.rotation, chairs[0].rotation)
+			and is_equal_approx(chair.mass, chairs[0].mass)
+		)
+	check.call(
+		matches and chairs[0].position.length() > 100,
+		"Cosmetics never change chair mass, movement or steering"
+	)
+	arena.queue_free()
+	await tree.process_frame

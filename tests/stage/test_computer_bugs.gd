@@ -6,20 +6,6 @@ const STEP := 1.0 / 60
 
 
 func run(tree: SceneTree, check: Callable) -> void:
-	check.call(DEFINITION.validation_errors().is_empty(), "Bug or a feature? validates")
-	check.call(
-		(
-			DEFINITION.display_name == "Bug or a feature?"
-			and DEFINITION.hint == "THE BUGS NEVER SLEEP"
-		),
-		"Bug or a feature? has its authored headline and subheading"
-	)
-	check.call(
-		MatchConfig.available_stages().any(
-			func(item: StageDefinition) -> bool: return item.id == &"computer_bugs"
-		),
-		"Random pool and map selector include Bug or a feature?"
-	)
 	await _test_drop_cycle(tree, check)
 	await _test_infection(tree, check)
 	await _test_strikes(tree, check)
@@ -118,10 +104,14 @@ func _test_drop_cycle(tree: SceneTree, check: Callable) -> void:
 		),
 		"After the splat the model is gone and the mush has its full footprint"
 	)
+	# A later announcement may reuse the freed pool slot; only this clump's marker clears.
+	var reused := stage.clumps.any(
+		func(other: Dictionary) -> bool: return other != clump and other.slot == clump.slot
+	)
 	check.call(
 		(
 			clump.phase == ComputerBugsStage.Phase.MUSH
-			and not stage.get("_markers")[clump.slot].visible
+			and (reused or not stage.get("_markers")[clump.slot].visible)
 		),
 		"It lands as mush and its marker clears"
 	)

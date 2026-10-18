@@ -1,9 +1,14 @@
 class_name OfficeChairModel
 extends Node3D
 ## Five dual-wheel casters, a gas lift, and an upholstered suspended seat.
+## The casters share one MultiMesh: three draw calls rather than fifteen per chair.
+
+static var _caster_mesh: ArrayMesh
 
 var seat_rig: Node3D
-var casters: Array[Node3D] = []
+var _feet := PackedVector3Array()
+var _caster_angles := PackedFloat32Array()  # Float32, like Node3D.rotation.
+var _casters: MultiMesh
 
 
 func build(tint: Color) -> void:
@@ -16,23 +21,8 @@ func build(tint: Color) -> void:
 		var angle := TAU * float(index) / 5.0
 		var foot := Vector3(cos(angle) * 0.57, 0.13, sin(angle) * 0.57)
 		ModelGeometry.capsule(self, Vector3(0, 0.21, 0), foot, 0.045, frame)
-		var caster := Node3D.new()
-		caster.position = foot
-		caster.rotation.y = -angle
-		add_child(caster)
-		casters.append(caster)
-		ModelGeometry.cushion(caster, Vector3(0, 0.015, 0), Vector3(0.14, 0.11, 0.08), 0.025, frame)
-		for side in [-1.0, 1.0]:
-			ModelGeometry.cylinder(
-				caster,
-				Vector3(side * 0.045, -0.035, 0),
-				Vector3(side * 0.080, -0.035, 0),
-				0.095,
-				rubber
-			)
-		ModelGeometry.cylinder(
-			caster, Vector3(-0.086, -0.035, 0), Vector3(0.086, -0.035, 0), 0.025, metal
-		)
+		_feet.append(foot)
+		_caster_angles.append(-angle)
 	ModelGeometry.cylinder(self, Vector3(0, 0.18, 0), Vector3(0, 0.39, 0), 0.075, frame)
 	ModelGeometry.cylinder(self, Vector3(0, 0.32, 0), Vector3(0, 0.50, 0), 0.047, metal)
 	seat_rig = Node3D.new()
@@ -77,9 +67,43 @@ func build(tint: Color) -> void:
 
 	# Each caster and the suspended seat retain their own animated pivot.
 	StaticModelBatcher.merge_direct(self, [&"chair_base"])
-	for caster in casters:
-		StaticModelBatcher.merge_direct(caster, [&"chair_caster"])
 	StaticModelBatcher.merge_direct(seat_rig, [&"chair_seat", tint])
+	if _caster_mesh == null:
+		_caster_mesh = _bake_caster(frame, rubber, metal)
+	_casters = MultiMesh.new()
+	_casters.transform_format = MultiMesh.TRANSFORM_3D
+	_casters.mesh = _caster_mesh
+	_casters.instance_count = _feet.size()
+	for index in _feet.size():
+		_place_caster(index)
+	var renderer := MultiMeshInstance3D.new()
+	renderer.name = "Casters"
+	renderer.multimesh = _casters
+	add_child(renderer)
+
+
+static func _bake_caster(frame: Material, rubber: Material, metal: Material) -> ArrayMesh:
+	var caster := Node3D.new()
+	ModelGeometry.cushion(caster, Vector3(0, 0.015, 0), Vector3(0.14, 0.11, 0.08), 0.025, frame)
+	for side in [-1.0, 1.0]:
+		ModelGeometry.cylinder(
+			caster,
+			Vector3(side * 0.045, -0.035, 0),
+			Vector3(side * 0.080, -0.035, 0),
+			0.095,
+			rubber
+		)
+	ModelGeometry.cylinder(
+		caster, Vector3(-0.086, -0.035, 0), Vector3(0.086, -0.035, 0), 0.025, metal
+	)
+	var mesh := StaticModelBatcher.bake_direct(caster)
+	caster.free()
+	return mesh
+
+
+func _place_caster(index: int) -> void:
+	var basis := Basis.from_euler(Vector3(0, _caster_angles[index], 0))
+	_casters.set_instance_transform(index, Transform3D(basis, _feet[index]))
 
 
 func animate(
@@ -90,5 +114,8 @@ func animate(
 	seat_rig.rotation.z = tilt.y
 	if speed > 0.03:
 		var direction := atan2(local_motion.x, local_motion.y)
-		for caster in casters:
-			caster.rotation.y = lerp_angle(caster.rotation.y, direction, 1.0 - exp(-delta * 9.0))
+		for index in _caster_angles.size():
+			_caster_angles[index] = lerp_angle(
+				_caster_angles[index], direction, 1.0 - exp(-delta * 9.0)
+			)
+			_place_caster(index)

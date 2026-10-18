@@ -93,15 +93,15 @@ func _build_office(parent: Node3D) -> void:
 	var navy := ModelGeometry.material(Color("2e4055"), 0, 0.95)
 	var wall := ModelGeometry.material(Color("c8bf92"), 0, 0.95)
 	var trim := ModelGeometry.material(Color("293946"), 0, 0.9)
-	_box(room, Vector3(0, -0.10, 4), Vector3(40, 0.20, 40), navy)
-	_box(room, Vector3(0, 4, -3.5), Vector3(40, 8, 0.16), wall)
-	_box(room, Vector3(11.5, 4, 6.5), Vector3(0.16, 8, 20), wall)
-	_box(room, Vector3(0, 0.12, -3.39), Vector3(40, 0.24, 0.08), trim)
-	_box(room, Vector3(11.39, 0.12, 6.5), Vector3(0.08, 0.24, 20), trim)
+	ModelGeometry.box(room, Vector3(0, -0.10, 4), Vector3(40, 0.20, 40), navy)
+	ModelGeometry.box(room, Vector3(0, 4, -3.5), Vector3(40, 8, 0.16), wall)
+	ModelGeometry.box(room, Vector3(11.5, 4, 6.5), Vector3(0.16, 8, 20), wall)
+	ModelGeometry.box(room, Vector3(0, 0.12, -3.39), Vector3(40, 0.24, 0.08), trim)
+	ModelGeometry.box(room, Vector3(11.39, 0.12, 6.5), Vector3(0.08, 0.24, 20), trim)
 	# A simple office door gives the quieter left side a purpose without signage.
 	var door := ModelGeometry.material(Color("43565f"), 0, 0.9)
-	_box(room, Vector3(-3.65, 1.35, -3.37), Vector3(1.7, 2.7, 0.12), trim)
-	_box(room, Vector3(-3.65, 1.30, -3.28), Vector3(1.52, 2.56, 0.06), door)
+	ModelGeometry.box(room, Vector3(-3.65, 1.35, -3.37), Vector3(1.7, 2.7, 0.12), trim)
+	ModelGeometry.box(room, Vector3(-3.65, 1.30, -3.28), Vector3(1.52, 2.56, 0.06), door)
 	var handle := ModelGeometry.material(Color("879696"), 0.45, 0.6)
 	ModelGeometry.capsule(
 		room, Vector3(-3.17, 1.3, -3.20), Vector3(-2.95, 1.3, -3.20), 0.035, handle
@@ -147,14 +147,18 @@ func _build_window(room: Node3D) -> void:
 	var frame := ModelGeometry.material(Color("e2dfc9"), 0, 0.85)
 	var recess := ModelGeometry.material(Color("485e66"), 0, 0.9)
 	var glass := ModelGeometry.material(Color("87abb8"), 0.05, 0.55)
-	_box(room, Vector3(-0.1, 2.1, -3.36), Vector3(4.26, 1.40, 0.10), recess)
-	_box(room, Vector3(-0.1, 2.1, -3.28), Vector3(4.10, 1.24, 0.04), glass)
+	ModelGeometry.box(room, Vector3(-0.1, 2.1, -3.36), Vector3(4.26, 1.40, 0.10), recess)
+	ModelGeometry.box(room, Vector3(-0.1, 2.1, -3.28), Vector3(4.10, 1.24, 0.04), glass)
 	for side in [-1.0, 1.0]:
-		_box(room, Vector3(-0.1 + side * 2.09, 2.1, -3.20), Vector3(0.08, 1.40, 0.10), frame)
-		_box(room, Vector3(-0.1, 2.1 + side * 0.66, -3.20), Vector3(4.26, 0.08, 0.10), frame)
-	_box(room, Vector3(-0.1, 2.1, -3.20), Vector3(0.055, 1.26, 0.10), frame)
-	_box(room, Vector3(-0.1, 2.30, -3.20), Vector3(4.10, 0.055, 0.10), frame)
-	_box(room, Vector3(-0.1, 1.39, -3.13), Vector3(4.40, 0.10, 0.35), frame)
+		ModelGeometry.box(
+			room, Vector3(-0.1 + side * 2.09, 2.1, -3.20), Vector3(0.08, 1.40, 0.10), frame
+		)
+		ModelGeometry.box(
+			room, Vector3(-0.1, 2.1 + side * 0.66, -3.20), Vector3(4.26, 0.08, 0.10), frame
+		)
+	ModelGeometry.box(room, Vector3(-0.1, 2.1, -3.20), Vector3(0.055, 1.26, 0.10), frame)
+	ModelGeometry.box(room, Vector3(-0.1, 2.30, -3.20), Vector3(4.10, 0.055, 0.10), frame)
+	ModelGeometry.box(room, Vector3(-0.1, 1.39, -3.13), Vector3(4.40, 0.10, 0.35), frame)
 
 
 func _build_details(room: Node3D) -> void:
@@ -172,9 +176,11 @@ func _build_details(room: Node3D) -> void:
 		room, Vector3(-1.25, 0.481, -2.4), Vector3(-1.25, 0.485, -2.4), 0.19, opening
 	)
 	for x in [-1.5, 1.8]:
-		_box(room, Vector3(x, 0.38, -3.37), Vector3(0.24, 0.16, 0.04), cream)
+		ModelGeometry.box(room, Vector3(x, 0.38, -3.37), Vector3(0.24, 0.16, 0.04), cream)
 		for side in [-1.0, 1.0]:
-			_box(room, Vector3(x + side * 0.045, 0.38, -3.34), Vector3(0.015, 0.045, 0.01), dark)
+			ModelGeometry.box(
+				room, Vector3(x + side * 0.045, 0.38, -3.34), Vector3(0.015, 0.045, 0.01), dark
+			)
 
 
 func _furniture(room: Node3D, scene: PackedScene, position_in_room: Vector3) -> Node3D:
@@ -190,9 +196,3 @@ func _process(delta: float) -> void:
 	if is_instance_valid(_model):
 		_model.animate(delta, _clock, 0, 0, Vector2.ZERO, Vector2.ZERO)
 		_model.rotation.y = PREVIEW_HEADING + sin(_clock * 0.27) * 0.035
-
-
-func _box(parent: Node3D, centre: Vector3, size: Vector3, material: Material) -> void:
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	ModelGeometry.instance(parent, mesh, centre, material)

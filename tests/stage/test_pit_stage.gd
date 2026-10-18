@@ -6,14 +6,7 @@ func run(tree: SceneTree, check: Callable) -> void:
 	var definition := (
 		load("res://game/stage/a_crack_in_the_floor/a_crack_in_the_floor.tres") as StageDefinition
 	)
-	check.call(definition.validation_errors().is_empty(), "Pit map definition validates")
-	check.call(definition.display_name == "A Crack in the Floor", "Pit map has its requested name")
-	check.call(definition.hint == "Don’t fall", "Pit introduction has its hint")
 	var config := MatchConfig.new()
-	check.call(
-		config.stages.any(func(map: StageDefinition) -> bool: return map.id == definition.id),
-		"Default rotation includes pit map"
-	)
 	var stage := definition.scene.instantiate() as ArenaStage
 	tree.root.add_child(stage)
 	check.call(not stage.has_support(Vector2(640, 422)), "Pit center has no floor")

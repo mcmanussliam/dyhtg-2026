@@ -152,17 +152,7 @@ func is_safe(world_point: Vector2, margin: float = 0.0) -> bool:
 
 
 func safe_target(world_point: Vector2, margin: float = 90.0) -> Vector2:
-	var point := super.safe_target(world_point, margin)
-	for actor in trains:
-		if not actor.threatens(point, margin):
-			continue
-		var escape := actor.avoidance_target(point, margin)
-		var candidate := super.safe_target(escape, margin)
-		# Wall-side lanes have no outer refuge: retry towards the room interior.
-		if actor.threatens(candidate, margin):
-			candidate = super.safe_target(actor.avoidance_target(point, margin, true), margin)
-		point = candidate
-	return point
+	return _clear_of_lanes(world_point, trains, margin)
 
 
 ## Lane endpoints are in world space, matching navigation and swept impact queries.
@@ -262,19 +252,7 @@ func _create_player_thresholds() -> void:
 	# Closed player thresholds prevent camping beyond the visible tunnel mouths.
 	for lane in TRACK_OFFSETS.size():
 		for point in lane_endpoints(lane):
-			var body := StaticBody2D.new()
-			body.name = "PlayerThreshold"
-			body.position = to_local(point)
-			body.collision_layer = 1
-			body.collision_mask = 3
-			body.physics_material_override = PhysicsMaterial.new()
-			body.physics_material_override.bounce = 0.75
-			body.physics_material_override.friction = 0.05
-			var collision := CollisionShape2D.new()
-			collision.shape = RectangleShape2D.new()
-			collision.shape.size = Vector2(24, PORTAL_WIDTH)
-			body.add_child(collision)
-			add_child(body)
+			add_barrier("PlayerThreshold", to_local(point), Vector2(24, PORTAL_WIDTH))
 
 
 func _create_native_thresholds(parent: Node3D, units: float) -> void:

@@ -29,13 +29,7 @@ class RuleStage:
 func run(tree: SceneTree, check: Callable) -> void:
 	var stage := CIRCLE.instantiate() as ArenaStage
 	tree.root.add_child(stage)
-	check.call(
-		DEFINITION.validation_errors().is_empty(), "Circle definition has valid authored data"
-	)
 	check.call(DEFINITION.id == &"a_floor_in_the_crack", "First map has its own stable identity")
-	check.call(
-		DEFINITION.display_name == "A Floor in the Crack", "First map displays its authored name"
-	)
 	var edge: Vector2 = stage.to_global(stage.floor_outline()[0])
 	check.call(stage.has_support(edge), "Angular floor vertex retains support")
 	check.call(not stage.has_support(Vector2(1170, 422)), "Past circle edge loses support")
