@@ -6,6 +6,9 @@ extends CharacterBody2D
 
 enum Phase { ENTERING, PATROL, ALERT, CHASE, SEARCH, RETURN, CAUGHT }
 
+## Even a slow patrol shoves a loose chair clear rather than nudging it along.
+const SHOVE_MIN_SPEED := 220.0
+
 @export var sight_range := 470.0
 @export var sight_half_angle := 0.42
 @export var touch_range := 70.0
@@ -262,10 +265,23 @@ func _move_towards(goal: Vector2, speed: float, delta: float) -> void:
 
 
 func _slide(delta: float) -> void:
-	# Advance on the stage's supplied clock, sliding along furniture and walls.
+	# Advance on the stage's supplied clock, sliding along fixed furniture and walls.
 	var collision := move_and_collide(velocity * delta)
-	if collision != null:
-		move_and_collide(collision.get_remainder().slide(collision.get_normal()))
+	if collision == null:
+		return
+	var obstacle := collision.get_collider()
+	if obstacle is OfficeProp and obstacle.is_movable():
+		# Barge loose clutter clear, faster than the guard is moving, and keep going.
+		var shove := velocity.normalized() * maxf(velocity.length(), SHOVE_MIN_SPEED) * 1.5
+		obstacle.push(
+			shove * (obstacle as RigidBody2D).mass,
+			collision.get_position() - obstacle.global_position
+		)
+		add_collision_exception_with(obstacle)
+		move_and_collide(collision.get_remainder())
+		remove_collision_exception_with(obstacle)
+		return
+	move_and_collide(collision.get_remainder().slide(collision.get_normal()))
 
 
 func _face(point: Vector2, delta: float, turn_rate: float) -> void:

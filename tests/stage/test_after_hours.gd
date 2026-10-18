@@ -12,6 +12,32 @@ func run(tree: SceneTree, check: Callable) -> void:
 			chairs += 1
 			check.call(prop is RigidBody2D, "Desk chairs are movable: %s" % prop.name)
 	check.call(chairs == 16, "Every desk has a chair")
+	var world := Node3D.new()
+	tree.root.add_child(world)
+	RenderStyle.setup_world(world)
+	stage.create_presentation(world, 1.0 / RenderStyle.PIXELS_PER_UNIT)
+	var desk_parts := world.get_node("PodADeskNW").find_children(
+		"*", "GeometryInstance3D", true, false
+	)
+	var chair_parts := world.get_node("PodAChairNW").find_children(
+		"*", "GeometryInstance3D", true, false
+	)
+	check.call(
+		(
+			desk_parts.all(func(part): return part.layers & NightGuardModel.COVER_LAYER)
+			and chair_parts.all(func(part): return not part.layers & NightGuardModel.COVER_LAYER)
+		),
+		"Only fixed cover casts flashlight shadows; loose chairs never do"
+	)
+	var beam := NightGuardModel.new()
+	world.add_child(beam)
+	beam.build(10, 0.4)
+	var light := beam.find_children("*", "SpotLight3D", true, false)[0] as SpotLight3D
+	check.call(
+		light.shadow_caster_mask == NightGuardModel.COVER_LAYER,
+		"Flashlight shadows come from cover furniture alone"
+	)
+	world.queue_free()
 	stage.tick_hazards(30)
 	check.call(stage.get("guards").is_empty(), "Intro never brings guards on duty")
 	var chair := load("res://game/chair/chair.tscn").instantiate() as Chair
@@ -118,6 +144,26 @@ func run(tree: SceneTree, check: Callable) -> void:
 	)
 	check.call(chair.knockout_spin.length() > 8, "Guard launches include a tumble")
 	check.call(guard.phase == NightGuard.Phase.CAUGHT, "Guards pause after a catch")
+	# A loose desk chair in the guard's path is barged aside, never a wall.
+	chair.global_position = Vector2(912, -20)
+	var obstacle := stage.get_node("Furniture/PodBChairSE") as RigidBody2D
+	obstacle.global_position = Vector2(760, 425)
+	guard.global_position = Vector2(640, 425)
+	guard.velocity = Vector2.ZERO
+	guard.route = PackedVector2Array([Vector2(1000, 425)])
+	guard.set("_waypoint", 0)
+	guard.phase = NightGuard.Phase.RETURN
+	await tree.physics_frame
+	for step in 120:
+		stage.tick_hazards(1.0 / 60.0)
+		await tree.physics_frame
+	check.call(
+		(
+			guard.global_position.x > 860
+			and obstacle.global_position.distance_to(Vector2(760, 425)) > 30
+		),
+		"Guards shove loose chairs out of the way instead of getting stuck"
+	)
 	stage.stop_round()
 	var frozen := guard.global_position
 	stage.tick_hazards(5)

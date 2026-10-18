@@ -7,6 +7,9 @@ const UNIFORM := Color("44507a")
 const PATROL_BEAM := Color(1.0, 0.92, 0.74)
 const ALERT_BEAM := Color(1.0, 0.42, 0.32)
 const BEAM_HEIGHT := 0.83  # Seat rig hand height above the floor, in model metres.
+## Render layer 2: fixed furniture that hides players. Only it casts flashlight shadows,
+## matching the sight test and sparing each beam a redraw of chairs, clutter and players.
+const COVER_LAYER := 1 << 1
 
 var _chair: ChairModel
 var _pivot: Node3D
@@ -46,6 +49,7 @@ func build(sight_range: float, half_angle: float) -> void:
 	_light.light_energy = 16.0
 	_light.light_color = PATROL_BEAM
 	_light.shadow_enabled = RenderStyle.shadow_quality != 0
+	_light.shadow_caster_mask = COVER_LAYER
 	_light.shadow_bias = 0.06
 	_pivot.add_child(_light)
 	_marker = Node3D.new()

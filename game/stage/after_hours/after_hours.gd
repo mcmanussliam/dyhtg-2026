@@ -156,6 +156,13 @@ func create_presentation(parent: Node3D, units_per_pixel: float) -> void:
 	_world = parent
 	_units = units_per_pixel
 	super.create_presentation(parent, units_per_pixel)
+	for prop in _cover:
+		var model := parent.get_node_or_null(NodePath(String(prop.name))) as Node3D
+		if model == null:
+			continue
+		for node in [model] + model.find_children("*", "GeometryInstance3D", true, false):
+			if node is GeometryInstance3D:
+				node.layers |= NightGuardModel.COVER_LAYER
 	# Moonlight through the rear windows; flashlights do the real lighting.
 	var environment := (parent.get_node("StudioEnvironment") as WorldEnvironment).environment
 	environment.ambient_light_color = Color(0.55, 0.62, 0.9)
