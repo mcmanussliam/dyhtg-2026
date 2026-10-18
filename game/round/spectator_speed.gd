@@ -2,11 +2,17 @@ class_name SpectatorSpeed
 extends CanvasLayer
 ## Owns temporary spectator acceleration and restores engine timing on every exit.
 
+signal fast_forward_requested(held: bool)
+
 const MULTIPLIER := 3
 ## Pixels from the window's bottom edge to the top of the character faces, plus a gap.
 const FACES_CLEARANCE := 132.0
 
 var can_fast_forward: Callable
+## Clients request speed changes; only the host owns engine timing.
+var manage_timing := true
+var network_fast_forward := false
+var _requested := false
 var _hint: PanelContainer
 var _instruction: PanelContainer
 var _armed := false
@@ -83,10 +89,24 @@ func refresh() -> void:
 	elif not held:
 		# A steering key already held at elimination must be released first.
 		_armed = true
-	_set_accelerated(available and _armed and held)
-	_hint.visible = _accelerated
-	# After elimination, say how to skip ahead; the 3x badge replaces it while holding.
-	_instruction.visible = available and not _accelerated
+	var requested := available and _armed and held
+	if requested != _requested:
+		_requested = requested
+		fast_forward_requested.emit(requested)
+	_set_accelerated(manage_timing and available and (requested or network_fast_forward))
+	var active := _accelerated if manage_timing else available and network_fast_forward
+	_hint.visible = active
+	# After elimination, explain fast forwarding; the 3x badge replaces it while holding.
+	_instruction.visible = available and not active
+
+
+func set_network_fast_forward(held: bool) -> void:
+	network_fast_forward = held
+	refresh()
+
+
+func is_accelerated() -> bool:
+	return _accelerated
 
 
 func _draw_icon(icon: Control) -> void:
@@ -124,7 +144,7 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		_focused = false
 		_armed = false
-		_set_accelerated(false)
+		refresh()
 	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
 		_focused = true
 

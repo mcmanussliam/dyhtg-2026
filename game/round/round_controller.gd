@@ -3,6 +3,12 @@ extends Node2D
 ## Owns one stage and its bodies. Eliminations are committed as one physics batch.
 
 signal completed(round_id: int, winner_id: int)
+## Host: a seat was eliminated this physics batch (after its chair has been told).
+signal eliminated(seat: int, reason: StringName)
+## Host: the last elimination decided the round; resolution has begun.
+signal decided(winner_id: int)
+## A client spectator requests a held/released fast-forward state from the host.
+signal fast_forward_requested(held: bool)
 
 enum Phase { INTRO, LIVE, RESOLVING, FINISHED }
 
@@ -16,6 +22,15 @@ var intro_duration: float = 2.5
 var startup_duration: float = 2.0
 var resolve_duration: float = 1.6
 var round_id: int = 0
+## The seat steered by this machine's LocalInput (-1: none).
+var local_seat: int = 0
+## Host: seats steered by remote peers, seat -> latest turn. Shared with the match.
+var remote_turns: Dictionary = {}
+## Online client: build the same scene but only display the host's snapshots and events.
+var mirror := false
+var allow_fast_forward := true
+## Online client: the steering value this peer sends to the host.
+var local_turn: float = 0.0
 var _roster: Array[Dictionary] = []
 var _definition: StageDefinition
 var _elapsed: float = 0.0
@@ -31,6 +46,8 @@ var _indicators: RoundRoster
 var _spectator: SpectatorSpeed
 var _intro_background: ColorRect
 var _warming_rendering := false
+var _snapshot := RoundSnapshot.new()
+var _net_fast_forward_available := false
 
 
 func configure(
@@ -43,7 +60,11 @@ func configure(
 
 func _ready() -> void:
 	stage = _definition.scene.instantiate() as ArenaStage
+	# The flag is already set while the stage readies; the hook follows once it is in the tree.
+	stage.net_mirror = mirror
 	add_child(stage)
+	if mirror:
+		stage.set_net_mirror(true)
 	stage.elimination_requested.connect(request_elimination)
 	presentation = RoundView.new()
 	presentation.configure(stage)
@@ -67,9 +88,12 @@ func _ready() -> void:
 		bodies.add_child(chair)
 		chair.global_transform = pose
 		chairs.append(chair)
-		if chair.seat != 0:
+		if mirror:
+			chair.make_net_puppet()
+		elif chair.seat != local_seat and not remote_turns.has(chair.seat):
 			_pilots[chair.seat] = PracticePilot.new()
 	stage.bind_participants(chairs)
+	_snapshot.bind(stage)
 	var layer := CanvasLayer.new()
 	add_child(layer)
 	_intro_background = ColorRect.new()
@@ -103,6 +127,10 @@ func _ready() -> void:
 	_indicators.hide()
 	_spectator = SpectatorSpeed.new()
 	_spectator.can_fast_forward = _can_fast_forward
+	_spectator.manage_timing = not mirror
+	_spectator.fast_forward_requested.connect(
+		func(held: bool) -> void: fast_forward_requested.emit(held)
+	)
 	add_child(_spectator)
 	_warming_rendering = DisplayServer.get_name() != "headless"
 	_warm_up_rendering.call_deferred()
@@ -136,6 +164,9 @@ func _warm_up_rendering() -> void:
 
 func _physics_process(delta: float) -> void:
 	_elapsed += delta
+	if mirror:
+		_mirror_step(delta)
+		return
 	if phase == Phase.INTRO:
 		_title.modulate.a = 1.0 - smoothstep(intro_duration * 0.75, intro_duration, _elapsed)
 		_hint.modulate.a = _title.modulate.a
@@ -145,8 +176,12 @@ func _physics_process(delta: float) -> void:
 		if not _steering_held():
 			_input_ready = true
 		for chair in chairs:
-			if chair.seat == 0:
+			if chair.seat == local_seat:
 				chair.command = _input.sample() if _input_ready else ChairCommand.new()
+			elif remote_turns.has(chair.seat):
+				var command := ChairCommand.new()
+				command.turn = clampf(remote_turns[chair.seat], -1.0, 1.0)
+				chair.command = command
 			else:
 				chair.command = _pilots[chair.seat].sample_on_stage(chair, chairs, stage, delta)
 			chair.step(delta)
@@ -167,12 +202,16 @@ func _physics_process(delta: float) -> void:
 		_commit_eliminations()
 		_spectator.refresh()
 	elif phase == Phase.RESOLVING and _elapsed >= resolve_duration:
-		phase = Phase.FINISHED
-		for chair in chairs:
-			chair.get_node("Visuals").freeze_visuals()
-		presentation.world.hide()
-		_indicators.hide()
+		_finish()
 		completed.emit(round_id, _winner)
+
+
+func _finish() -> void:
+	phase = Phase.FINISHED
+	for chair in chairs:
+		chair.get_node("Visuals").freeze_visuals()
+	presentation.world.hide()
+	_indicators.hide()
 
 
 func begin_live() -> void:
@@ -190,7 +229,13 @@ func begin_live() -> void:
 
 
 func request_elimination(seat: int, reason: StringName) -> void:
-	if phase != Phase.LIVE or seat < 0 or seat >= chairs.size() or not chairs[seat].active:
+	if (
+		mirror
+		or phase != Phase.LIVE
+		or seat < 0
+		or seat >= chairs.size()
+		or not chairs[seat].active
+	):
 		return
 	_pending[seat] = reason
 
@@ -201,6 +246,7 @@ func _commit_eliminations() -> void:
 	for seat in _pending:
 		chairs[seat].eliminate(_pending[seat])
 		_indicators.mark_eliminated(seat)
+		eliminated.emit(seat, _pending[seat])
 	_pending.clear()
 	var survivors: Array[Chair] = []
 	for chair in chairs:
@@ -209,6 +255,11 @@ func _commit_eliminations() -> void:
 	if survivors.size() > 1:
 		return
 	_winner = survivors[0].seat if survivors.size() == 1 else -1
+	_resolve()
+	decided.emit(_winner)
+
+
+func _resolve() -> void:
 	phase = Phase.RESOLVING
 	_elapsed = 0.0
 	stage.stop_round()
@@ -231,14 +282,165 @@ func _exit_tree() -> void:
 
 
 func _can_fast_forward() -> bool:
-	if phase != Phase.LIVE or chairs.is_empty() or chairs[0].active:
+	if not allow_fast_forward or phase != Phase.LIVE:
 		return false
-	var surviving_ai := 0
+	if mirror:
+		return _net_fast_forward_available
+	var survivors := 0
 	for chair in chairs:
-		if chair.active and _pilots.has(chair.seat):
-			surviving_ai += 1
-	return surviving_ai > 1
+		if not chair.active:
+			continue
+		if chair.seat == local_seat or remote_turns.has(chair.seat):
+			return false
+		survivors += 1
+	return survivors > 1
+
+
+## Host: combine remote holds with the local hold. Client: display the host's speed.
+func set_network_fast_forward(held: bool) -> void:
+	_spectator.set_network_fast_forward(held)
+
+
+func is_fast_forwarding() -> bool:
+	return _spectator.is_accelerated()
 
 
 func _on_fall_confirmed(seat: int) -> void:
 	request_elimination(seat, &"fall")
+
+
+## Host: a remote seat whose peer left is piloted by AI for the rest of the round.
+func make_ai(seat: int) -> void:
+	remote_turns.erase(seat)
+	if not mirror and seat >= 0 and seat < chairs.size() and not _pilots.has(seat):
+		_pilots[seat] = PracticePilot.new()
+
+
+## Host: this frame's continuous state for clients (see RoundSnapshot).
+func net_snapshot() -> Dictionary:
+	var packed := _snapshot.capture_chairs(chairs)
+	var payload := {
+		"r": round_id,
+		"fast_forward_available": _can_fast_forward(),
+		"fast_forward": is_fast_forwarding(),
+		"p": phase,
+		"t": _elapsed,
+		"c": packed[0],
+		"f": packed[1],
+		"o": _snapshot.capture_props(),
+	}
+	var hazards: Variant = stage.net_state()
+	if hazards != null:
+		payload["s"] = hazards
+	return payload
+
+
+## Client: adopt the host's latest snapshot. Chairs glide towards it every physics frame.
+func apply_net_snapshot(payload: Dictionary) -> void:
+	var values: PackedFloat32Array = payload.get("c", PackedFloat32Array())
+	var flags: PackedByteArray = payload.get("f", PackedByteArray())
+	if values.size() != chairs.size() * RoundSnapshot.CHAIR_FLOATS or flags.size() != chairs.size():
+		return
+	_net_fast_forward_available = bool(payload.get("fast_forward_available", false))
+	var host_phase: int = payload.get("p", Phase.INTRO)
+	if phase == Phase.INTRO:
+		if host_phase == Phase.INTRO:
+			_elapsed = payload.get("t", _elapsed)
+		elif host_phase == Phase.LIVE:
+			begin_live()
+	set_network_fast_forward(bool(payload.get("fast_forward", false)))
+	for chair in chairs:
+		_apply_chair(chair, values, flags[chair.seat])
+	_snapshot.apply_props(payload.get("o", PackedFloat32Array()))
+	if payload.has("s"):
+		stage.apply_net_state(payload["s"])
+
+
+func _apply_chair(chair: Chair, values: PackedFloat32Array, flag: int) -> void:
+	var base := chair.seat * RoundSnapshot.CHAIR_FLOATS
+	var point := Vector2(values[base], values[base + 1])
+	var heading := values[base + 2]
+	var velocity := Vector2(values[base + 3], values[base + 4])
+	var spin := values[base + 5]
+	chair.jet_strength = values[base + 6]
+	chair.impact = values[base + 7]
+	chair.spray_reach = values[base + 8]
+	chair.spraying = chair.active and flag & RoundSnapshot.SPRAYING != 0
+	if not chair.active:
+		return
+	var host_falling := flag & RoundSnapshot.FALLING != 0
+	if flag & RoundSnapshot.ACTIVE == 0:
+		# Eliminations replay from their reliable event, which carries the launch.
+		return
+	if host_falling and not chair.falling:
+		_start_mirrored_fall(chair, point, heading, velocity, spin)
+	elif not host_falling and chair.falling:
+		# The host's chair crossed a gap and landed back on the floor.
+		chair.get_node("Visuals").end_fall()
+		chair.land_from_fall(point, heading, velocity, spin)
+		chair.set_net_state(point, heading, velocity, spin)
+	elif not host_falling:
+		chair.set_net_state(point, heading, velocity, spin)
+
+
+func _start_mirrored_fall(
+	chair: Chair, point: Vector2, heading: float, velocity: Vector2, spin: float
+) -> void:
+	chair.global_position = point
+	chair.global_rotation = heading
+	chair.begin_fall()
+	chair.fall_velocity = velocity
+	chair.fall_spin = spin
+
+
+## Client: replay the host's elimination, including any launch, as local cosmetics.
+func apply_net_elimination(data: Dictionary) -> void:
+	var seat: int = data.get("seat", -1)
+	if seat < 0 or seat >= chairs.size() or not chairs[seat].active:
+		return
+	var chair := chairs[seat]
+	if data.get("falling", false) and not chair.falling:
+		chair.knockout_velocity = data.get("knockout_velocity", Vector3.ZERO)
+		chair.knockout_spin = data.get("knockout_spin", Vector3.ZERO)
+		_start_mirrored_fall(
+			chair,
+			data.get("position", chair.global_position),
+			data.get("rotation", chair.global_rotation),
+			data.get("fall_velocity", Vector2.ZERO),
+			data.get("fall_spin", 0.0)
+		)
+	elif not data.get("falling", false):
+		chair.knockout_velocity = Vector3.ZERO
+	chair.eliminate(data.get("reason", &"fall"))
+	_indicators.mark_eliminated(seat)
+
+
+## Client: the host decided the round; stop hazards and drive as the host did.
+func apply_net_decision() -> void:
+	if phase == Phase.INTRO:
+		begin_live()
+	if phase == Phase.LIVE:
+		_resolve()
+
+
+## Client: the host's results are in; end the round exactly as the host's did.
+func apply_net_finish() -> void:
+	apply_net_decision()
+	if phase == Phase.RESOLVING:
+		_finish()
+
+
+func _mirror_step(delta: float) -> void:
+	# Play streamed movement and stage cosmetics at the host's spectator speed.
+	if phase == Phase.LIVE and _spectator.network_fast_forward:
+		delta *= SpectatorSpeed.MULTIPLIER
+	if phase == Phase.INTRO:
+		_title.modulate.a = 1.0 - smoothstep(intro_duration * 0.75, intro_duration, _elapsed)
+		_hint.modulate.a = _title.modulate.a
+	elif phase == Phase.LIVE:
+		if not _steering_held():
+			_input_ready = true
+		local_turn = _input.sample().turn if _input_ready else 0.0
+		stage.tick_hazards(delta)
+	for chair in chairs:
+		chair.follow_net(delta)

@@ -47,11 +47,12 @@ func run(tree: SceneTree, check: Callable) -> void:
 	check.call(activations.size() == 1, "Hidden menu ignores input")
 	menu.queue_free()
 	await tree.process_frame
+	await _check_info_rows(tree, check)
 	var results := ResultsScreen.new()
 	tree.root.add_child(results)
 	var participants: Array[Dictionary] = [
-		{"id": 0, "name": "Player 1", "colour": Color.WHITE, "wins": 1},
-		{"id": 1, "name": "AI 1", "colour": Color.PINK, "wins": 0},
+		{"id": 0, "peer": 1, "name": "Player 1", "colour": Color.WHITE, "wins": 1},
+		{"id": 1, "peer": 0, "name": "AI 1", "colour": Color.PINK, "wins": 0},
 	]
 	results.present(participants, 0, 3, false, 1)
 	check.call(
@@ -99,4 +100,44 @@ func run(tree: SceneTree, check: Callable) -> void:
 		"Final result has one celebration"
 	)
 	results.queue_free()
+	await tree.process_frame
+
+
+func _check_info_rows(tree: SceneTree, check: Callable) -> void:
+	var menu := TwoKeyMenu.new()
+	tree.root.add_child(menu)
+	menu.set_items(
+		PackedStringArray(["Studio Mac", "Start", "Players 6", "Leave"]),
+		PackedStringArray(["Yellow", "", "", ""]),
+		PackedInt32Array([0, 2])
+	)
+	check.call(menu.chosen == 1, "A menu opens on its first selectable row")
+	var activations: Array[int] = []
+	menu.activated.connect(func(index: int) -> void: activations.append(index))
+	var next := InputEventAction.new()
+	next.action = &"menu_next"
+	next.pressed = true
+	var visited: Array[int] = []
+	for step in 4:
+		menu._unhandled_input(next)
+		visited.append(menu.chosen)
+	check.call(visited == [3, 1, 3, 1], "Left skips info rows and wraps")
+	menu.chosen = 0
+	var confirm := InputEventAction.new()
+	confirm.action = &"menu_activate"
+	confirm.pressed = true
+	menu._unhandled_input(confirm)
+	check.call(activations.is_empty(), "Info rows never activate")
+	menu.chosen = 1
+	menu.set_item_enabled(0, false)
+	check.call(
+		(
+			menu._markers[0].text == ""
+			and menu._markers[1].text == ">"
+			and menu._rows[0].get_theme_color("font_color") == Color(1, 1, 1, 0.92)
+			and menu._value_rows[0].text == "Yellow"
+		),
+		"Info rows are plain white text with values and no marker"
+	)
+	menu.queue_free()
 	await tree.process_frame

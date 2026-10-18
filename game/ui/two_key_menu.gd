@@ -2,6 +2,7 @@ class_name TwoKeyMenu
 extends Control
 ## Explicit two-key selection. Parents own the meaning of each entry.
 ## Every menu shares one row size, gap and marker column, with optional values.
+## Info rows (player lists, read-only settings) are plain text the cursor skips.
 
 signal activated(index: int)
 
@@ -18,6 +19,7 @@ var _values := PackedStringArray()
 var _value_rows: Array[Label] = []
 var _markers: Array[Label] = []
 var _disabled_items: Dictionary = {}
+var _info_items: Dictionary = {}
 var _list: VBoxContainer
 var _scroll: ScrollContainer
 
@@ -27,12 +29,35 @@ func _ready() -> void:
 	_build()
 
 
-func set_items(labels: PackedStringArray, values: PackedStringArray = PackedStringArray()) -> void:
+## `info` lists rows that are shown but never selected or activated.
+func set_items(
+	labels: PackedStringArray,
+	values: PackedStringArray = PackedStringArray(),
+	info: PackedInt32Array = PackedInt32Array()
+) -> void:
 	_items = labels
 	_values = values
+	_info_items.clear()
+	for index in info:
+		_info_items[index] = true
 	chosen = clampi(chosen, 0, maxi(0, labels.size() - 1))
+	if _info_items.has(chosen):
+		chosen = _next_selectable(chosen)
 	if is_inside_tree():
 		_build()
+
+
+func is_info(index: int) -> bool:
+	return _info_items.has(index)
+
+
+## The first selectable row after `from`, wrapping; `from` itself when none is.
+func _next_selectable(from: int) -> int:
+	for step in range(1, _items.size() + 1):
+		var index := (from + step) % _items.size()
+		if not _info_items.has(index):
+			return index
+	return from
 
 
 func set_item_enabled(index: int, enabled: bool) -> void:
@@ -112,6 +137,8 @@ func _label() -> Label:
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", FONT_SIZE)
 	label.add_theme_color_override("font_color", Color(1, 1, 1, 0.92))
+	label.add_theme_color_override("font_outline_color", Color(0.08, 0.08, 0.08, 0.9))
+	label.add_theme_constant_override("outline_size", 4)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
 
@@ -119,16 +146,18 @@ func _label() -> Label:
 func _refresh() -> void:
 	for index in _rows.size():
 		var colour := (
-			Color(0.45, 0.45, 0.45) if _disabled_items.has(index) else Color(1, 1, 1, 0.92)
+			Color(0.45, 0.45, 0.45)
+			if _disabled_items.has(index) and not _info_items.has(index)
+			else Color(1, 1, 1, 0.92)
 		)
 		_rows[index].add_theme_color_override("font_color", colour)
 		_markers[index].add_theme_color_override("font_color", colour)
 		_rows[index].text = _items[index]
-		_markers[index].text = ">" if index == chosen else ""
+		_markers[index].text = ">" if index == chosen and not _info_items.has(index) else ""
 		if not _values.is_empty():
 			_value_rows[index].text = _values[index] if index < _values.size() else ""
 			_value_rows[index].add_theme_color_override(
-				"font_color", Color(1, 1, 1, 0.46 if index == chosen else 0.36)
+				"font_color", Color.WHITE if index == chosen else Color(0.85, 0.85, 0.85)
 			)
 	if is_instance_valid(_scroll):
 		_reveal_chosen.call_deferred()
@@ -136,7 +165,22 @@ func _refresh() -> void:
 
 func _reveal_chosen() -> void:
 	# Container sorting and page anchors must settle before calculating visibility.
-	if is_instance_valid(_scroll) and chosen < _rows.size():
+	if not is_instance_valid(_scroll) or chosen >= _rows.size() or _scroll.size.y <= 0:
+		return
+	# At either end of the selectable rows, also reveal the info rows beyond it.
+	var row := _rows[chosen].get_parent() as Control
+	var bottom := int(row.position.y + row.size.y)
+	var furthest := maxi(0, int(_list.size.y - _scroll.size.y))
+	var selectable := range(_items.size()).filter(
+		func(index: int) -> bool: return not _info_items.has(index)
+	)
+	if selectable.is_empty():
+		return
+	if chosen == selectable.back():
+		_scroll.scroll_vertical = mini(int(row.position.y), furthest)
+	elif chosen == selectable.front():
+		_scroll.scroll_vertical = maxi(0, bottom - int(_scroll.size.y))
+	else:
 		_scroll.ensure_control_visible(_rows[chosen])
 
 
@@ -145,9 +189,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("menu_next"):
 		get_viewport().set_input_as_handled()
-		chosen = (chosen + 1) % _items.size()
+		chosen = _next_selectable(chosen)
 		_refresh()
 	elif event.is_action_pressed("menu_activate"):
 		get_viewport().set_input_as_handled()
-		if not _disabled_items.has(chosen):
+		if not _disabled_items.has(chosen) and not _info_items.has(chosen):
 			activated.emit(chosen)

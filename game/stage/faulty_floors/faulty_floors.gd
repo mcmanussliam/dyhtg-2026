@@ -90,10 +90,86 @@ func recovery_target(from: Vector2, predicted: Vector2, margin: float) -> Vector
 
 
 func tick_hazards(delta: float) -> void:
-	if not round_running:
+	if not round_running or net_mirror:
 		return
 	_elapsed += maxf(0, delta)
 	var fallen := grid.advance(_elapsed, warning_duration)
+	_drop_panels(fallen)
+	if not fallen.is_empty():
+		net_event.emit({"k": "panels_drop", "i": PackedInt32Array(fallen)})
+	var armed := PackedInt32Array()
+	for chair in _chairs:
+		if not is_instance_valid(chair) or not chair.is_in_play():
+			continue
+		var point := to_local(chair.global_position)
+		var previous: Vector2 = _previous.get(chair.seat, point)
+		_previous[chair.seat] = point
+		if _elapsed < opening_grace:
+			continue
+		# Sweep travelled floor as well as endpoints, including boosted/spectator steps.
+		var steps := maxi(1, ceili(previous.distance_to(point) / (grid.cell_size.x * 0.25)))
+		for step in range(steps + 1):
+			var touched := grid.arm(
+				previous.lerp(point, float(step) / steps), 20 * chair.size_scale, _elapsed
+			)
+			for index in touched:
+				armed.append(index)
+			if _view != null:
+				for index in touched:
+					_view.warn(index)
+	if not armed.is_empty():
+		net_event.emit({"k": "panels_warn", "i": armed, "t": _elapsed})
+	if _view != null:
+		_view.update_clock(_elapsed)
+
+
+## Host: the panel clock drives the warning flashes. Changes arrive as events.
+func net_state() -> Variant:
+	return _elapsed
+
+
+func apply_net_state(state: Variant) -> void:
+	if state is float:
+		_elapsed = state
+		if _view != null:
+			_view.update_clock(_elapsed)
+
+
+func apply_net_event(payload: Variant) -> void:
+	if not payload is Dictionary:
+		return
+	if not payload.get("i") is PackedInt32Array:
+		return
+	var indices: PackedInt32Array = payload.i
+	if payload.get("k") == "panels_warn":
+		var changed := false
+		for index in indices:
+			if index >= 0 and index < grid.states.size():
+				if grid.states[index] == FaultyFloorGrid.State.SOLID:
+					grid.states[index] = FaultyFloorGrid.State.WARNING
+					grid.armed_at[index] = payload.get("t", _elapsed)
+					changed = true
+					if _view != null:
+						_view.warn(index)
+		if changed:
+			grid.revision += 1
+	elif payload.get("k") == "panels_drop":
+		var fallen: Array[int] = []
+		for index in indices:
+			if (
+				index >= 0
+				and index < grid.states.size()
+				and grid.states[index] != FaultyFloorGrid.State.GONE
+			):
+				grid.states[index] = FaultyFloorGrid.State.GONE
+				fallen.append(index)
+		if not fallen.is_empty():
+			grid.revision += 1
+			_drop_panels(fallen)
+
+
+## Drop panels that just fell, releasing any furniture standing over them.
+func _drop_panels(fallen: Array[int]) -> void:
 	var chips: Array[PackedVector2Array] = []
 	for index in fallen:
 		var area := grid.cell_rect(index)
@@ -113,25 +189,6 @@ func tick_hazards(delta: float) -> void:
 		for prop in $Furniture.get_children():
 			if prop is OfficeProp:
 				prop.release_for_fracture(self, chips, center)
-	for chair in _chairs:
-		if not is_instance_valid(chair) or not chair.is_in_play():
-			continue
-		var point := to_local(chair.global_position)
-		var previous: Vector2 = _previous.get(chair.seat, point)
-		_previous[chair.seat] = point
-		if _elapsed < opening_grace:
-			continue
-		# Sweep travelled floor as well as endpoints, including boosted/spectator steps.
-		var steps := maxi(1, ceili(previous.distance_to(point) / (grid.cell_size.x * 0.25)))
-		for step in range(steps + 1):
-			var touched := grid.arm(
-				previous.lerp(point, float(step) / steps), 20 * chair.size_scale, _elapsed
-			)
-			if _view != null:
-				for index in touched:
-					_view.warn(index)
-	if _view != null:
-		_view.update_clock(_elapsed)
 
 
 func stop_round() -> void:

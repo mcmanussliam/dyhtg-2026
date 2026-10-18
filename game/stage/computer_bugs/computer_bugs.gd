@@ -1,3 +1,4 @@
+# gdlint: disable=max-public-methods
 @tool
 class_name ComputerBugsStage
 extends OfficeStage
@@ -65,7 +66,8 @@ func bind_participants(chairs: Array[Chair]) -> void:
 
 
 func start_round() -> void:
-	if not round_running:
+	# A mirror's scene is fresh; never discard host announcements that arrived first.
+	if not round_running and not net_mirror:
 		_elapsed = 0.0
 		_next_drop = first_drop
 		drops_total = 0
@@ -74,6 +76,9 @@ func start_round() -> void:
 		if is_instance_valid(_beetles):
 			_beetles.clear()
 		_reset_slots()
+		_refresh()
+	elif not round_running:
+		# Keep the host's mush refresh cadence.
 		_refresh()
 	super.start_round()
 
@@ -136,9 +141,23 @@ func mush_radius(clump: Dictionary) -> float:
 func tick_hazards(delta: float) -> void:
 	if not round_running:
 		return
+	if net_mirror:
+		_refresh()
+		return
 	_elapsed += maxf(delta, 0)
 	if _elapsed >= _next_drop and mush_count() + _pending() < MAX_MUSH:
 		if _announce_drop():
+			var clump: Dictionary = clumps[-1]
+			net_event.emit(
+				{
+					"k": "bug_drop",
+					"i": clumps.size() - 1,
+					"p": clump.position,
+					"w": clump.warning,
+					"slot": clump.slot,
+					"seed": clump.seed
+				}
+			)
 			_next_drop = _elapsed + current_interval() * _random.randf_range(0.85, 1.15)
 		else:
 			_next_drop = _elapsed + 0.25
@@ -146,6 +165,69 @@ func tick_hazards(delta: float) -> void:
 		_advance(clump, delta)
 	_strike_chairs()
 	_refresh()
+
+
+## Host: the round clock, then [index, phase, timer, height] per unlanded clump.
+## Mush growth follows from the clock and each landing time, so it costs nothing here.
+func net_state() -> Variant:
+	var state := PackedFloat64Array([_elapsed])
+	for index in clumps.size():
+		var clump: Dictionary = clumps[index]
+		if clump.phase != Phase.MUSH:
+			state.append(index)
+			state.append(clump.phase)
+			state.append(clump.timer)
+			state.append(clump.height)
+	return state
+
+
+func apply_net_state(state: Variant) -> void:
+	if not state is PackedFloat64Array or state.is_empty():
+		return
+	_elapsed = state[0]
+	for offset in range(1, state.size() - 3, 4):
+		var index := int(state[offset])
+		if index < 0 or index >= clumps.size():
+			continue
+		var clump: Dictionary = clumps[index]
+		# Landings arrive as ordered events; late continuous state never un-lands a clump.
+		if clump.phase == Phase.MUSH:
+			continue
+		clump.phase = maxi(clump.phase, int(state[offset + 1]))
+		clump.timer = state[offset + 2]
+		clump.height = state[offset + 3]
+
+
+func apply_net_event(payload: Variant) -> void:
+	if not payload is Dictionary:
+		return
+	var index: int = payload.get("i") if payload.get("i") is int else -1
+	if payload.get("k") == "bug_drop" and index == clumps.size():
+		clumps.append(
+			{
+				"position": payload.get("p", Vector2.ZERO),
+				"phase": Phase.WARNING,
+				"timer": 0.0,
+				"warning": payload.get("w", current_warning()),
+				"height": FALL_HEIGHT,
+				"landed": INF,
+				"slot": payload.get("slot", 0),
+				"seed": payload.get("seed", 0.0),
+				"block": -1,
+				"freed": false
+			}
+		)
+		drops_total += 1
+	elif payload.get("k") == "bug_land" and index >= 0 and index < clumps.size():
+		var clump: Dictionary = clumps[index]
+		if clump.phase == Phase.MUSH:
+			return
+		clump.phase = Phase.MUSH
+		clump.height = 0.0
+		clump.landed = payload.get("t", _elapsed)
+		clump.block = payload.get("b", 0)
+		if is_instance_valid(_beetles):
+			_beetles.place(clump.block, clump.position, clump.seed)
 
 
 func _pending() -> int:
@@ -172,6 +254,9 @@ func _advance(clump: Dictionary, delta: float) -> void:
 				_next_block = mini(_next_block + 1, MAX_MUSH - 1)
 				if is_instance_valid(_beetles):
 					_beetles.place(clump.block, clump.position, clump.seed)
+				net_event.emit(
+					{"k": "bug_land", "i": clumps.find(clump), "t": _elapsed, "b": clump.block}
+				)
 		Phase.MUSH:
 			# The squashed clump hides once its splat is over, freeing its pool slot.
 			if not clump.freed and _elapsed - clump.landed >= SPLAT_SECONDS:

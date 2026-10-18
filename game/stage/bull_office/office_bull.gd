@@ -75,6 +75,32 @@ func tick(delta: float) -> void:
 	_sync_presentation(delta)
 
 
+## Mirror: show a host bull's pose and phase. A mirror never collides or attacks.
+func apply_mirror(point: Vector2, angle: float, next_phase: int, heading: float) -> void:
+	collision_layer = 0
+	collision_mask = 0
+	position = point
+	rotation = angle
+	phase = next_phase as Phase
+	_direction = Vector2.from_angle(heading)
+
+
+## Mirror: purely visual animation on the round clock.
+func mirror_tick(delta: float) -> void:
+	if _stage.round_running:
+		_time += delta
+		_sync_presentation(delta)
+
+
+## Host: [x, y, rotation, phase, charge heading] in stage-local pixels and radians.
+func write_net_state(state: PackedFloat32Array, offset: int) -> void:
+	state[offset] = position.x
+	state[offset + 1] = position.y
+	state[offset + 2] = rotation
+	state[offset + 3] = phase
+	state[offset + 4] = _direction.angle()
+
+
 func begin_entry(start: Vector2, destination: Vector2) -> void:
 	global_position = start
 	_entry_destination = destination

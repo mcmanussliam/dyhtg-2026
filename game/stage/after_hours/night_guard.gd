@@ -107,6 +107,35 @@ func tick(delta: float) -> void:
 	_sync_presentation(delta)
 
 
+## Host: [x, y, rotation, beam, phase, speed] in stage-local pixels and radians.
+func write_net_state(state: PackedFloat32Array, offset: int) -> void:
+	state[offset] = position.x
+	state[offset + 1] = position.y
+	state[offset + 2] = rotation
+	state[offset + 3] = beam_angle
+	state[offset + 4] = phase
+	state[offset + 5] = velocity.length()
+
+
+## Mirror: show a host guard's pose, beam and phase. A mirror never collides or catches.
+func apply_mirror(state: PackedFloat32Array, offset: int) -> void:
+	collision_layer = 0
+	collision_mask = 0
+	position = Vector2(state[offset], state[offset + 1])
+	rotation = state[offset + 2]
+	beam_angle = state[offset + 3]
+	phase = int(state[offset + 4]) as Phase
+	# Only the walk cycle reads this speed; mirrors never move themselves.
+	velocity = Vector2.from_angle(rotation) * state[offset + 5]
+
+
+## Mirror: purely visual animation on the round clock.
+func mirror_tick(delta: float) -> void:
+	if _stage.round_running:
+		_time += delta
+		_sync_presentation(delta)
+
+
 func begin_entry(start: Vector2, destination: Vector2) -> void:
 	global_position = start
 	_entry_destination = destination
