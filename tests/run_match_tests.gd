@@ -33,6 +33,7 @@ const SUITES = [
 	preload("res://tests/stage/test_hr_training.gd"),
 	preload("res://tests/stage/test_faulty_floors.gd"),
 	preload("res://tests/stage/test_under_construction.gd"),
+	preload("res://tests/stage/test_computer_bugs.gd"),
 	preload("res://tests/ui/test_portrait_framing.gd"),
 	preload("res://tests/ui/test_map_selection.gd"),
 ]

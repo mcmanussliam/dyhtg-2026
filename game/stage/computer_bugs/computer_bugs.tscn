@@ -1,0 +1,193 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://game/stage/computer_bugs/computer_bugs.gd" id="1"]
+[ext_resource type="PackedScene" path="res://game/props/desk/office_desk.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://game/props/task_chair/office_task_chair.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://game/props/bookshelf/office_bookshelf.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://game/props/cabinet/office_cabinet.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://game/props/copier/office_copier.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://game/props/plant/office_plant.tscn" id="9"]
+
+[node name="ComputerBugs" type="Node2D"]
+script = ExtResource("1")
+view_width = 1540.0
+view_focus = Vector2(640, 330)
+content_scale = 1.4
+
+[node name="Furniture" type="Node2D" parent="."]
+
+[node name="Computer1" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(250, 100)
+rotation = 3.14159
+
+[node name="DeskChair1" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(250, 10)
+rotation = 0
+
+[node name="Computer2" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(250, 172)
+rotation = 0
+
+[node name="DeskChair2" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(250, 262)
+rotation = 3.14159
+
+[node name="Computer3" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(520, 100)
+rotation = 3.14159
+
+[node name="DeskChair3" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(520, 10)
+rotation = 0
+
+[node name="Computer4" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(520, 172)
+rotation = 0
+
+[node name="DeskChair4" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(520, 262)
+rotation = 3.14159
+
+[node name="Computer5" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(790, 100)
+rotation = 3.14159
+
+[node name="DeskChair5" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(790, 10)
+rotation = 0
+
+[node name="Computer6" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(790, 172)
+rotation = 0
+
+[node name="DeskChair6" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(790, 262)
+rotation = 3.14159
+
+[node name="Computer7" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(1060, 100)
+rotation = 3.14159
+
+[node name="DeskChair7" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(1060, 10)
+rotation = 0
+
+[node name="Computer8" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(1060, 172)
+rotation = 0
+
+[node name="DeskChair8" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(1060, 262)
+rotation = 3.14159
+
+[node name="Computer9" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(250, 700)
+rotation = 3.14159
+
+[node name="DeskChair9" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(250, 610)
+rotation = 0
+
+[node name="Computer10" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(250, 772)
+rotation = 0
+
+[node name="DeskChair10" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(250, 862)
+rotation = 3.14159
+
+[node name="Computer11" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(520, 700)
+rotation = 3.14159
+
+[node name="DeskChair11" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(520, 610)
+rotation = 0
+
+[node name="Computer12" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(520, 772)
+rotation = 0
+
+[node name="DeskChair12" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(520, 862)
+rotation = 3.14159
+
+[node name="Computer13" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(790, 700)
+rotation = 3.14159
+
+[node name="DeskChair13" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(790, 610)
+rotation = 0
+
+[node name="Computer14" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(790, 772)
+rotation = 0
+
+[node name="DeskChair14" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(790, 862)
+rotation = 3.14159
+
+[node name="Computer15" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(1060, 700)
+rotation = 3.14159
+
+[node name="DeskChair15" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(1060, 610)
+rotation = 0
+
+[node name="Computer16" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(1060, 772)
+rotation = 0
+
+[node name="DeskChair16" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(1060, 862)
+rotation = 3.14159
+
+[node name="Shelf" parent="Furniture" instance=ExtResource("4")]
+position = Vector2(933, -143)
+rotation = 0.0
+
+[node name="ShelfB" parent="Furniture" instance=ExtResource("4")]
+position = Vector2(1029, -143)
+rotation = 0.0
+
+[node name="Cabinet" parent="Furniture" instance=ExtResource("5")]
+position = Vector2(1108, -154)
+rotation = 0.0
+
+[node name="Printer" parent="Furniture" instance=ExtResource("6")]
+position = Vector2(1174, -160)
+rotation = 0.0
+
+[node name="PrintCabinet" parent="Furniture" instance=ExtResource("5")]
+position = Vector2(1240, -154)
+rotation = 0.0
+
+[node name="FilingCabinet1" parent="Furniture" instance=ExtResource("5")]
+position = Vector2(45, 120)
+rotation = 1.5708
+
+[node name="FilingCabinet2" parent="Furniture" instance=ExtResource("5")]
+position = Vector2(45, 180)
+rotation = 1.5708
+
+[node name="FilingCabinet3" parent="Furniture" instance=ExtResource("5")]
+position = Vector2(45, 780)
+rotation = 1.5708
+
+[node name="PlantTL" parent="Furniture" instance=ExtResource("9")]
+position = Vector2(60, -150)
+rotation = 0.0
+
+[node name="PlantBL" parent="Furniture" instance=ExtResource("9")]
+position = Vector2(60, 1010)
+rotation = 0.0
+
+[node name="PlantBR" parent="Furniture" instance=ExtResource("9")]
+position = Vector2(1240, 1015)
+rotation = 0.0
+
+[node name="PlantAisle" parent="Furniture" instance=ExtResource("9")]
+position = Vector2(30, 436)
+rotation = 0.0
