@@ -65,6 +65,9 @@ func run(tree: SceneTree, check: Callable) -> void:
 	check.call(app.config.player_colour == chosen_colour, "Selected colour survives returning home")
 	await _tap(tree, &"menu_activate")
 	await tree.process_frame
+	check.call(app.current_menu._items[0] == "Single player", "Play opens the Play page")
+	await _tap(tree, &"menu_activate")
+	await tree.process_frame
 	check.call(
 		_shown_text(app.screen).size() == 6, "Setup displays only its five options and a marker"
 	)
@@ -146,7 +149,13 @@ func run(tree: SceneTree, check: Callable) -> void:
 	app.current_menu.chosen = 4
 	await _tap(tree, &"menu_activate")
 	await tree.process_frame
-	check.call(app.current_menu._items.size() == 4, "Setup Back returns to home using two keys")
+	check.call(
+		app.current_menu._items[0] == "Single player", "Setup Back returns to Play using two keys"
+	)
+	app.current_menu.chosen = 2
+	await _tap(tree, &"menu_activate")
+	await tree.process_frame
+	check.call(app.current_menu._items.size() == 4, "Play Back returns home using two keys")
 	app.current_menu.chosen = 2
 	await _tap(tree, &"menu_activate")
 	await tree.process_frame

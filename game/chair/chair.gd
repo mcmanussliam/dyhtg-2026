@@ -5,6 +5,13 @@ extends RigidBody2D
 signal bumped(impulse: Vector2)
 signal fall_confirmed(seat: int)
 
+## Online clients steer puppets towards the host's state; corrections settle in this time.
+const NET_SETTLE_SECONDS := 0.1
+## Errors beyond this distance (pixels) snap rather than glide.
+const NET_SNAP_DISTANCE := 96.0
+## Missing snapshots extrapolate the last velocity for at most this long.
+const NET_EXTRAPOLATION_SECONDS := 0.1
+
 @export var tuning: ChairTuning
 
 var size_scale: float = 1.0
@@ -25,6 +32,8 @@ var knockout_spin := Vector3.ZERO
 var impact: float = 0.0
 var spray_reach: float = 176.0
 var command := ChairCommand.new()
+## Online client: a collisionless body that only follows the host's snapshots.
+var net_puppet := false
 var aim_angle: float:
 	get:
 		return global_rotation
@@ -32,6 +41,11 @@ var aim_angle: float:
 var _fall_reported := false
 var _ramp_duration := 0.0
 var _ramp_elapsed := 0.0
+var _net_position := Vector2.ZERO
+var _net_rotation := 0.0
+var _net_velocity := Vector2.ZERO
+var _net_spin := 0.0
+var _net_age := 0.0
 
 
 func resize_for_stage(factor: float) -> void:
@@ -165,8 +179,9 @@ func land_from_fall(point: Vector2, heading: float, velocity: Vector2, spin: flo
 	falling = false
 	global_position = point
 	global_rotation = heading
-	collision_layer = 2
-	collision_mask = 3
+	if not net_puppet:
+		collision_layer = 2
+		collision_mask = 3
 	begin_round()
 	linear_velocity = velocity.limit_length(tuning.maximum_speed)
 	angular_velocity = clampf(spin, -tuning.maximum_spin, tuning.maximum_spin)
@@ -208,3 +223,44 @@ func eliminate(reason: StringName) -> void:
 	collision_mask = 0
 	if not falling:
 		visible = false
+
+
+## Online client: never collide or simulate drive; follow `set_net_state` instead.
+func make_net_puppet() -> void:
+	net_puppet = true
+	collision_layer = 0
+	collision_mask = 0
+	linear_damp = 0.0
+	angular_damp = 0.0
+	_net_position = global_position
+	_net_rotation = global_rotation
+
+
+## Online client: the host's latest pose and motion for this seat.
+func set_net_state(point: Vector2, heading: float, velocity: Vector2, spin: float) -> void:
+	_net_position = point
+	_net_rotation = heading
+	_net_velocity = velocity
+	_net_spin = spin
+	_net_age = 0.0
+
+
+## Online client: glide towards the extrapolated host pose. Velocity carries the motion,
+## so presentation reads real speeds; a small correction term removes drift smoothly.
+func follow_net(delta: float) -> void:
+	if not net_puppet or falling or not active:
+		return
+	_net_age += delta
+	var lead := minf(_net_age, NET_EXTRAPOLATION_SECONDS)
+	var target := _net_position + _net_velocity * lead
+	var heading := _net_rotation + _net_spin * lead
+	var error := target - global_position
+	if freeze or error.length() > NET_SNAP_DISTANCE:
+		global_position = target
+		global_rotation = heading
+		if not freeze:
+			linear_velocity = _net_velocity
+			angular_velocity = _net_spin
+		return
+	linear_velocity = _net_velocity + error / NET_SETTLE_SECONDS
+	angular_velocity = _net_spin + angle_difference(global_rotation, heading) / NET_SETTLE_SECONDS

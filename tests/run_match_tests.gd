@@ -36,8 +36,14 @@ const SUITES = [
 	preload("res://tests/stage/test_faulty_floors.gd"),
 	preload("res://tests/stage/test_under_construction.gd"),
 	preload("res://tests/stage/test_computer_bugs.gd"),
+	preload("res://tests/stage/test_stage_replication.gd"),
 	preload("res://tests/ui/test_portrait_framing.gd"),
 	preload("res://tests/ui/test_map_selection.gd"),
+	preload("res://tests/net/test_lobby_rules.gd"),
+	preload("res://tests/net/test_lan_discovery.gd"),
+	preload("res://tests/net/test_net_session.gd"),
+	preload("res://tests/net/test_online_match.gd"),
+	preload("res://tests/app/test_online_menus.gd"),
 ]
 
 var _checks: int = 0

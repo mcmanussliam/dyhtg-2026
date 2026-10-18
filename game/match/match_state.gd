@@ -60,6 +60,89 @@ func configure(config: MatchConfig) -> void:
 		)
 
 
+## Online: seats from the session roster (docs/multiplayer.md). Appearance IDs resolve
+## locally, so every peer builds the same characters without sending resources.
+func configure_roster(roster: Array, target_wins: int) -> void:
+	wins_needed = clampi(target_wins, 1, 5)
+	round_number = 0
+	winner_id = -1
+	_recorded_round = 0
+	participants.clear()
+	for index in mini(roster.size(), MatchConfig.MAX_PLAYERS):
+		var entry: Dictionary = roster[index] if roster[index] is Dictionary else {}
+		var top_id := _content_id(entry.get("top_id"))
+		var hat_id := _content_id(entry.get("hat_id"))
+		var colour: Variant = entry.get("colour")
+		(
+			participants
+			. append(
+				{
+					"id": index,
+					"peer": int(entry.get("peer", 0)),
+					"name":
+					(
+						"Player %d" % (index + 1)
+						if int(entry.get("peer", 0)) != 0
+						else String(entry.get("name", "AI %d" % index))
+					),
+					"skin": skin_for(top_id).duplicate(),
+					"top_id": top_id,
+					"hat_id": hat_id if hat_id in CharacterHats.IDS else CharacterAppearance.NONE,
+					"colour": colour if colour is Color else COLOURS[index],
+					"wins": int(entry.get("wins", 0)),
+				}
+			)
+		)
+
+
+## Online: the roster as plain values for the network (no resources).
+func roster_entries() -> Array:
+	var entries: Array = []
+	for participant in participants:
+		(
+			entries
+			. append(
+				{
+					"id": participant.id,
+					"peer": participant.get("peer", 0),
+					"name": participant.name,
+					"hat_id": participant.hat_id,
+					"top_id": participant.get("top_id", CharacterAppearance.NONE),
+					"colour": participant.colour,
+					"wins": participant.wins,
+				}
+			)
+		)
+	return entries
+
+
+## Online: adopt the host's scores and match winner.
+func apply_wins(wins: PackedInt32Array, winner: int) -> void:
+	for index in mini(wins.size(), participants.size()):
+		participants[index]["wins"] = wins[index]
+	winner_id = winner if winner >= -1 and winner < participants.size() else -1
+
+
+func wins() -> PackedInt32Array:
+	var values := PackedInt32Array()
+	for participant in participants:
+		values.append(participant.wins)
+	return values
+
+
+static func _content_id(value: Variant) -> StringName:
+	if value is String or value is StringName:
+		return StringName(value)
+	return CharacterAppearance.NONE
+
+
+static func skin_for(top_id: StringName) -> CharacterSkin:
+	for skin in SkinCatalog.definitions():
+		if skin.id == top_id:
+			return skin
+	return SkinCatalog.default_definition()
+
+
 func begin_round() -> int:
 	if (
 		winner_id == -1

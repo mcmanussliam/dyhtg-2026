@@ -12,6 +12,10 @@ var chairs: Array[Chair] = []
 var lane := -1
 var position := Vector2.ZERO
 var direction := Vector2.RIGHT
+## Online clients only display the host's vehicle: no sweeps, strikes or collisions.
+var mirror := false
+## Whether the current lane runs from its first endpoint to its second.
+var heading_forward := true
 var _stage: OfficeStage
 var _elimination_reason := &""
 var _start := Vector2.ZERO
@@ -24,12 +28,34 @@ var _units := 1.0 / RenderStyle.PIXELS_PER_UNIT
 ## Line up behind the entrance of `next_lane`, ready to drive towards its exit.
 func _aim(next_lane: int, ends: PackedVector2Array, forward: bool) -> void:
 	lane = next_lane
+	heading_forward = forward
 	_start = ends[0 if forward else 1]
 	_finish = ends[1 if forward else 0]
 	direction = (_finish - _start).normalized()
 	position = _start - direction * (length * 0.5 + 20)
 	_hit_seats.clear()
 	_hit_props.clear()
+
+
+## Mirror: does the host's lane differ from the one this vehicle shows?
+func _mirror_lane_changed(next_lane: int, forward: bool) -> bool:
+	return next_lane >= 0 and (next_lane != lane or forward != heading_forward or _start == _finish)
+
+
+## Mirror: adopt the host's lane without moving, sweeping or striking anything.
+func _mirror_lane(next_lane: int, ends: PackedVector2Array, forward: bool) -> void:
+	lane = next_lane
+	heading_forward = forward
+	_start = ends[0 if forward else 1]
+	_finish = ends[1 if forward else 0]
+	direction = (_finish - _start).normalized()
+
+
+## Host: tell clients about a struck prop, so they replay the same smash or launch.
+func _report_strike(prop: OfficeProp, smash: bool, velocity: Vector3, spin: Vector3) -> void:
+	_stage.net_event.emit(
+		{"k": "prop_hit", "n": prop.name, "smash": smash, "v": velocity, "s": spin}
+	)
 
 
 ## Drive forward, striking chairs and furniture; true once wholly past the exit.

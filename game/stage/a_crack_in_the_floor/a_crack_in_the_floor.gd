@@ -160,18 +160,37 @@ func create_presentation(parent: Node3D, units_per_pixel: float) -> void:
 
 
 func tick_hazards(delta: float) -> void:
-	if not round_running or _erosion == null:
+	if not round_running or _erosion == null or net_mirror:
 		return
 	if _erosion.advance(delta):
-		if is_instance_valid(_world):
-			_refresh_geometry()
-			for carpet in _carpets:
-				_create_carpet(_world, _units, carpet.area, carpet.colour, carpet.label)
-		for prop in $Furniture.get_children():
-			if prop is OfficeProp:
-				prop.release_for_fracture(self, _erosion.fallen, center)
+		_apply_erosion_step()
 	if _fracture_view != null:
 		_fracture_view.refresh(_erosion, true)
+	var payload: Variant = _erosion.take_net_event()
+	if payload != null:
+		net_event.emit(payload)
+
+
+func apply_net_event(payload: Variant) -> void:
+	if not payload is Dictionary or _erosion == null:
+		return
+	if _erosion.apply_net_event(payload):
+		_apply_erosion_step()
+	if _fracture_view != null:
+		_fracture_view.refresh(_erosion, true)
+	# The host clears departures on its next step; a mirror spawns their debris once.
+	_erosion.fallen.clear()
+
+
+## Rebuild the floor, rim, carpets and released furniture from the new outline.
+func _apply_erosion_step() -> void:
+	if is_instance_valid(_world):
+		_refresh_geometry()
+		for carpet in _carpets:
+			_create_carpet(_world, _units, carpet.area, carpet.colour, carpet.label)
+	for prop in $Furniture.get_children():
+		if prop is OfficeProp:
+			prop.release_for_fracture(self, _erosion.fallen, center)
 
 
 func stop_round() -> void:

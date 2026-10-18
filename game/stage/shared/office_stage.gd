@@ -89,6 +89,26 @@ func _clear_of_lanes(world_point: Vector2, vehicles: Array, margin: float) -> Ve
 	return point
 
 
+## Client: replay a host lane vehicle's strike on stage furniture (`prop_hit` events).
+func _apply_prop_hit(payload: Variant) -> void:
+	if not payload is Dictionary or payload.get("k") != "prop_hit":
+		return
+	var furniture := get_node_or_null(^"Furniture")
+	var prop: OfficeProp = (
+		furniture.get_node_or_null(NodePath(String(payload.get("n", "")))) as OfficeProp
+		if furniture != null
+		else null
+	)
+	if prop == null:
+		return
+	var velocity: Vector3 = payload.get("v", Vector3.ZERO)
+	var spin: Vector3 = payload.get("s", Vector3.ZERO)
+	if payload.get("smash", false):
+		prop.smash(self, velocity, spin)
+	else:
+		prop.launch(velocity, spin)
+
+
 func _room_target(world_point: Vector2, margin: float) -> Vector2:
 	var inset := clampf(margin, 0, minf(half_size.x, half_size.y) * 0.8)
 	return to_global(

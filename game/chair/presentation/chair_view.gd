@@ -110,10 +110,11 @@ func _physics_process(delta: float) -> void:
 		_start_fall(chair)
 	if _shared and chair.active:
 		_recover_on_floor(chair, delta)
-		if _try_land(chair):
+		# Online puppets land and fall only when the host says so.
+		if not chair.net_puppet and _try_land(chair):
 			return
 	# A wheel over the rim is not a loss: the native body must actually drop.
-	if _fall_body.global_position.y < -0.5 * chair.size_scale:
+	if not chair.net_puppet and _fall_body.global_position.y < -0.5 * chair.size_scale:
 		chair.confirm_fall()
 
 
@@ -273,17 +274,24 @@ func _try_land(chair: Chair) -> bool:
 	)
 	var heading := PI / 2.0 - _fall_body.global_rotation.y
 	var spin := -_fall_body.angular_velocity.y
+	end_fall()
+	chair.land_from_fall(point, heading, velocity, spin)
+	_previous_velocity = velocity
+	_sync_heading(chair)
+	return true
+
+
+## Return the model from its native fall body to the planar rig (a landing).
+func end_fall() -> void:
+	if not _shared or not is_instance_valid(_fall_body):
+		return
 	_model.reparent(_rig, true)
 	_model.position = Vector3.ZERO
 	_model.rotation = Vector3.ZERO
 	_fall_body.queue_free()
 	_fall_body = null
-	chair.land_from_fall(point, heading, velocity, spin)
 	_shadow.show()
 	_spray.show()
-	_previous_velocity = velocity
-	_sync_heading(chair)
-	return true
 
 
 func _ready_shared() -> void:

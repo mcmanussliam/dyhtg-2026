@@ -8,6 +8,7 @@ const TRACK_OFFSETS := [-562.0, 0.0, 562.0]
 const PORTAL_WIDTH := 152.0
 const CROSSING_ORDER := [0, 2, 1]
 const MAX_TRAINS := 9  # Three per track: crossing, waiting and warning.
+const NET_STRIDE := 6
 
 @export_range(0.2, 10.0, 0.1) var initial_interval := 1.5
 @export_range(0.0, 10.0, 0.01) var minimum_interval := 0.02
@@ -22,6 +23,7 @@ var _crossings := 0
 var _signals: Array[MeshInstance3D] = []
 var _signal_on: StandardMaterial3D
 var _signal_off: StandardMaterial3D
+var _mirror_lit := 0
 
 
 func _ready() -> void:
@@ -79,6 +81,10 @@ func difficulty() -> float:
 func tick_hazards(delta: float) -> void:
 	if not round_running:
 		return
+	if net_mirror:
+		# Signals show the host's lit lanes; nothing is scheduled locally.
+		_update_signals()
+		return
 	_elapsed += delta
 	for actor in trains:
 		actor.tick(delta)
@@ -90,6 +96,36 @@ func tick_hazards(delta: float) -> void:
 		# One admission per physics tick; blocked lanes never accumulate a backlog.
 		_next_arrival = crossing_interval() if _schedule_train() else 0.0
 	_update_signals()
+
+
+func set_net_mirror(enabled: bool) -> void:
+	super.set_net_mirror(enabled)
+	for actor in trains:
+		actor.mirror = enabled
+
+
+## Host: the difficulty clock, lit warning lanes, then six floats per pooled train.
+func net_state() -> Variant:
+	var state := PackedFloat32Array()
+	state.resize(2 + trains.size() * NET_STRIDE)
+	state[0] = _elapsed
+	state[1] = _lit_lanes()
+	for index in trains.size():
+		trains[index].write_net_state(state, 2 + index * NET_STRIDE)
+	return state
+
+
+func apply_net_state(state: Variant) -> void:
+	if not state is PackedFloat32Array or state.size() != 2 + trains.size() * NET_STRIDE:
+		return
+	_elapsed = state[0]
+	_mirror_lit = int(state[1])
+	for index in trains.size():
+		trains[index].apply_mirror(state, 2 + index * NET_STRIDE)
+
+
+func apply_net_event(payload: Variant) -> void:
+	_apply_prop_hit(payload)
 
 
 func _schedule_train() -> bool:
@@ -236,15 +272,25 @@ func _create_carpet(
 
 
 func _update_signals() -> void:
+	var lit := _lit_lanes() if not net_mirror else (_mirror_lit if round_running else 0)
+	for index in _signals.size():
+		var flashing := lit & (1 << (index / 2)) != 0
+		_signals[index].material_override = _signal_on if flashing else _signal_off
+
+
+## Lanes whose warning lights are on this tick, as a bit mask.
+func _lit_lanes() -> int:
 	var warning_ages := PackedFloat64Array([-1, -1, -1])
 	if round_running:
 		for actor in trains:
 			if actor.phase in [TrainingTrain.Phase.WARNING, TrainingTrain.Phase.WAITING]:
 				warning_ages[actor.lane] = maxf(warning_ages[actor.lane], actor.phase_age)
-	for index in _signals.size():
-		var age := warning_ages[index / 2]
-		var flashing := age >= 0 and fmod(age, 0.28) < 0.16
-		_signals[index].material_override = _signal_on if flashing else _signal_off
+	var lit := 0
+	for lane in warning_ages.size():
+		var age := warning_ages[lane]
+		if age >= 0 and fmod(age, 0.28) < 0.16:
+			lit |= 1 << lane
+	return lit
 
 
 func _create_player_thresholds() -> void:
