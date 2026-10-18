@@ -10,6 +10,8 @@ This is a vibe coded game. We did not write code, beyond modifying a couple of s
 - Claude Pro Subscription
 - Opus 5.5
 - Sonnet 5.5
+- Codex
+- 6.1 Sol
 ### Description
 
 We first went through the basics of what a two button game could look like. We thought of various ideas: decision tree games, Mario party style virtual board games, then various mini game style games.
