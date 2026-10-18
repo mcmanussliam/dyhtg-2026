@@ -7,7 +7,7 @@ const DEFINITION = preload("res://game/stage/faulty_floors/faulty_floors.tres")
 func run(tree: SceneTree, check: Callable) -> void:
 	check.call(DEFINITION.validation_errors().is_empty(), "Faulty Floors definition validates")
 	check.call(
-		DEFINITION.display_name == "Faulty Floors" and DEFINITION.hint == "Keep moving",
+		DEFINITION.display_name == "Faulty Floors" and DEFINITION.hint == "Watch your step",
 		"Faulty Floors has its own title and hint"
 	)
 	check.call(

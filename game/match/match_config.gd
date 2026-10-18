@@ -27,6 +27,21 @@ var player_colour: Color:
 	get:
 		return appearance.resolved_colour()
 
+var _bag: Array[StageDefinition] = []
+var _bag_signature: Array = []
+var _last_stage_id: StringName = &""
+var _stage_random := RandomNumberGenerator.new()
+
+
+func _init() -> void:
+	_stage_random.randomize()
+
+
+## Tests pin the shuffle order; real matches use an unpredictable one.
+func seed_stage_order(value: int) -> void:
+	_stage_random.seed = value
+	_bag.clear()
+
 
 func validated_copy() -> MatchConfig:
 	var copy := MatchConfig.new()
@@ -44,9 +59,40 @@ func validated_copy() -> MatchConfig:
 	return copy
 
 
-## Independent draws allow consecutive repeats; the round number is not a rotation index.
+## Maps are dealt from a shuffled bag: every selected map appears exactly once, in random
+## order, before any map repeats. When the bag empties it is reshuffled, and the new pass
+## never opens with the map that just closed the previous one. The round number is not a
+## rotation index.
 func stage_for_round(_number: int) -> StageDefinition:
-	return stages.pick_random() if not stages.is_empty() else default_stage()
+	var pool: Array[StageDefinition] = []
+	for definition in stages:
+		if definition != null:
+			pool.append(definition)
+	if pool.is_empty():
+		return default_stage()
+	# Changing the selected maps mid-match starts a fresh pass over the new pool.
+	var signature: Array = pool.map(
+		func(definition: StageDefinition) -> StringName: return definition.id
+	)
+	if signature != _bag_signature:
+		_bag_signature = signature
+		_bag.clear()
+	if _bag.is_empty():
+		_bag = pool.duplicate()
+		# Fisher-Yates on the config's own generator, leaving the global stream untouched.
+		for index in range(_bag.size() - 1, 0, -1):
+			var other := _stage_random.randi_range(0, index)
+			var held := _bag[index]
+			_bag[index] = _bag[other]
+			_bag[other] = held
+		if _bag.size() > 1 and _bag[-1].id == _last_stage_id:
+			var swap := _stage_random.randi_range(0, _bag.size() - 2)
+			var displaced := _bag[swap]
+			_bag[swap] = _bag[-1]
+			_bag[-1] = displaced
+	var pick: StageDefinition = _bag.pop_back()
+	_last_stage_id = pick.id
+	return pick
 
 
 static func default_stage() -> StageDefinition:

@@ -16,7 +16,7 @@ content_scale = 1.4
 
 [node name="Furniture" type="Node2D" parent="."]
 
-[node name="Computer1" parent="Furniture" instance=ExtResource("2")]
+[node name="Desk1" parent="Furniture" instance=ExtResource("2")]
 position = Vector2(250, 100)
 rotation = 3.14159
 
@@ -24,7 +24,7 @@ rotation = 3.14159
 position = Vector2(250, 10)
 rotation = 0
 
-[node name="Computer2" parent="Furniture" instance=ExtResource("2")]
+[node name="Desk2" parent="Furniture" instance=ExtResource("2")]
 position = Vector2(250, 172)
 rotation = 0
 
@@ -32,7 +32,7 @@ rotation = 0
 position = Vector2(250, 262)
 rotation = 3.14159
 
-[node name="Computer3" parent="Furniture" instance=ExtResource("2")]
+[node name="Desk3" parent="Furniture" instance=ExtResource("2")]
 position = Vector2(520, 100)
 rotation = 3.14159
 
@@ -40,7 +40,7 @@ rotation = 3.14159
 position = Vector2(520, 10)
 rotation = 0
 
-[node name="Computer4" parent="Furniture" instance=ExtResource("2")]
+[node name="Desk4" parent="Furniture" instance=ExtResource("2")]
 position = Vector2(520, 172)
 rotation = 0
 
@@ -48,7 +48,7 @@ rotation = 0
 position = Vector2(520, 262)
 rotation = 3.14159
 
-[node name="Computer5" parent="Furniture" instance=ExtResource("2")]
+[node name="Desk5" parent="Furniture" instance=ExtResource("2")]
 position = Vector2(790, 100)
 rotation = 3.14159
 
@@ -56,7 +56,7 @@ rotation = 3.14159
 position = Vector2(790, 10)
 rotation = 0
 
-[node name="Computer6" parent="Furniture" instance=ExtResource("2")]
+[node name="Desk6" parent="Furniture" instance=ExtResource("2")]
 position = Vector2(790, 172)
 rotation = 0
 
@@ -64,7 +64,7 @@ rotation = 0
 position = Vector2(790, 262)
 rotation = 3.14159
 
-[node name="Computer7" parent="Furniture" instance=ExtResource("2")]
+[node name="Desk7" parent="Furniture" instance=ExtResource("2")]
 position = Vector2(1060, 100)
 rotation = 3.14159
 
@@ -72,7 +72,7 @@ rotation = 3.14159
 position = Vector2(1060, 10)
 rotation = 0
 
-[node name="Computer8" parent="Furniture" instance=ExtResource("2")]
+[node name="Desk8" parent="Furniture" instance=ExtResource("2")]
 position = Vector2(1060, 172)
 rotation = 0
 
@@ -80,7 +80,7 @@ rotation = 0
 position = Vector2(1060, 262)
 rotation = 3.14159
 
-[node name="Computer9" parent="Furniture" instance=ExtResource("2")]
+[node name="Desk9" parent="Furniture" instance=ExtResource("2")]
 position = Vector2(250, 700)
 rotation = 3.14159
 
@@ -88,7 +88,7 @@ rotation = 3.14159
 position = Vector2(250, 610)
 rotation = 0
 
-[node name="Computer10" parent="Furniture" instance=ExtResource("2")]
+[node name="Desk10" parent="Furniture" instance=ExtResource("2")]
 position = Vector2(250, 772)
 rotation = 0
 
@@ -96,7 +96,7 @@ rotation = 0
 position = Vector2(250, 862)
 rotation = 3.14159
 
-[node name="Computer11" parent="Furniture" instance=ExtResource("2")]
+[node name="Desk11" parent="Furniture" instance=ExtResource("2")]
 position = Vector2(520, 700)
 rotation = 3.14159
 
@@ -104,7 +104,7 @@ rotation = 3.14159
 position = Vector2(520, 610)
 rotation = 0
 
-[node name="Computer12" parent="Furniture" instance=ExtResource("2")]
+[node name="Desk12" parent="Furniture" instance=ExtResource("2")]
 position = Vector2(520, 772)
 rotation = 0
 
@@ -112,7 +112,7 @@ rotation = 0
 position = Vector2(520, 862)
 rotation = 3.14159
 
-[node name="Computer13" parent="Furniture" instance=ExtResource("2")]
+[node name="Desk13" parent="Furniture" instance=ExtResource("2")]
 position = Vector2(790, 700)
 rotation = 3.14159
 
@@ -120,7 +120,7 @@ rotation = 3.14159
 position = Vector2(790, 610)
 rotation = 0
 
-[node name="Computer14" parent="Furniture" instance=ExtResource("2")]
+[node name="Desk14" parent="Furniture" instance=ExtResource("2")]
 position = Vector2(790, 772)
 rotation = 0
 
@@ -128,7 +128,7 @@ rotation = 0
 position = Vector2(790, 862)
 rotation = 3.14159
 
-[node name="Computer15" parent="Furniture" instance=ExtResource("2")]
+[node name="Desk15" parent="Furniture" instance=ExtResource("2")]
 position = Vector2(1060, 700)
 rotation = 3.14159
 
@@ -136,7 +136,7 @@ rotation = 3.14159
 position = Vector2(1060, 610)
 rotation = 0
 
-[node name="Computer16" parent="Furniture" instance=ExtResource("2")]
+[node name="Desk16" parent="Furniture" instance=ExtResource("2")]
 position = Vector2(1060, 772)
 rotation = 0
 

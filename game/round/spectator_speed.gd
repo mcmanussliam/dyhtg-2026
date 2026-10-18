@@ -3,9 +3,12 @@ extends CanvasLayer
 ## Owns temporary spectator acceleration and restores engine timing on every exit.
 
 const MULTIPLIER := 3
+## Pixels from the window's bottom edge to the top of the character faces, plus a gap.
+const FACES_CLEARANCE := 132.0
 
 var can_fast_forward: Callable
 var _hint: PanelContainer
+var _instruction: PanelContainer
 var _armed := false
 var _accelerated := false
 var _focused := true
@@ -16,35 +19,57 @@ var _normal_max_steps := 8
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_hint = PanelContainer.new()
-	_hint.position = Vector2(48, 40)
-	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_instruction = _panel("Hold the right arrow to fast forward")
+	_hint = _panel("Fast forwarding %d×" % MULTIPLIER)
+	for panel in [_instruction, _hint]:
+		panel.hide()
+		add_child(panel)
+	# Both states share one box, sized to the longer line, so it never jumps when switching.
+	var size := _instruction.get_combined_minimum_size().max(_hint.get_combined_minimum_size())
+	for panel in [_instruction, _hint]:
+		panel.custom_minimum_size = size
+		# Centred along the bottom, just above the row of character faces.
+		panel.anchor_left = 0.5
+		panel.anchor_right = 0.5
+		panel.anchor_top = 1.0
+		panel.anchor_bottom = 1.0
+		panel.offset_left = -size.x * 0.5
+		panel.offset_right = size.x * 0.5
+		panel.offset_top = -(FACES_CLEARANCE + size.y)
+		panel.offset_bottom = -FACES_CLEARANCE
+
+
+## One line of white text beside the fast-forward symbol, on translucent black.
+func _panel(text: String) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var background := StyleBoxFlat.new()
-	background.bg_color = Color.BLACK
-	background.content_margin_left = 16
-	background.content_margin_right = 16
-	background.content_margin_top = 8
-	background.content_margin_bottom = 8
-	_hint.add_theme_stylebox_override("panel", background)
+	background.bg_color = Color(0, 0, 0, 0.6)
+	background.content_margin_left = 12
+	background.content_margin_right = 14
+	background.content_margin_top = 6
+	background.content_margin_bottom = 6
+	panel.add_theme_stylebox_override("panel", background)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
+	row.add_theme_constant_override("separation", 10)
+	# Symbol and words sit in the middle of the box, whichever line is showing.
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hint.add_child(row)
-	var icon := Control.new()
-	icon.custom_minimum_size = Vector2(36, 26)
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon.draw.connect(_draw_icon.bind(icon))
-	row.add_child(icon)
+	panel.add_child(row)
+	# The same double-triangle symbol in both states.
+	var symbol := Control.new()
+	symbol.custom_minimum_size = Vector2(26, 18)
+	symbol.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	symbol.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	symbol.draw.connect(_draw_icon.bind(symbol))
+	row.add_child(symbol)
 	var label := Label.new()
-	label.text = "%d×" % MULTIPLIER
-	label.add_theme_font_size_override("font_size", 26)
+	label.text = text
+	label.add_theme_font_size_override("font_size", 17)
 	label.add_theme_color_override("font_color", Color.WHITE)
-	label.add_theme_color_override("font_shadow_color", Color.BLACK)
-	label.add_theme_constant_override("shadow_offset_y", 2)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(label)
-	_hint.hide()
-	add_child(_hint)
+	return panel
 
 
 func _process(_delta: float) -> void:
@@ -66,6 +91,8 @@ func refresh() -> void:
 		_armed = true
 	_set_accelerated(available and _armed and held)
 	_hint.visible = _accelerated
+	# After elimination, say how to skip ahead; the 3x badge replaces it while holding.
+	_instruction.visible = available and not _accelerated
 
 
 func _draw_icon(icon: Control) -> void:

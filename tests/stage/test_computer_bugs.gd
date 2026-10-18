@@ -1,109 +1,280 @@
 extends RefCounted
-## Zones, infection spread, the slow technician, elimination and round lifetime.
+## Announced drops, falling strikes, expanding black mush, fusion and round lifetime.
 
 const DEFINITION = preload("res://game/stage/computer_bugs/computer_bugs.tres")
 const STEP := 1.0 / 60
 
 
 func run(tree: SceneTree, check: Callable) -> void:
-	check.call(DEFINITION.validation_errors().is_empty(), "Computer Bugs validates")
+	check.call(DEFINITION.validation_errors().is_empty(), "Bug or a feature? validates")
 	check.call(
-		DEFINITION.display_name == "Computer Bugs" and DEFINITION.hint == "THE BUGS NEVER SLEEP",
-		"Computer Bugs has its authored headline and subheading"
+		(
+			DEFINITION.display_name == "Bug or a feature?"
+			and DEFINITION.hint == "THE BUGS NEVER SLEEP"
+		),
+		"Bug or a feature? has its authored headline and subheading"
 	)
 	check.call(
 		MatchConfig.available_stages().any(
 			func(item: StageDefinition) -> bool: return item.id == &"computer_bugs"
 		),
-		"Random pool and map selector include Computer Bugs"
+		"Random pool and map selector include Bug or a feature?"
 	)
+	await _test_drop_cycle(tree, check)
+	await _test_infection(tree, check)
+	await _test_strikes(tree, check)
+
+
+func _stage(tree: SceneTree) -> Array:
 	var stage := DEFINITION.scene.instantiate() as ComputerBugsStage
 	tree.root.add_child(stage)
 	var world := Node3D.new()
 	tree.root.add_child(world)
 	stage.create_presentation(world, 1.0 / RenderStyle.PIXELS_PER_UNIT)
+	return [stage, world]
+
+
+func _test_drop_cycle(tree: SceneTree, check: Callable) -> void:
+	var made := _stage(tree)
+	var stage: ComputerBugsStage = made[0]
+	var world: Node3D = made[1]
 	await tree.physics_frame
-	check.call(stage.computers.size() == 16, "Sixteen workstations cover the whole office floor")
-	var columns := {}
-	var rows := {}
-	var tidy := true
-	for computer in stage.computers:
-		columns[snappedf(computer.position.x, 1.0)] = true
-		rows[snappedf(computer.position.y, 1.0)] = true
-		tidy = (
-			tidy
-			and (is_zero_approx(computer.rotation) or is_equal_approx(absf(computer.rotation), PI))
-		)
 	check.call(
-		columns.size() == 4 and rows.size() == 4 and tidy,
-		"Workstations form tidy back-to-back benches on a grid"
+		stage.has_support(stage.to_global(stage.center)),
+		"Bug or a feature? office has a solid floor"
 	)
-	check.call(
-		stage.has_support(stage.to_global(stage.center)), "Computer Bugs office has a solid floor"
-	)
+	var benches := {}
+	for prop in stage.get_node("Furniture").get_children():
+		if String(prop.name).begins_with("Desk") and not String(prop.name).begins_with("DeskChair"):
+			benches[snappedf(prop.position.x, 1.0)] = true
+	check.call(benches.size() == 4, "The office keeps its tidy desk benches")
 	stage.tick_hazards(30)
-	check.call(
-		stage.infected_count() == 0 and stage.fixer_state == ComputerBugsStage.Fixer.HIDDEN,
-		"Black intro never infects a computer"
-	)
+	check.call(stage.clumps.is_empty(), "Black intro never drops bugs")
 	stage.set_render_warmup(true)
 	stage.set_render_warmup(false)
-	check.call(stage.infected_count() == 0, "Warmup leaves every computer clean")
+	check.call(stage.clumps.is_empty(), "Warmup leaves the room clean")
+	check.call(not world.get_node("BugMush").visible, "No pass is drawn while the room is clean")
 	stage.start_round()
-	stage.tick_hazards(stage.first_infection - 0.1)
-	check.call(stage.infected_count() == 0, "The first infection waits for its opening delay")
+	stage.tick_hazards(stage.first_drop - 0.1)
+	check.call(stage.clumps.is_empty(), "The first drop waits for its opening delay")
 	stage.tick_hazards(0.2)
-	check.call(stage.infected_count() == 1, "Exactly one computer is infected first")
-	var first := stage.infected.find(true)
+	check.call(stage.clumps.size() == 1, "A clump is announced")
+	var clump: Dictionary = stage.clumps[0]
 	check.call(
-		stage.get("_screens")[first].visible and stage.get("_zone_data")[first].w > 0.5,
-		"The broken monitor and its danger zone are shown"
-	)
-	check.call(not stage.is_armed(first), "A new infection is announced before it turns lethal")
-	check.call(
-		not stage.is_safe(stage.computer_position(first)),
-		"AI avoids an infected computer straight away"
-	)
-	stage.tick_hazards(stage.warning_seconds)
-	check.call(stage.is_armed(first), "The zone turns lethal after its warning")
-	# Bugs never roam: the colony is exactly the same a second later.
-	var before: Vector3 = stage.get("_view").multimesh.get_instance_transform(0).origin
-	stage.tick_hazards(1.0)
-	var after: Vector3 = stage.get("_view").multimesh.get_instance_transform(0).origin
-	check.call(before.is_equal_approx(after), "Colony bugs stay put instead of wandering")
-	var spread_seen := 0
-	var fixer_arrived := false
-	for frame in 60 * 90:
-		stage.tick_hazards(STEP)
-		spread_seen = maxi(spread_seen, stage.infected_count())
-		fixer_arrived = fixer_arrived or stage.fixer_state == ComputerBugsStage.Fixer.REPAIRING
-	check.call(spread_seen >= 3, "Infection spreads computer to computer: %d" % spread_seen)
-	check.call(fixer_arrived, "The bug fixer walks over and repairs a computer")
-	check.call(stage.repairs_total >= 1, "The bug fixer finishes at least one repair")
-	check.call(
-		stage.repairs_total < stage.infections_total - 1,
 		(
-			"The fixer is slower than the infection: %d fixed of %d"
-			% [stage.repairs_total, stage.infections_total]
-		)
+			clump.phase == ComputerBugsStage.Phase.WARNING
+			and stage.get("_markers")[clump.slot].visible
+		),
+		"The landing spot is marked in red before anything falls"
 	)
 	check.call(
-		stage.current_spread() < stage.spread_interval * 0.5,
-		"Infection quickens as the round goes on"
+		not stage.get("_falling")[clump.slot].visible,
+		"Nothing is visible falling during the warning"
 	)
-	_test_ramp(stage, check)
-	var seen := stage.infections_total
+	check.call(not stage.is_safe(clump.position), "AI avoids the marked landing spot")
+	check.call(stage.safe_target(clump.position) != clump.position, "AI retreats from the marker")
+	stage.tick_hazards(clump.warning - clump.timer - 0.05)
+	check.call(
+		clump.phase == ComputerBugsStage.Phase.WARNING,
+		"The whole warning is honoured before the drop"
+	)
+	stage.tick_hazards(0.1)
+	check.call(
+		(
+			clump.phase == ComputerBugsStage.Phase.FALLING
+			and stage.get("_falling")[clump.slot].visible
+		),
+		"The clump then falls from the ceiling"
+	)
+	var started: float = clump.height
+	stage.tick_hazards(STEP)
+	check.call(clump.height < started, "A falling clump descends")
+	var frames := 0
+	while clump.phase == ComputerBugsStage.Phase.FALLING and frames < 120:
+		stage.tick_hazards(STEP)
+		frames += 1
+	var model: MeshInstance3D = stage.get("_falling")[clump.slot]
+	check.call(
+		clump.phase == ComputerBugsStage.Phase.MUSH and model.visible,
+		"The clump is still on screen at the moment it lands"
+	)
+	for frame in 8:
+		stage.tick_hazards(STEP)
+	check.call(
+		model.visible and model.scale.y < 1.0 and model.scale.x > 1.0,
+		"The clump splats: it squashes flat and spreads where it lands"
+	)
+	check.call(
+		stage.mush_radius(clump) < ComputerBugsStage.IMPACT_RADIUS,
+		"The mush bursts outward from a small core during the splat"
+	)
+	for frame in 40:
+		stage.tick_hazards(STEP)
+	check.call(
+		(
+			not model.visible
+			and clump.freed
+			and stage.mush_radius(clump) >= ComputerBugsStage.IMPACT_RADIUS
+		),
+		"After the splat the model is gone and the mush has its full footprint"
+	)
+	check.call(
+		(
+			clump.phase == ComputerBugsStage.Phase.MUSH
+			and not stage.get("_markers")[clump.slot].visible
+		),
+		"It lands as mush and its marker clears"
+	)
+	check.call(
+		stage.get("_blob_material").get_shader_parameter("zone_count") >= 1,
+		"The landed mush is drawn by the black decal"
+	)
+	var mush: MeshInstance3D = world.get_node("BugMush")
+	check.call(
+		mush.visible and mush.position.y < 0.05, "The floor decal appears once mush has landed"
+	)
+	check.call(
+		stage.get("_blob_material").render_priority < 0,
+		"Mush is drawn before spray and characters, so they always sit on top"
+	)
+	check.call(
+		stage.get("_zone_data")[0].z > 0.0, "Each landed clump hands the shader a precomputed reach"
+	)
 	stage.stop_round()
+	var seen := stage.drops_total
 	stage.tick_hazards(10)
-	check.call(stage.infections_total == seen, "Round results freeze the infection")
+	check.call(stage.drops_total == seen, "Round results freeze the drops")
 	world.queue_free()
 	stage.queue_free()
 	await tree.process_frame
-	await _test_zones(tree, check)
-	await _test_fixer(tree, check)
 
 
-func _test_zones(tree: SceneTree, check: Callable) -> void:
+func _test_infection(tree: SceneTree, check: Callable) -> void:
+	var made := _stage(tree)
+	var stage: ComputerBugsStage = made[0]
+	var world: Node3D = made[1]
+	await tree.physics_frame
+	stage.start_round()
+	check.call(stage.coverage() == 0.0, "A fresh round has no bugs on the floor")
+	var samples: Array[float] = []
+	var radius_before := 0.0
+	for second in 90:
+		for frame in 60:
+			stage.tick_hazards(STEP)
+		if second == 12:
+			for clump in stage.clumps:
+				if clump.phase == ComputerBugsStage.Phase.MUSH:
+					radius_before = stage.mush_radius(clump)
+					break
+		if second % 15 == 14:
+			samples.append(stage.coverage())
+	check.call(
+		samples[0] < samples[-1] and samples[2] >= samples[1] and samples[1] >= samples[0],
+		"The infection only ever spreads: %s" % [samples]
+	)
+	check.call(samples[-1] > 0.7, "Gradually the whole room is infected: %.2f" % samples[-1])
+	check.call(
+		radius_before > ComputerBugsStage.IMPACT_RADIUS, "Landed mush keeps expanding after impact"
+	)
+	check.call(
+		(
+			stage.current_interval() < stage.drop_interval * 0.5
+			and stage.current_warning() < stage.warning_seconds
+		),
+		"Drops come faster as the round goes on"
+	)
+	check.call(
+		stage.mush_count() <= ComputerBugsStage.MAX_MUSH,
+		"The mush is bounded to what the decal draws"
+	)
+	for clump in stage.clumps:
+		if clump.phase == ComputerBugsStage.Phase.MUSH:
+			check.call(
+				stage.mush_radius(clump) <= ComputerBugsStage.MAX_RADIUS + 0.01,
+				"No clump swells beyond its cap"
+			)
+	var covered := 0
+	for entry in stage.get("_coverables"):
+		covered += 1 if entry.node.visible else 0
+	var shells: int = stage.get("_coverables").size()
+	check.call(
+		shells >= 40 and shells <= 140, "Every prop and wall piece has one cover shell: %d" % shells
+	)
+	check.call(
+		covered > shells * 0.6, "The mush climbs furniture and walls: %d of %d" % [covered, shells]
+	)
+	var missing := ""
+	for prop in stage.get_node("Furniture").get_children():
+		var model := prop.get("_presentation") as Node3D
+		if model != null and model.get_node_or_null("MushCover") == null:
+			missing = String(prop.name)
+	check.call(missing == "", "Chairs and every other prop can be covered: %s" % missing)
+	var beetles: BugMassView = world.get_node("BugMass")
+	var bug_count: int = beetles.multimesh.visible_instance_count
+	check.call(
+		(
+			bug_count >= 20 * BugMassView.BUGS_PER_BLOCK / 4
+			and bug_count <= beetles.multimesh.instance_count
+		),
+		"Thousands of beetles are drawn from one multimesh: %d" % bug_count
+	)
+	var triangles := 0
+	var arrays := beetles.multimesh.mesh.surface_get_arrays(0)
+	triangles = arrays[Mesh.ARRAY_VERTEX].size() / 3
+	check.call(triangles < 600, "Each beetle is low-poly: %d triangles" % triangles)
+	_test_beetle_layout(check)
+	var characters := 0
+	for child in world.get_children():
+		if child.name.begins_with("Chair") or child.name.begins_with("Character"):
+			characters += 1
+	check.call(
+		stage.get("_blob_material").render_priority < 0 and characters == 0,
+		"Mush never touches the characters"
+	)
+	_test_fusion(stage, check)
+	world.queue_free()
+	stage.queue_free()
+	await tree.process_frame
+
+
+func _test_fusion(stage: ComputerBugsStage, check: Callable) -> void:
+	stage.clumps.clear()
+	stage.set("_elapsed", 100.0)
+	var a := stage.to_global(Vector2(400, 420))
+	var gap := 330.0
+	var b := a + Vector2(gap, 0)
+	var radius := gap / 2.1
+	# Pick the landing time that gives each clump the radius for a near-touch.
+	var landed := 100.0 - stage.growth_seconds
+	for step in 400:
+		landed = 100.0 - step * stage.growth_seconds / 400.0
+		var probe := {"landed": landed}
+		if stage.mush_radius(probe) >= radius:
+			break
+	for point in [a, b]:
+		stage.clumps.append(
+			{
+				"position": point,
+				"phase": ComputerBugsStage.Phase.MUSH,
+				"landed": landed,
+				"seed": 0.3
+			}
+		)
+	var middle := (a + b) * 0.5
+	check.call(
+		stage.mush_radius(stage.clumps[0]) < gap * 0.5 and stage.in_mush(middle),
+		"Nearly touching clumps join into one mass between them"
+	)
+	stage.clumps.remove_at(1)
+	check.call(not stage.in_mush(middle), "A lone clump covers only its own radius")
+	check.call(
+		not stage.in_mush(a + Vector2(0, -stage.mush_radius(stage.clumps[0]) * 1.2)),
+		"The mass stays tight around its outer edge"
+	)
+	stage.clumps.clear()
+
+
+func _test_strikes(tree: SceneTree, check: Callable) -> void:
 	var state := MatchState.new()
 	state.configure(MatchConfig.new())
 	var round_scene := RoundController.new()
@@ -112,217 +283,90 @@ func _test_zones(tree: SceneTree, check: Callable) -> void:
 	round_scene.set_physics_process(false)
 	round_scene.begin_live()
 	var stage := round_scene.stage as ComputerBugsStage
-	var chair := round_scene.chairs[0]
-	chair.stop_drive()
+	var first := round_scene.chairs[0]
+	var second := round_scene.chairs[1]
+	first.stop_drive()
+	second.stop_drive()
 	var hits: Array[int] = []
 	stage.elimination_requested.connect(func(seat: int, _reason: StringName): hits.append(seat))
-	stage.set("_elapsed", stage.first_infection)
-	stage.call("_infect", 0)
-	var desk := stage.computer_position(0)
-	chair.position = desk + Vector2(60, 40)
-	stage.call("_sweep_chairs")
-	check.call(hits.is_empty(), "Standing in a fresh zone is safe until it is armed")
-	stage.set("_elapsed", stage.first_infection + stage.warning_seconds + 0.1)
-	chair.position = desk + Vector2(ComputerBugsStage.ZONE_RADIUS + 25, 0)
-	stage.call("_sweep_chairs")
-	check.call(hits.is_empty(), "A chair outside the zone is untouched")
+	var spot := stage.to_global(Vector2(700, 420))
+	first.position = spot
+	second.position = spot + Vector2(0, 900)
+	var clump := {
+		"position": spot,
+		"phase": ComputerBugsStage.Phase.FALLING,
+		"timer": 0.0,
+		"warning": 1.0,
+		"height": ComputerBugsStage.FALL_HEIGHT,
+		"landed": INF,
+		"slot": 0,
+		"seed": 0.5,
+		"block": -1,
+		"freed": false
+	}
+	stage.set("_elapsed", 3.0)
+	stage.clumps.append(clump)
+	stage.call("_strike_chairs")
+	check.call(hits.is_empty(), "A high clump cannot strike a chair")
+	clump.height = 0.4
+	stage.call("_strike_chairs")
+	check.call(hits.is_empty(), "A clump still in flight never kills: it has to splat first")
+	clump.phase = ComputerBugsStage.Phase.MUSH
+	clump.landed = 3.0
+	stage.call("_strike_chairs")
+	check.call(hits.is_empty(), "A chair under a clump survives the instant it lands")
+	stage.set("_elapsed", 3.0 + ComputerBugsStage.LETHAL_DELAY + 0.05)
+	stage.call("_strike_chairs")
+	check.call(hits == [first.seat], "The chair dies once the splat has begun")
 	check.call(
-		stage.is_safe(chair.position + Vector2(260, 0)), "Open floor away from the zone is safe"
-	)
-	chair.position = desk + Vector2(60, 40)
-	stage.call("_sweep_chairs")
-	check.call(hits == [chair.seat], "Standing in an armed zone eliminates the chair")
-	check.call(
-		chair.knockout_velocity != Vector3.ZERO, "The bugs send the chair flying, not vanishing"
+		first.knockout_velocity != Vector3.ZERO, "The impact sends the chair flying, not vanishing"
 	)
 	round_scene._commit_eliminations()
 	check.call(
-		not chair.active and round_scene.phase == RoundController.Phase.RESOLVING,
+		not first.active and round_scene.phase == RoundController.Phase.RESOLVING,
 		"Bug elimination uses shared round rules"
 	)
-	# The zone swells over time, so a spot that was safe becomes lethal.
-	var spot := desk + Vector2(ComputerBugsStage.ZONE_RADIUS + 60, 0)
-	var early := stage.zone_radius(0)
-	check.call(
-		early < spot.distance_to(desk) and stage.is_safe(spot + Vector2(120, 0)),
-		"A spot just beyond a young zone is safe"
-	)
-	stage.set("_elapsed", stage.first_infection + stage.zone_growth_seconds)
-	var late := stage.zone_radius(0)
-	check.call(
-		late > early * 1.8 and late <= ComputerBugsStage.MAX_ZONE_RADIUS,
-		"The bug range increases over time, up to its cap: %d to %d" % [early, late]
-	)
-	var second := round_scene.chairs[1]
-	second.stop_drive()
-	second.position = spot
 	hits.clear()
-	stage.call("_sweep_chairs")
-	check.call(hits == [second.seat], "The grown zone now eliminates where it was once safe")
-	check.call(not stage.is_safe(spot), "AI keeps clear of the grown zone")
-	stage.call("_refresh")
-	check.call(
-		(
-			stage.get("_zone_data")[0].z
-			> ComputerBugsStage.ZONE_RADIUS / RenderStyle.PIXELS_PER_UNIT * 1.5
-		),
-		"The floor decal widens with the zone"
+	stage.clumps.clear()
+	var touch := stage.to_global(Vector2(300, 420))
+	second.position = touch + Vector2(ComputerBugsStage.IMPACT_RADIUS + 25, 0)
+	stage.set("_elapsed", 5.6)
+	stage.clumps.append(
+		{"position": touch, "phase": ComputerBugsStage.Phase.MUSH, "landed": 5.0, "seed": 0.1}
 	)
-	_test_fusion(stage, check)
-	var escape := stage.safe_target(desk + Vector2(30, 20))
-	check.call(stage.is_safe(escape), "AI receives a safe target away from a broken computer")
-	var seats_clear := true
+	stage.call("_strike_chairs")
+	check.call(hits.is_empty(), "A chair beside the mush is safe")
+	check.call(stage.is_safe(second.position + Vector2(200, 0)), "Clean floor away from it is safe")
+	check.call(not stage.is_safe(touch), "AI will not drive onto the mush")
+	second.position = touch + Vector2(30, 20)
+	stage.call("_strike_chairs")
+	check.call(hits == [second.seat], "Touching the mush eliminates the chair")
+	var escape := stage.safe_target(touch + Vector2(20, 10))
+	check.call(stage.is_safe(escape), "AI receives a safe target away from the mush")
+	var clear := true
 	var poses := SpawnLayout.poses(stage, 10)
 	for pose in poses:
-		seats_clear = seats_clear and stage.is_spawn_safe(pose.origin, 34 * stage.content_scale + 5)
-	check.call(poses.size() == 10 and seats_clear, "Ten seats start clear of workstations")
+		clear = clear and stage.is_spawn_safe(pose.origin, 34 * stage.content_scale + 5)
+	check.call(poses.size() == 10 and clear, "Ten seats start clear of furniture")
 	round_scene.queue_free()
 	await tree.process_frame
 
 
-func _test_fixer(tree: SceneTree, check: Callable) -> void:
-	var stage := DEFINITION.scene.instantiate() as ComputerBugsStage
-	tree.root.add_child(stage)
-	var world := Node3D.new()
-	tree.root.add_child(world)
-	stage.create_presentation(world, 1.0 / RenderStyle.PIXELS_PER_UNIT)
-	await tree.physics_frame
-	stage.start_round()
-	stage.set("_elapsed", 5.0)
-	stage.call("_infect", 2)
-	stage.call("_infect", 5)
-	stage.set("_fixer_ready_at", 5.0)
-	stage.set("_next_spread", INF)
-	var clear_of_desks := true
-	var order: Array[int] = []
-	var spans: Array[float] = []
-	var started := 0.0
-	for frame in 60 * 60:
-		stage.tick_hazards(STEP)
-		for desk in stage.computers:
-			var offset: Vector2 = stage.fixer_position - desk.global_position
-			if (
-				stage.fixer_state != ComputerBugsStage.Fixer.HIDDEN
-				and absf(offset.x) < 86.0
-				and absf(offset.y) < 50.0
-			):
-				clear_of_desks = false
-		var target: int = stage.fixer_target
-		if (
-			stage.fixer_state == ComputerBugsStage.Fixer.REPAIRING
-			and (order.is_empty() or order[-1] != target)
-		):
-			order.append(target)
-			started = frame * STEP
-		if stage.fixer_state == ComputerBugsStage.Fixer.REPAIRING and spans.size() < order.size():
-			spans.append(0.0)
-		if stage.fixer_state == ComputerBugsStage.Fixer.REPAIRING:
-			spans[order.size() - 1] = frame * STEP - started
-	check.call(clear_of_desks, "The technician walks the aisles instead of through desks")
-	check.call(order.size() == 2, "The technician repairs both computers, one after another")
+func _test_beetle_layout(check: Callable) -> void:
+	var bugs := BugMassView.layout(0.37)
+	var rim := 0
+	var inside := 0
+	var farthest := 0.0
+	for bug in bugs:
+		var fraction: float = bug.unit.length()
+		farthest = maxf(farthest, fraction)
+		if bug.edge and fraction >= 0.8:
+			rim += 1
+		elif not bug.edge and fraction < 0.8:
+			inside += 1
 	check.call(
-		stage.infected_count() == 0 and stage.repairs_total == 2,
-		"Repaired computers are clean again"
+		rim >= 30 and inside >= 15 and bugs.size() == BugMassView.BUGS_PER_BLOCK,
+		"Beetles line the edge and fill the middle: %d on the rim, %d inside" % [rim, inside]
 	)
-	check.call(
-		spans.size() == 2 and spans[0] >= stage.minimum_repair - 0.1,
-		"Each repair takes the full repair time"
-	)
-	check.call(
-		not stage.get("_screens")[2].visible and stage.get("_zone_data")[2].w < 0.5,
-		"A repaired computer loses its glitch screen and danger zone"
-	)
-	world.queue_free()
-	stage.queue_free()
-	await tree.process_frame
-
-
-func _test_ramp(stage: ComputerBugsStage, check: Callable) -> void:
-	stage.set("_elapsed", 0.0)
-	var slow_fixer := stage.current_fixer_speed()
-	var slow_repair := stage.current_repair_seconds()
-	var slow_spread := stage.current_spread()
-	stage.set("_elapsed", stage.escalation_seconds)
-	check.call(
-		(
-			stage.current_fixer_speed() > slow_fixer * 1.8
-			and stage.current_repair_seconds() < slow_repair * 0.6
-		),
-		"The fixer walks and repairs faster as the round goes on"
-	)
-	check.call(stage.current_spread() < 1.0, "Infection ends up very fast")
-	check.call(
-		(
-			stage.current_fixer_speed() <= stage.fixer_top_speed
-			and (
-				(
-					stage.current_repair_seconds()
-					+ (
-						stage.computer_position(0).distance_to(stage.computer_position(7))
-						/ stage.current_fixer_speed()
-					)
-				)
-				> stage.current_spread() * 2.0
-			)
-		),
-		"Even at its best the fixer is slower than the infection"
-	)
-	check.call(
-		stage.columns_per_wave() > 1 and slow_spread > stage.current_spread() * 4.0,
-		"Later waves send several faster columns at once"
-	)
-	# Targets are anywhere in the office, not just the nearest neighbour.
-	for index in stage.computers.size():
-		stage.infected[index] = false
-		stage.get("_inbound")[index] = false
-	stage.infected[0] = true
-	stage.set("fixer_target", -1)
-	var targets := {}
-	for attempt in 40:
-		stage.get("_columns").clear()
-		for index in stage.computers.size():
-			stage.get("_inbound")[index] = false
-		stage.call("_send_column")
-		for column in stage.get("_columns"):
-			targets[column.target] = true
-	check.call(
-		targets.size() >= 4, "Infection jumps to random computers: %d targets" % targets.size()
-	)
-	stage.get("_columns").clear()
-	for index in stage.computers.size():
-		stage.get("_inbound")[index] = false
-
-
-func _test_fusion(stage: ComputerBugsStage, check: Callable) -> void:
-	for index in stage.computers.size():
-		stage.infected[index] = false
-	var a := 0
-	var b := 2
-	var gap := stage.computer_position(a).distance_to(stage.computer_position(b))
-	stage.set("_elapsed", 10.0)
-	stage.infected[a] = true
-	stage.infected[b] = true
-	var age := 0.0
-	while age < stage.zone_growth_seconds:
-		stage.get("_infected_at")[a] = 10.0 - age
-		stage.get("_infected_at")[b] = 10.0 - age
-		if stage.zone_radius(a) >= gap / 2.1:
-			break
-		age += 0.02
-	var radius := stage.zone_radius(a)
-	var middle := (stage.computer_position(a) + stage.computer_position(b)) * 0.5
-	check.call(
-		radius < gap * 0.5 and stage.in_danger(middle),
-		"Nearly touching zones fuse into one flowing shape between them"
-	)
-	stage.infected[b] = false
-	check.call(
-		not stage.in_danger(middle), "A lone zone covers exactly its own radius, not the gap"
-	)
-	stage.infected[b] = true
-	var far := stage.computer_position(a) + Vector2(0, -radius * 1.2)
-	check.call(
-		not stage.in_danger(far), "The fused shape is still tight around the zones' outer edge"
-	)
-	for index in stage.computers.size():
-		stage.infected[index] = false
+	check.call(farthest < 1.1, "Beetles never stray far beyond the mass's edge")
+	check.call(BugMassView.layout(0.37) == bugs, "The beetle layout is deterministic")

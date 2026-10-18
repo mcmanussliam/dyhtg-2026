@@ -6,6 +6,6 @@
 [resource]
 script = ExtResource("1")
 id = &"computer_bugs"
-display_name = "Computer Bugs"
+display_name = "Bug or a feature?"
 hint = "THE BUGS NEVER SLEEP"
 scene = ExtResource("2")

@@ -28,14 +28,12 @@ independently picks a selected map, so repeats are possible:
   A flat orange path highlights each digger's lane before it drives through, flattening
   furniture and launching any player in its way.
 
-- **Computer Bugs** (*THE BUGS NEVER SLEEP*): sixteen workstations on four open-plan benches fill
-  the floor, with a print area in one corner. Computers break one after another, starting
-  with a random one. A broken computer is announced with an amber zone, then turns red and
-  eliminates anyone standing in it; its zone keeps widening until it is repaired, and zones
-  that overlap fuse into one flowing shape that is lethal throughout. Infection leaps from
-  random broken computers to random clean ones along straight, harmless columns of bugs, in
-  bigger and faster waves. Bugs never roam. One technician walks the aisles and repairs a
-  single computer at a time, speeding up over the round but always slower than the infection.
+- **Bug or a feature?** (*THE BUGS NEVER SLEEP*): clumps of bugs drop from the ceiling onto an open-plan
+  office. Each landing spot is marked in red first, then the clump falls, splats flat and bursts
+  into a black mass of beetles that keeps swelling. Masses join as more clumps land, drawn to
+  existing mush and to players, until the whole room is infected and furniture and walls are
+  covered too. Anyone touching the mass is eliminated, once the splat has started; drops come
+  faster as the round goes on.
 
 Both crack maps begin crumbling after roughly 15 seconds: the island shrinks and
 the hole widens. Full-depth sections fall away. Furniture tips under native 3D

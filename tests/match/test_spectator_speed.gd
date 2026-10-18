@@ -26,11 +26,18 @@ func run(tree: SceneTree, check: Callable) -> void:
 	round_scene.begin_live()
 	speed.refresh()
 	check.call(Engine.time_scale == normal_scale, "Cannot fast-forward while the human is alive")
+	check.call(
+		not speed.get("_instruction").visible, "No instruction is shown while the human is alive"
+	)
 	round_scene.request_elimination(0, &"fall")
 	round_scene._commit_eliminations()
 	speed.refresh()
 	check.call(
 		not speed.get("_hint").visible, "Fast-forward indicator is hidden until accelerating"
+	)
+	check.call(
+		speed.get("_instruction").visible,
+		"After elimination a visible instruction explains how to fast forward"
 	)
 	check.call(
 		Engine.time_scale == normal_scale,
@@ -44,6 +51,63 @@ func run(tree: SceneTree, check: Callable) -> void:
 		Engine.time_scale == normal_scale * 3, "Holding Right accelerates remaining AI combat"
 	)
 	check.call(speed.get("_hint").visible, "Fast-forward indicator shows while accelerating")
+	check.call(
+		not speed.get("_instruction").visible,
+		"The instruction gives way to the 3x badge while holding"
+	)
+	var instruction_box: PanelContainer = speed.get("_instruction")
+	var badge_box: PanelContainer = speed.get("_hint")
+	await tree.process_frame
+	var window := speed.get_viewport().get_visible_rect()
+	var box := instruction_box.get_global_rect()
+	check.call(
+		absf(box.get_center().x - window.get_center().x) < 2.0,
+		"The box is centred horizontally above the faces"
+	)
+	check.call(
+		box.end.y <= window.end.y - 120.0 and box.end.y >= window.end.y - 160.0,
+		"The box sits just above the row of character faces"
+	)
+	instruction_box.show()
+	badge_box.show()
+	await tree.process_frame
+	for panel in [instruction_box, badge_box]:
+		var content: Rect2
+		var started := false
+		for node in panel.find_children("*", "Control", true, false):
+			if node is HBoxContainer:
+				continue
+			var rect: Rect2 = node.get_global_rect()
+			content = rect if not started else content.merge(rect)
+			started = true
+		check.call(
+			absf(content.get_center().x - panel.get_global_rect().get_center().x) < 2.0,
+			"Symbol and text are centred inside the box in both states"
+		)
+	instruction_box.hide()
+	badge_box.hide()
+	var square: StyleBoxFlat = instruction_box.get_theme_stylebox("panel")
+	check.call(
+		square.corner_radius_top_left == 0 and square.bg_color.a < 1.0,
+		"The box is square-cornered and transparent"
+	)
+	check.call(
+		(
+			instruction_box.position == badge_box.position
+			and instruction_box.custom_minimum_size == badge_box.custom_minimum_size
+			and instruction_box.custom_minimum_size.x > 200.0
+		),
+		"The instruction and the fast-forward badge share one fixed box size and spot"
+	)
+	var line_count := 0
+	for node in instruction_box.find_children("*", "Label", true, false):
+		line_count += 1
+		check.call(
+			node.text.find("\n") < 0 and node.get_theme_color("font_color") == Color.WHITE,
+			"The instruction is a single line of white text"
+		)
+	check.call(line_count == 1, "The instruction has exactly one text line")
+
 	check.call(
 		Engine.physics_ticks_per_second == normal_rate * 3,
 		"Fast-forward increases physics frequency to retain simulation step size"
@@ -80,6 +144,10 @@ func run(tree: SceneTree, check: Callable) -> void:
 	check.call(
 		Engine.time_scale == normal_scale and not speed.get("_hint").visible,
 		"Winner resolution stops fast-forward and removes its prompt"
+	)
+	check.call(
+		not speed.get("_instruction").visible,
+		"The instruction disappears once the round is decided"
 	)
 	# A round removed while accelerated must also release ownership of engine timing.
 	var owner := SpectatorSpeed.new()
