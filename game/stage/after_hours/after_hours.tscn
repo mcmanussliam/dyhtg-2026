@@ -1,0 +1,159 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://game/stage/after_hours/after_hours.gd" id="1"]
+[ext_resource type="PackedScene" path="res://game/props/desk/office_desk.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://game/props/bookshelf/office_bookshelf.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://game/props/cabinet/office_cabinet.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://game/props/copier/office_copier.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://game/props/plant/office_plant.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://game/props/task_chair/office_task_chair.tscn" id="7"]
+
+[node name="AfterHours" type="Node2D"]
+script = ExtResource("1")
+view_width = 1540.0
+view_focus = Vector2(640, 330)
+content_scale = 1.3
+
+[node name="Furniture" type="Node2D" parent="."]
+
+[node name="PodADeskNW" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(299.92, 133.46)
+rotation = 3.1415927
+
+[node name="PodADeskNE" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(434.08, 133.46)
+rotation = 3.1415927
+
+[node name="PodADeskSW" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(299.92, 200.54)
+
+[node name="PodADeskSE" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(434.08, 200.54)
+
+[node name="PodBDeskNW" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(844.92, 133.46)
+rotation = 3.1415927
+
+[node name="PodBDeskNE" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(979.08, 133.46)
+rotation = 3.1415927
+
+[node name="PodBDeskSW" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(844.92, 200.54)
+
+[node name="PodBDeskSE" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(979.08, 200.54)
+
+[node name="PodCDeskNW" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(299.92, 653.46)
+rotation = 3.1415927
+
+[node name="PodCDeskNE" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(434.08, 653.46)
+rotation = 3.1415927
+
+[node name="PodCDeskSW" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(299.92, 720.54)
+
+[node name="PodCDeskSE" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(434.08, 720.54)
+
+[node name="PodDDeskNW" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(844.92, 653.46)
+rotation = 3.1415927
+
+[node name="PodDDeskNE" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(979.08, 653.46)
+rotation = 3.1415927
+
+[node name="PodDDeskSW" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(844.92, 720.54)
+
+[node name="PodDDeskSE" parent="Furniture" instance=ExtResource("2")]
+position = Vector2(979.08, 720.54)
+
+[node name="RearShelf0" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(260, -200)
+
+[node name="RearShelf1" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(355, -200)
+
+[node name="RearShelf2" parent="Furniture" instance=ExtResource("3")]
+position = Vector2(450, -200)
+
+[node name="RearCabinetA" parent="Furniture" instance=ExtResource("4")]
+position = Vector2(1000, -193)
+
+[node name="RearCabinetB" parent="Furniture" instance=ExtResource("4")]
+position = Vector2(1056, -193)
+
+[node name="RearCopier" parent="Furniture" instance=ExtResource("5")]
+position = Vector2(1140, -186)
+
+[node name="PlantNW" parent="Furniture" instance=ExtResource("6")]
+position = Vector2(20, -185)
+
+[node name="PlantNE" parent="Furniture" instance=ExtResource("6")]
+position = Vector2(1262, -185)
+
+[node name="PlantSW" parent="Furniture" instance=ExtResource("6")]
+position = Vector2(20, 1030)
+
+[node name="PlantSE" parent="Furniture" instance=ExtResource("6")]
+position = Vector2(1262, 1030)
+
+[node name="PodAChairNW" parent="Furniture" instance=ExtResource("7")]
+position = Vector2(299.92, 48.46)
+
+[node name="PodAChairNE" parent="Furniture" instance=ExtResource("7")]
+position = Vector2(434.08, 48.46)
+
+[node name="PodAChairSW" parent="Furniture" instance=ExtResource("7")]
+position = Vector2(299.92, 285.54)
+rotation = 3.1415927
+
+[node name="PodAChairSE" parent="Furniture" instance=ExtResource("7")]
+position = Vector2(434.08, 285.54)
+rotation = 3.1415927
+
+[node name="PodBChairNW" parent="Furniture" instance=ExtResource("7")]
+position = Vector2(844.92, 48.46)
+
+[node name="PodBChairNE" parent="Furniture" instance=ExtResource("7")]
+position = Vector2(979.08, 48.46)
+
+[node name="PodBChairSW" parent="Furniture" instance=ExtResource("7")]
+position = Vector2(844.92, 285.54)
+rotation = 3.1415927
+
+[node name="PodBChairSE" parent="Furniture" instance=ExtResource("7")]
+position = Vector2(979.08, 285.54)
+rotation = 3.1415927
+
+[node name="PodCChairNW" parent="Furniture" instance=ExtResource("7")]
+position = Vector2(299.92, 568.46)
+
+[node name="PodCChairNE" parent="Furniture" instance=ExtResource("7")]
+position = Vector2(434.08, 568.46)
+
+[node name="PodCChairSW" parent="Furniture" instance=ExtResource("7")]
+position = Vector2(299.92, 805.54)
+rotation = 3.1415927
+
+[node name="PodCChairSE" parent="Furniture" instance=ExtResource("7")]
+position = Vector2(434.08, 805.54)
+rotation = 3.1415927
+
+[node name="PodDChairNW" parent="Furniture" instance=ExtResource("7")]
+position = Vector2(844.92, 568.46)
+
+[node name="PodDChairNE" parent="Furniture" instance=ExtResource("7")]
+position = Vector2(979.08, 568.46)
+
+[node name="PodDChairSW" parent="Furniture" instance=ExtResource("7")]
+position = Vector2(844.92, 805.54)
+rotation = 3.1415927
+
+[node name="PodDChairSE" parent="Furniture" instance=ExtResource("7")]
+position = Vector2(979.08, 805.54)
+rotation = 3.1415927

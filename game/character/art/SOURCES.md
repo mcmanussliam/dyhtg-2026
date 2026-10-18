@@ -5,5 +5,7 @@
 code. Third-party logo attribution stays beside the relevant skin asset.
 
 Clothing OBJ meshes in `skins/` are original closed shells generated offline by
-`tools/build_clothing.py` from the shared body. Hoodie details are project geometry;
-no external character or clothing models are used.
+`tools/build_clothing.py` from the shared body, including the puffer vest, waistcoat,
+fleece vest, tie, bow tie and scarf. Hoodie and bow-tie details, and every hat in
+`character_hats.gd`, are original project geometry built in code. All geometry is
+original; no external character, clothing or hat models are used.

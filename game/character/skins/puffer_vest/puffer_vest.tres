@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CharacterSkin" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://game/character/character_skin.gd" id="1"]
+[ext_resource type="ArrayMesh" path="res://game/character/art/character.obj" id="2"]
+[ext_resource type="Shader" path="res://game/character/skins/default/character.gdshader" id="3"]
+
+[ext_resource type="ArrayMesh" path="res://game/character/skins/puffer_vest/puffer_vest.obj" id="5"]
+[ext_resource type="Shader" path="res://game/character/art/clothing.gdshader" id="6"]
+
+[resource]
+script = ExtResource("1")
+id = &"puffer_vest"
+display_name = "Puffer Vest"
+body_mesh = ExtResource("2")
+body_shader = ExtResource("3")
+garment = 8
+garment_mesh = ExtResource("5")
+garment_shader = ExtResource("6")

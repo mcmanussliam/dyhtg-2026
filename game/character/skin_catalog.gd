@@ -10,6 +10,12 @@ const PATHS := [
 	"res://game/character/skins/tshirt/tshirt.tres",
 	"res://game/character/skins/tank_top/tank_top.tres",
 	"res://game/character/skins/high_vis/high_vis.tres",
+	"res://game/character/skins/puffer_vest/puffer_vest.tres",
+	"res://game/character/skins/waistcoat/waistcoat.tres",
+	"res://game/character/skins/fleece_vest/fleece_vest.tres",
+	"res://game/character/skins/tie/tie.tres",
+	"res://game/character/skins/bow_tie/bow_tie.tres",
+	"res://game/character/skins/scarf/scarf.tres",
 ]
 
 

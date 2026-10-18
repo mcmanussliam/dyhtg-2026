@@ -4,6 +4,7 @@ extends SceneTree
 const SUITES = [
 	preload("res://tests/input/test_pit_pilot_physics.gd"),
 	preload("res://tests/stage/test_bull_stage.gd"),
+	preload("res://tests/stage/test_after_hours.gd"),
 	preload("res://tests/chair/test_gap_physics.gd"),
 	preload("res://tests/stage/test_pit_stage.gd"),
 	preload("res://tests/props/test_loose_props.gd"),
@@ -15,6 +16,7 @@ const SUITES = [
 	preload("res://tests/chair/test_movement_dynamics.gd"),
 	preload("res://tests/match/test_match_state.gd"),
 	preload("res://tests/character/test_character_appearance.gd"),
+	preload("res://tests/character/test_cosmetic_matrix.gd"),
 	preload("res://tests/stage/test_stage.gd"),
 	preload("res://tests/props/test_props.gd"),
 	preload("res://tests/render/test_render_resources.gd"),

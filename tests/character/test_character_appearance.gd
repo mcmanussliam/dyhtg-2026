@@ -93,9 +93,9 @@ func run(tree: SceneTree, check: Callable) -> void:
 		check.call(
 			(
 				dressed.body.has_node("GarmentDetails")
-				== (skin.garment == CharacterSkin.Garment.HOODIE)
+				== (skin.garment in [CharacterSkin.Garment.HOODIE, CharacterSkin.Garment.BOW_TIE])
 			),
-			"Both hoodies share their hood, pocket and cord details"
+			"Only hoodies and the bow tie add shared detail geometry: %s" % skin.id
 		)
 		dressed.free()
 	var colour := appearance.resolved_colour()
@@ -197,11 +197,18 @@ func run(tree: SceneTree, check: Callable) -> void:
 		"Removed cosmetics in saved profiles fall back to None"
 	)
 	check.call(migrated.colour_id == &"blue", "Removed cosmetics preserve the saved colour")
+	for removed_top in ["overalls", "apron"]:
+		legacy.set_value("appearance", "body", removed_top)
+		ProfileStore.save_file(legacy, path)
+		check.call(
+			CharacterAppearance.load_profile(path).body_id == CharacterAppearance.NONE,
+			"Removed top safely resolves to None: %s" % removed_top
+		)
 	legacy.set_value("appearance", "body", "tie")
 	ProfileStore.save_file(legacy, path)
 	check.call(
-		CharacterAppearance.load_profile(path).body_id == CharacterAppearance.NONE,
-		"Removed Tie selection safely resolves to None"
+		CharacterAppearance.load_profile(path).body_id == &"tie",
+		"A re-added Tie restores older saved Tie selections"
 	)
 	for removed_hat in [&"afro", &"bike_helmet", &"mutton_chops"]:
 		legacy.set_value("appearance", "hat", removed_hat)

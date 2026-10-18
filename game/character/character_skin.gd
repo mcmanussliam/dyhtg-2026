@@ -4,7 +4,19 @@ extends Resource
 ## SkinCatalog registers stable IDs; shared meshes/shaders remain immutable per model.
 
 # Preserve the numeric IDs authored in existing resources.
-enum Garment { NONE, TSHIRT, HOODIE, TANK_TOP = 4, HIGH_VIS = 6 }
+enum Garment {
+	NONE,
+	TSHIRT,
+	HOODIE,
+	TANK_TOP = 4,
+	HIGH_VIS = 6,
+	PUFFER_VEST = 8,
+	WAISTCOAT = 9,
+	FLEECE_VEST = 10,
+	TIE = 13,
+	BOW_TIE = 14,
+	SCARF = 15,
+}
 
 @export var garment: Garment = Garment.NONE
 @export var garment_mesh: Mesh

@@ -1,4 +1,4 @@
-# Please Remain Seated
+# Dilly Dallying
 
 A native Godot party game about soft characters on swivel office chairs, propelled
 by continuously firing extinguishers. Steer, drift and push everyone else off the
@@ -35,6 +35,12 @@ independently picks a selected map, so repeats are possible:
   covered too. Anyone touching the mass is eliminated, once the splat has started; drops come
   faster as the round goes on.
 
+- **After Hours** (*Five nights in the office*): the office after dark. Security guards
+  patrol between desk pods with flashlights; anyone caught in a beam is chased after a
+  brief alert, and a guard who catches them launches them like the bull. Break the
+  guard's sight behind desks, shelves, cabinets or the copier to escape; loose desk
+  chairs don't hide you. More guards come on duty through the rear door as the night goes on.
+
 Both crack maps begin crumbling after roughly 15 seconds: the island shrinks and
 the hole widens. Full-depth sections fall away. Furniture tips under native 3D
 physics and remains solid to players until it drops below chair height.
@@ -55,10 +61,12 @@ rounds. Final confetti returns to home after five seconds. Right advances early;
 Left returns home. Held keys must be released between screens.
 
 Customisation offers Hat, Top and Colour. Hats include Traffic Cone, Top Hat, Cap,
-Mohawk, Glasses, Bald Side Hair, Hot Dog Hat and
-Construction Helmet. Tops include JPMorgan, Hoodie, JPMorgan Hoodie,
-T-shirt, Tank Top and High Vis Vest. Hats and tops default to None, colour to
-Random; choices persist locally. Settings contains only anti-aliasing and shadows.
+Mohawk, Glasses, Bald Side Hair, Hot Dog Hat, Construction Helmet, Beanie, Bucket Hat,
+Crown, Party Hat, Wizard Hat, Chef Hat, Propeller Cap, Headphones, Bunny Ears, Halo and
+Sunglasses. Tops include JPMorgan, Hoodie, JPMorgan Hoodie, T-shirt, Tank Top, High Vis
+Vest, Puffer Vest, Waistcoat, Fleece Vest, Tie, Bow Tie and Scarf. Tops stop above the
+lap and never cover the legs. Hats and tops default to None, colour to Random; choices
+persist locally. Settings contains only anti-aliasing and shadows.
 
 ## Repository layout
 

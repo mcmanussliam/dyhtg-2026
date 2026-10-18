@@ -60,7 +60,11 @@ validates closed surfaces; no mesh baking runs during play.
 
 Colour uniforms use `source_color`;
 `CosmeticColours` supplies saturated garment colours and contrasting logo ink.
-Keep attribution beside third-party artwork. New hats register in `CharacterHats`.
+Keep attribution beside third-party artwork. New hats append to `CharacterHats.IDS`
+and `NAMES`; never reorder or rename IDs, since profiles store them. New garment kinds
+take the next unused `CharacterSkin.Garment` number. Keep tops above the lap: the
+forearms rest along the thighs, so leg coverage clips. Run
+`tests/character/test_cosmetic_matrix.gd`, which builds every hat with every top.
 
 Home, gameplay, falls, roster and scores all consume appearance snapshots through
 `ChairModel`. Meshes/shaders are shared immutable data; materials are instance-owned.

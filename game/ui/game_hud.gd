@@ -20,7 +20,7 @@ func _process(_delta: float) -> void:
 
 
 func _draw() -> void:
-	_text("PLEASE REMAIN SEATED", Vector2(36, 39), 19, INK)
+	_text("DILLY DALLYING", Vector2(36, 39), 19, INK)
 	_text(
 		"PAUSED · Esc to resume" if paused else "PHYSICS TEST · AUTO SPRAY",
 		Vector2(913, 39),

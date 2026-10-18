@@ -11,8 +11,15 @@ static func build(parent: Node3D, skin: CharacterSkin, tint: Color) -> void:
 	var material := _material(skin, fabric, skin.chest_logo != null)
 	var clothing := ModelGeometry.instance(parent, skin.garment_mesh, Vector3.ZERO, material)
 	clothing.name = "Clothing"
-	if skin.garment != CharacterSkin.Garment.HOODIE:
-		return
+	if skin.garment == CharacterSkin.Garment.HOODIE:
+		_hoodie_details(parent, skin, fabric, tint)
+	elif skin.garment == CharacterSkin.Garment.BOW_TIE:
+		_bow_tie(parent, fabric, tint)
+
+
+static func _hoodie_details(
+	parent: Node3D, skin: CharacterSkin, fabric: Color, tint: Color
+) -> void:
 	var root := Node3D.new()
 	root.name = "GarmentDetails"
 	parent.add_child(root)
@@ -39,6 +46,26 @@ static func build(parent: Node3D, skin: CharacterSkin, tint: Color) -> void:
 			ModelGeometry.capsule(root, points[index], points[index + 1], 0.008, cord)
 		ModelGeometry.capsule(root, points[-1], points[-1] + Vector3(0, -0.022, 0.002), 0.009, tips)
 	StaticModelBatcher.merge_direct(root, [&"hoodie_details", tint])
+
+
+static func _bow_tie(parent: Node3D, fabric: Color, tint: Color) -> void:
+	# The baked collar band carries a separate bow, centred below the face panel.
+	var root := Node3D.new()
+	root.name = "GarmentDetails"
+	parent.add_child(root)
+	var bow := ModelGeometry.material(fabric, 0, 0.85)
+	for side in [-1.0, 1.0]:
+		var wing := ModelGeometry.ellipsoid(
+			root, Vector3(side * 0.052, 0.742, 0.258), Vector3(0.054, 0.036, 0.021), bow
+		)
+		wing.rotation.z = side * 0.12
+	ModelGeometry.ellipsoid(
+		root,
+		Vector3(0, 0.742, 0.268),
+		Vector3(0.020, 0.024, 0.017),
+		ModelGeometry.material(fabric.darkened(0.15), 0, 0.85)
+	)
+	StaticModelBatcher.merge_direct(root, [&"bow_tie_details", tint])
 
 
 static func _material(skin: CharacterSkin, fabric: Color, logo: bool) -> ShaderMaterial:
