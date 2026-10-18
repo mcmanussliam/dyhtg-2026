@@ -95,6 +95,7 @@ func run(tree: SceneTree, check: Callable) -> void:
 	await _test_cancelled_transitions(tree, check)
 	await _test_startup_ramp(tree, check)
 	await _test_ramped_push(tree, check)
+	await _test_speed_progression(tree, check)
 
 
 func _test_match_lifetime(tree: SceneTree, check: Callable) -> void:
@@ -259,4 +260,79 @@ func _test_ramped_push(tree: SceneTree, check: Callable) -> void:
 	)
 	source.queue_free()
 	target.queue_free()
+	await tree.process_frame
+
+
+func _test_speed_progression(tree: SceneTree, check: Callable) -> void:
+	var config := MatchConfig.new()
+	config.player_count = 3
+	var state := MatchState.new()
+	state.configure(config)
+	var round_scene := ROUND.instantiate() as RoundController
+	round_scene.configure(state.participants, STAGE, 1, 5)
+	tree.root.add_child(round_scene)
+	round_scene.set_physics_process(false)
+	var mirror := ROUND.instantiate() as RoundController
+	mirror.mirror = true
+	mirror.configure(state.participants, STAGE, 1, 5)
+	tree.root.add_child(mirror)
+	mirror.set_physics_process(false)
+	var original := round_scene.chairs[0].tuning.thrust
+	var maximum := round_scene.chairs[0].tuning.maximum_speed
+	var torque := round_scene.chairs[0].tuning.steering_torque
+	var default_tuning := load("res://game/chair/default_tuning.tres") as ChairTuning
+	var shared_thrust := default_tuning.thrust
+	round_scene.begin_live()
+	round_scene._physics_process(0.0)
+	check.call(
+		round_scene.chairs[0].tuning.thrust == original,
+		"Rounds start at the original movement speed"
+	)
+	round_scene._elapsed = round_scene.startup_duration + RoundController.SPEED_RAMP_SECONDS * 0.5
+	round_scene._physics_process(0.0)
+	check.call(
+		round_scene.chairs.all(
+			func(chair: Chair) -> bool:
+				return (
+					is_equal_approx(chair.tuning.thrust, original * 1.5)
+					and is_equal_approx(chair.tuning.maximum_speed, maximum * 1.5)
+				)
+		),
+		"Human and AI propulsion and top speed grow together during the round"
+	)
+	check.call(
+		(
+			round_scene.chairs[0].tuning.steering_torque == torque
+			and round_scene.chairs[0].jet_strength <= 1.0
+		),
+		"Movement progression preserves steering and the opening jet curve"
+	)
+	mirror.apply_net_snapshot(round_scene.net_snapshot())
+	check.call(
+		mirror.chairs[0].tuning.maximum_speed == maximum * 1.5,
+		"Clients adopt the host's increased movement limit"
+	)
+	round_scene._elapsed = round_scene.startup_duration + RoundController.SPEED_RAMP_SECONDS * 4.0
+	round_scene._physics_process(0.0)
+	check.call(
+		round_scene.chairs[0].tuning.maximum_speed == maximum * 2.0,
+		"Long rounds cap movement speed at twice its original value"
+	)
+	check.call(
+		default_tuning.thrust == shared_thrust,
+		"Round speed progression never changes the shared chair resource"
+	)
+	var fresh := ROUND.instantiate() as RoundController
+	fresh.configure(state.participants, STAGE, 2, 5)
+	tree.root.add_child(fresh)
+	fresh.set_physics_process(false)
+	check.call(
+		(
+			fresh.chairs[0].tuning.thrust == original
+			and fresh.chairs[0].tuning.maximum_speed == maximum
+		),
+		"The next round resets every chair to its original movement speed"
+	)
+	for node in [round_scene, mirror, fresh]:
+		node.free()
 	await tree.process_frame

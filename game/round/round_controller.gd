@@ -13,6 +13,9 @@ signal fast_forward_requested(held: bool)
 enum Phase { INTRO, LIVE, RESOLVING, FINISHED }
 
 const CHAIR_SCENE = preload("res://game/chair/chair.tscn")
+## After the opening jet ramp, movement doubles over a minute of live round time.
+const SPEED_RAMP_SECONDS := 60.0
+const MAX_SPEED_MULTIPLIER := 2.0
 
 var chairs: Array[Chair] = []
 var stage: ArenaStage
@@ -48,6 +51,8 @@ var _intro_background: ColorRect
 var _warming_rendering := false
 var _snapshot := RoundSnapshot.new()
 var _net_fast_forward_available := false
+var _base_movement: Array[Vector2] = []
+var _speed_multiplier := 1.0
 
 
 func configure(
@@ -80,6 +85,9 @@ func _ready() -> void:
 		chair.skin = participant.get("skin", SkinCatalog.default_definition())
 		chair.hat_id = participant.get("hat_id", &"none")
 		chair.resize_for_stage(stage.content_scale)
+		# Each seat owns its movement tuning; do not modify the shared resource.
+		chair.tuning = chair.tuning.duplicate() as ChairTuning
+		_base_movement.append(Vector2(chair.tuning.thrust, chair.tuning.maximum_speed))
 		var pose := poses[participant.id]
 		chair.configure(participant.id, participant.colour, Vector2.from_angle(pose.get_rotation()))
 		chair.prepare_round()
@@ -173,6 +181,8 @@ func _physics_process(delta: float) -> void:
 		if _elapsed >= intro_duration and not _warming_rendering:
 			begin_live()
 	elif phase == Phase.LIVE:
+		var progress := clampf((_elapsed - startup_duration) / SPEED_RAMP_SECONDS, 0.0, 1.0)
+		_apply_speed_multiplier(lerpf(1.0, MAX_SPEED_MULTIPLIER, progress))
 		if not _steering_held():
 			_input_ready = true
 		for chair in chairs:
@@ -204,6 +214,13 @@ func _physics_process(delta: float) -> void:
 	elif phase == Phase.RESOLVING and _elapsed >= resolve_duration:
 		_finish()
 		completed.emit(round_id, _winner)
+
+
+func _apply_speed_multiplier(multiplier: float) -> void:
+	_speed_multiplier = clampf(multiplier, 1.0, MAX_SPEED_MULTIPLIER)
+	for index in chairs.size():
+		chairs[index].tuning.thrust = _base_movement[index].x * _speed_multiplier
+		chairs[index].tuning.maximum_speed = _base_movement[index].y * _speed_multiplier
 
 
 func _finish() -> void:
@@ -321,6 +338,7 @@ func net_snapshot() -> Dictionary:
 	var packed := _snapshot.capture_chairs(chairs)
 	var payload := {
 		"r": round_id,
+		"speed": _speed_multiplier,
 		"fast_forward_available": _can_fast_forward(),
 		"fast_forward": is_fast_forwarding(),
 		"p": phase,
@@ -341,6 +359,7 @@ func apply_net_snapshot(payload: Dictionary) -> void:
 	var flags: PackedByteArray = payload.get("f", PackedByteArray())
 	if values.size() != chairs.size() * RoundSnapshot.CHAIR_FLOATS or flags.size() != chairs.size():
 		return
+	_apply_speed_multiplier(float(payload.get("speed", 1.0)))
 	_net_fast_forward_available = bool(payload.get("fast_forward_available", false))
 	var host_phase: int = payload.get("p", Phase.INTRO)
 	if phase == Phase.INTRO:
