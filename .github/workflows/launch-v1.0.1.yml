@@ -1,0 +1,20 @@
+# One-time release launcher. It runs only when this file itself changes on main.
+name: Launch DYHTG v1.0.1 release
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/launch-v1.0.1.yml'
+permissions:
+  actions: write
+jobs:
+  launch:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Dispatch desktop builds
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST \
+            repos/${{ github.repository }}/actions/workflows/desktop-release.yml/dispatches \
+            -f ref=main -f inputs[tag]=v1.0.1
