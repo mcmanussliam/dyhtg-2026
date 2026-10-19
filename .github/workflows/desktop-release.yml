@@ -1,0 +1,145 @@
+name: Build and publish desktop packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'New release tag (for example v1.0.1). Do not reuse v1.'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-x64
+            os: ubuntu-24.04
+            preset: Windows Desktop
+          - platform: macos-universal
+            os: macos-15
+            preset: macOS
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install pinned Godot and export templates
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: '4.7.2'
+          use-dotnet: false
+          include-templates: true
+
+      - name: Import project resources
+        run: godot --headless --editor --path . --import --quit
+
+      - name: Export Windows x64
+        if: matrix.platform == 'windows-x64'
+        run: |
+          mkdir -p dist/windows
+          godot --headless --path . --export-release "Windows Desktop" "dist/windows/Dilly Dallying.exe"
+          test -s "dist/windows/Dilly Dallying.exe"
+          cd dist/windows
+          zip -9 -r ../Dilly-Dallying-Windows-x64.zip .
+        shell: bash
+
+      - name: Export macOS universal DMG (ad-hoc signed)
+        if: matrix.platform == 'macos-universal'
+        run: |
+          # The repository preset uses Xcode certificate signing without a configured
+          # identity. Switch to Godot's built-in ad-hoc signing for unsigned CI builds.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("export_presets.cfg")
+          s = p.read_text()
+          assert "codesign/codesign=3" in s
+          p.write_text(s.replace("codesign/codesign=3", "codesign/codesign=1", 1))
+          PY
+          mkdir -p dist
+          godot --headless --path . --export-release "macOS" "dist/Dilly-Dallying-macOS-universal.dmg"
+          test -s "dist/Dilly-Dallying-macOS-universal.dmg"
+        shell: bash
+
+      - name: Verify and checksum packaged downloads
+        run: |
+          cd dist
+          if [ "${{ matrix.platform }}" = windows-x64 ]; then
+            shasum -a 256 "Dilly-Dallying-Windows-x64.zip" > SHA256SUMS-windows-x64.txt
+          else
+            shasum -a 256 "Dilly-Dallying-macOS-universal.dmg" > SHA256SUMS-macos-universal.txt
+          fi
+        shell: bash
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.platform }}
+          path: |
+            dist/*.zip
+            dist/*.dmg
+            dist/SHA256SUMS-*.txt
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish GitHub Release
+    runs-on: ubuntu-24.04
+    needs: build
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Validate tag
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "Use a version tag such as v1.0.1"; exit 1; }
+        shell: bash
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Check release artifacts
+        run: |
+          test -s release-assets/Dilly-Dallying-Windows-x64.zip
+          test -s release-assets/Dilly-Dallying-macOS-universal.dmg
+          cd release-assets
+          shasum -a 256 -c SHA256SUMS-windows-x64.txt
+          shasum -a 256 -c SHA256SUMS-macos-universal.txt
+
+      - name: Publish only after both builds pass
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          body: |
+            Desktop downloads for Dilly Dallying:
+            - **Windows x64:** Download the ZIP, extract the entire folder, and launch the EXE. Keep the PCK file next to it if included.
+            - **macOS (Intel + Apple Silicon):** Download and open the DMG, then copy the game into Applications.
+
+            SHA-256 checksum files are attached to verify downloads.
+            **Signing status:** Windows is unsigned and may show SmartScreen; macOS is ad-hoc signed, not Apple-notarized, and may display Gatekeeper warnings. Code signing and Apple notarization require developer certificates/secrets and are not bypassed by this workflow.
+          files: |
+            release-assets/Dilly-Dallying-Windows-x64.zip
+            release-assets/Dilly-Dallying-macOS-universal.dmg
+            release-assets/SHA256SUMS-windows-x64.txt
+            release-assets/SHA256SUMS-macos-universal.txt
